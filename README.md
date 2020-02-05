@@ -53,7 +53,7 @@ Usage:
   ] <args>
 ```
 
-The first four commands are required for transforming the input datasets into the internal format that is used by the algorithm.
+The first four commands are required for transforming the input datasets into the internal format that is used by D4.
 
 ### Data Preparation
 
@@ -184,3 +184,7 @@ export
   --domains=<file> [default: 'strong-domains.txt.gz']
   --output=<direcory> [default: 'domains']
 ```
+
+## Example Datasets
+
+We evaluated D4 using three collections of data from [New York City](https://opendata.cityofnewyork.us/), and one collection of data from the [State of Utah](https://opendata.utah.gov/). Both datasets were downloaded from the [Socrata API](http://api.us.socrata.com/api/catalog/v1). We will make the datasets available online soon.
