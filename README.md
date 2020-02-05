@@ -3,6 +3,8 @@ Data-Driven Domain Discovery (D4)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+[![DOI](https://zenodo.org/badge/238518915.svg)](https://zenodo.org/badge/latestdoi/238518915)
+
 
 ## About
 
