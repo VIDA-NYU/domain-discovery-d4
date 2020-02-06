@@ -185,6 +185,14 @@ export
   --output=<direcory> [default: 'domains']
 ```
 
-## Example Datasets
+## Evaluation Datasets
 
-We evaluated D4 using three collections of data from [New York City](https://opendata.cityofnewyork.us/), and one collection of data from the [State of Utah](https://opendata.utah.gov/). Both datasets were downloaded from the [Socrata API](http://api.us.socrata.com/api/catalog/v1). We will make the datasets available online soon.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3647613.svg)](https://doi.org/10.5281/zenodo.3647613) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3647642.svg)](https://doi.org/10.5281/zenodo.3647642) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3647647.svg)](https://doi.org/10.5281/zenodo.3647647) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3647651.svg)](https://doi.org/10.5281/zenodo.3647651) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3647656.svg)](https://doi.org/10.5281/zenodo.3647656)
+
+We evaluated D4 using three collections of data from [New York City](https://opendata.cityofnewyork.us/), and one collection of data from the [State of Utah](https://opendata.utah.gov/). Both datasets were downloaded from the [Socrata API](http://api.us.socrata.com/api/catalog/v1). We are making the data available as five different repositories:
+
+- [Processed Evaluation Data and Ground Truth Domains](https://doi.org/10.5281/zenodo.3647613): This repository contains the equivalence class files for all four dataset that we used to evaluate D4 together with the ground truth domains.
+- [NYC Open Datasets - Education](https://doi.org/10.5281/zenodo.3647642): Downloaded tab-delimited data files for tables in the Education dataset (downloaded on 2016-11-22).
+- [NYC Open Datasets - Finance](https://doi.org/10.5281/zenodo.3647647): Downloaded tab-delimited data files for tables in the Finance dataset (downloaded on 2016-11-22).
+- [NYC Open Datasets - Services](https://doi.org/10.5281/zenodo.3647651): Downloaded tab-delimited data files for tables in the Services dataset (downloaded on 2016-11-22).
+- [Utah Open](https://doi.org/10.5281/zenodo.3647656): Downloaded tab-delimited data files for tables in the State of Utah dataset (downloaded on 2019-09-27).
