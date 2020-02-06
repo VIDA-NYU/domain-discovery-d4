@@ -1,5 +1,5 @@
 Data-Driven Domain Discovery (D4)
-=====================
+=================================
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![DOI](https://zenodo.org/badge/238518915.svg)](https://zenodo.org/badge/latestdoi/238518915)
 
@@ -9,6 +9,8 @@ Data-Driven Domain Discovery (D4)
 D4 implements a data-driven domain discovery approach for collections of related tabular (structured) datasets. Given collection of datasets, D4 outputs  a set of domains discovered from the collection in a holistic fashion, by taking all the data into account.
 
 Similar to word embedding methods such as Word2Vec, D4 gathers contextual information for terms. But unlike these methods which aim to build context for terms in unstructured text, we aim to capture context for terms within columns in a set of tables. The intuition is that terms from the same domain frequently occur together in columns or at least with similar sets of terms. 
+
+Note: This repository merges the relevant parts of previously separated repositories [urban-data-core](https://github.com/VIDA-NYU/urban-data-core) and [urban-data-db](https://github.com/VIDA-NYU/urban-data-db).
 
 
 ## Installation
@@ -24,7 +26,7 @@ cp target/D4-jar-with-dependencies.jar /home/user/lib/D4.jar
 
 ## Domain Discovery Pipeline
 
-The D4 algorithm operates on a set of CSV or tab-delimited TSV files. All input files are expected within a single directory. D4 will consider all files in that directory with suffix `.csv`, `.csv.gz`, `.tsv`, or `.tsv.gz`. The first line in each file is expected to contain the column names. The `D4.jar` file supports nine different commands:
+The D4 algorithm operates on a set of CSV files. All input files are currently expected within a single directory. D4 will consider all files in the directory with suffix `.csv`, `.csv.gz`, `.tsv`, or `.tsv.gz`. Files with suffix `.csv` or `.csv.gz` are expected to be comma-separated files. Files with suffix `.tsv` or `.tsv.gz` are expected to be tab-delimited files. The first line in each file is expected to contain the column header. The `D4.jar` file supports nine different commands:
 
 ```
 $> java -jar /home/user/lib/D4.jar --help
