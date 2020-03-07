@@ -15,16 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.similarity.column;
 
 /**
- * D4 constant declarations.
+ * Consumer interface for the column overlap computer.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface ColumnOverlapConsumer {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.27.1";
+    /**
+     * Process overlap for a given pair of columns.
+     * 
+     * @param colI
+     * @param colJ
+     * @param overlap 
+     */
+    public void consume(int colI, int colJ, int overlap);
 }

@@ -15,16 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.similarity.column;
+
+import java.io.PrintWriter;
 
 /**
- * D4 constant declarations.
+ * Writer for column pair overlap. Outputs column identifier and overlap for
+ * pairs of columns that have at least one term in common.
+ * 
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class ColumnOverlapWriter implements ColumnOverlapConsumer {
+
+    private final PrintWriter _out;
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    public ColumnOverlapWriter(PrintWriter out) {
+        
+        _out = out;
+    }
     
-    public static final String VERSION = "0.27.1";
+    @Override
+    public void consume(int colI, int colJ, int overlap) {
+        
+        if (overlap > 0) {
+            synchronized(this) {
+                _out.println(colI + "\t" + colJ + "\t" + overlap);
+            }
+        }
+    }
 }
