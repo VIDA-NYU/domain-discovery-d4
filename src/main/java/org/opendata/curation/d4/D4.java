@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4;
 
+import java.io.BufferedWriter;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import java.io.File;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.column.ExpandedColumnStats;
@@ -44,6 +47,10 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.domain.Domain;
+import org.opendata.curation.d4.domain.StrongDomain;
+import org.opendata.curation.d4.domain.StrongDomainReader;
+import org.opendata.curation.d4.domain.StrongDomainWriter;
 import org.opendata.curation.d4.export.DomainsExportWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksIndex;
 import org.opendata.curation.d4.signature.SignatureBlocksIndexFactory;
@@ -95,7 +102,6 @@ public class D4 {
         ExpandedColumnStats colStats = new ExpandedColumnStats();
         new ExpandedColumnReader(outputFile).stream(colStats);
         colStats.print();
-
     }
     
     public void localDomains(
@@ -127,7 +133,7 @@ public class D4 {
     
     }
     
-    public void signatures(
+    public SignatureBlocksIndex signatures(
             EQIndex nodeIndex,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
@@ -149,10 +155,14 @@ public class D4 {
                 sigBlocksIndex
         );
 
-        new SignatureBlocksWriter(outputFile).write(sigBlocksIndex.signatures());
+        if (outputFile != null) {
+            new SignatureBlocksWriter(outputFile).write(sigBlocksIndex.signatures());
+        }
         SignatureBlocksStats sigStats = new SignatureBlocksStats();
         sigBlocksIndex.signatures().stream(sigStats);
         sigStats.print();
+        
+        return sigBlocksIndex.signatures();
     }
     
     public void strongDomains(
@@ -167,20 +177,32 @@ public class D4 {
         
         System.out.println("\n-- STRONG DOMAINS\n");
 
+        IdentifiableObjectSet localDomains;
+        localDomains =new DomainReader(localDomainFile).read();
         new StrongDomainGenerator(telemetry).run(
                 nodeIndex,
-                new DomainReader(localDomainFile).read().toList(),
+                localDomains,
                 domainOverlapConstraint,
                 Threshold.getConstraint("GT0.1"),
                 supportFraction,
                 true,
                 threads,
-                new DomainWriter(outputFile)
+                new StrongDomainWriter(outputFile, localDomains)
         );
 
-        DomainSetStatsPrinter strongStats = new DomainSetStatsPrinter();
-        new DomainReader(outputFile).stream(strongStats);
-        strongStats.print();
+        DomainSetStatsPrinter statsPrinter = new DomainSetStatsPrinter();
+        statsPrinter.open();
+        for (StrongDomain domain : new StrongDomainReader(outputFile).read()) {
+            statsPrinter.consume(
+                    new Domain(
+                            domain.id(),
+                            domain.members().keys(),
+                            domain.columns()
+                    )
+            );
+        }
+        statsPrinter.close();
+        statsPrinter.print();
     }
     
     /**
@@ -252,11 +274,13 @@ public class D4 {
             File outputFile = params.getAsFile("metadata", "columns.tsv");
             boolean toUpper = params.getAsBool("toupper", true);
             File outputDir = params.getAsFile("output", "columns");
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
+            try (BufferedWriter out = FileSystem.openBufferedWriter(outputFile)) {
+                CSVPrinter csvPrinter = new CSVPrinter(out, CSVFormat.TDF);
                 List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
                         .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, toUpper).run(files);
-            } catch (java.lang.InterruptedException | java.io.IOException ex) {
+                new Dataset2ColumnsConverter(outputDir, csvPrinter, toUpper)
+                        .run(files);
+            } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
                 System.exit(-1);
             }

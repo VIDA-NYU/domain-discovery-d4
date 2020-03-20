@@ -18,64 +18,151 @@
 package org.opendata.db.eq;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import org.opendata.core.set.HashIDSet;
-import org.opendata.core.util.count.Counter;
+import java.util.List;
+import org.opendata.core.util.StringHelper;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermConsumer;
 
 /**
  * Compress a term index into a set of equivalence classes.
  * 
- * The observeFrequencies flag determines if equivalence classes will
- * contain terms that always occur together in the same columns without
- * considering their frequency of occurrence or whether frequencies are
- * taken into account, i.e., the terms occur in the same columns always with
- * the same frequency.
+ * Each equivalence class has a unique identifier, a list of identifier for the
+ * terms that belong to the equivalence class, and the list of identifier for
+ * columns the equivalence class occurs in.
+ * 
+ * In some cases, the number of terms in the equivalence class can be huge.
+ * To avoid having to load massive sets of term identifier the number of
+ * identifier that are stored for each equivalence class can be limited by
+ * the size limit parameter. In this case every equivalence class will maintain
+ * at most the number of terms specified by the limit. The term count property
+ * will still list the total number of terms that belong to the equivalence
+ * class. Use the term count instead of the length of the term set as the
+ * correct value for the size of an equivalence class.
  * 
  */
 public class CompressedTermIndexGenerator implements TermConsumer {
 
-    private final Counter _counter;
-    private HashMap<String, MutableEQ> _eqIndex = null;
+    /**
+     * Helper class that maintains a total count of terms belonging to a
+     * equivalence class as well as the term identifier. The class maintains
+     * term identifier only up to a given limit. All other terms are counted
+     * but their identifier are not maintained.
+     */
+    private class TermIDSet {
+        
+        private final int _limit;
+        private int _size;
+        private final List<Integer> _terms;
+        
+        public TermIDSet(int termId, int limit) {
+            
+            _limit = limit;
+            
+            _terms = new ArrayList<>();
+            _terms.add(termId);
+            
+            _size = 1;
+        }
+        
+        public void add(int termId) {
+            
+            if (_terms.size() < _limit) {
+                _terms.add(termId);
+            }
+            _size++;
+        }
+        
+        public List<Integer> toSortedList() {
+            
+            Collections.sort(_terms);
+            return _terms;
+        }
+        
+        public int size() {
+            
+            return _size;
+        }
+    }
+    
+    private final String _domain;
+    private HashMap<Integer, HashMap<String, TermIDSet>> _eqIndex = null;
     private final PrintWriter _out;
+    private final int _sizeLimit;
+    private int _termCount = 0;
 
-    public CompressedTermIndexGenerator(PrintWriter out) {
+    public CompressedTermIndexGenerator(PrintWriter out, String domain, int sizeLimit) {
 
         _out = out;
-
+        _domain = domain;
+        _sizeLimit = sizeLimit;
+        
         _eqIndex = new HashMap<>();
-        _counter = new Counter(0);
     }
 
+    public CompressedTermIndexGenerator(PrintWriter out) {
+        
+        this(out, null, Integer.MAX_VALUE);
+    }
+    
     @Override
     public void close() {
 
-        for (MutableEQ eq : _eqIndex.values()) {
-            eq.write(_out);
+        int counter = 0;
+        
+        for (HashMap<String, TermIDSet> bucket : _eqIndex.values()) {
+            for (String columns : bucket.keySet()) {
+                TermIDSet terms = bucket.get(columns);
+                _out.print(counter + "\t");
+                _out.print(terms.size() + "\t");
+                boolean isFirst = true;
+                for (int termId : terms.toSortedList()) {
+                    if (isFirst) {
+                        _out.print(termId);
+                        isFirst = false;
+                    } else {
+                        _out.print("," + termId);
+                    }
+                }
+                _out.println("\t" + columns);
+                counter++;
+            }
         }
 
-        System.out.println("NUMBER OF EQUIVALENCE CLASSES IS " + _eqIndex.size());
+        if (_domain != null) {
+            System.out.println(_domain + "\t" + _termCount + "\t" + counter);
+        } else {
+            System.out.println(_termCount + "\t" + counter);
+        }
     }
 
     @Override
     public void consume(Term term) {
 
-        String key = term.columns().toIntString();
-        if (_eqIndex.containsKey(key)) {
-            _eqIndex.get(key).add(term);
+        List<Integer> values = term.columns().toSortedList();
+        int index = values.get(0);
+        String key =  StringHelper.joinIntegers(values);
+        
+        if (_eqIndex.containsKey(index)) {
+            HashMap<String, TermIDSet> bucket = _eqIndex.get(index);
+            if (bucket.containsKey(key)) {
+                bucket.get(key).add(term.id());
+            } else {
+                bucket.put(key, new TermIDSet(term.id(), _sizeLimit));
+            }
         } else {
-            HashIDSet terms = new HashIDSet();
-            terms.add(term.id());
-            _eqIndex.put(
-                    key,
-                    new MutableEQ(_counter.inc(), term)
-            );
+            HashMap<String, TermIDSet> bucket = new HashMap<>();
+            bucket.put(key, new TermIDSet(term.id(), _sizeLimit));
+            _eqIndex.put(index, bucket);
         }
+        _termCount++;
     }
 
     @Override
     public void open() {
 
+        _termCount = 0;
     }
 }

@@ -47,7 +47,7 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
         IdentifiableCounterSet columns = new IdentifiableCounterSet();
         for (EQ node : this) {
             for (int columnId : node.columns()) {
-                columns.inc(columnId, node.terms().length());
+                columns.inc(columnId, node.termCount());
             }
         }
         
@@ -83,7 +83,7 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
         if (_nodeSizes == null) {
             _nodeSizes = new int[this.getMaxId() + 1];
             for (EQ node : this) {
-                _nodeSizes[node.id()] = node.terms().length();
+                _nodeSizes[node.id()] = node.termCount();
             }
         }
         return _nodeSizes;

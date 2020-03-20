@@ -17,7 +17,6 @@
  */
 package org.opendata.db.term;
 
-import java.io.PrintWriter;
 import org.opendata.core.object.Entity;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.ImmutableIDSet;
@@ -54,6 +53,12 @@ public class Term extends Entity implements EQ {
         return new ImmutableIDSet(this.id());
     }
 
+    @Override
+    public int termCount() {
+        
+        return 1;
+    }
+    
     /**
      * The data type of the term value.
      * 
@@ -62,15 +67,5 @@ public class Term extends Entity implements EQ {
     public DataType type() {
         
         return new DefaultDataTypeAnnotator().getType(this.name());
-    }
-
-    @Override
-    public void write(PrintWriter out) {
-
-        out.println(
-                this.id() + "\t" +
-                this.name() + "\t" +
-                this.columns().toIntString()
-        );
     }
 }

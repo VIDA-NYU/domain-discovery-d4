@@ -43,7 +43,7 @@ public class Column extends MutableIdentifiableIDSet {
         
         int count = 0;
         for (int nodeId : this) {
-            count += nodes.get(nodeId).terms().length();
+            count += nodes.get(nodeId).termCount();
         }
         return count;
     }

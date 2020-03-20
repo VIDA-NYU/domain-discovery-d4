@@ -70,7 +70,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <mainClass>org.opendata.curation.d4.DiscoverDomains</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

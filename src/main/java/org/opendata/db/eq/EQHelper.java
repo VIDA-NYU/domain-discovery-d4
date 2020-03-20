@@ -35,7 +35,7 @@ public class EQHelper {
         
         int size = 0;
         for (int nodeId : set) {
-            size += nodes.get(nodeId).terms().length();
+            size += nodes.get(nodeId).termCount();
         }
         return size;
     }
@@ -73,7 +73,7 @@ public class EQHelper {
         int overlap = 0;
         for (int nodeId : block2) {
             if (block1.contains(nodeId)) {
-                overlap += nodes.get(nodeId).terms().length();
+                overlap += nodes.get(nodeId).termCount();
             }
         }
         return overlap;

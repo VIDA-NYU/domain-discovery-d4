@@ -18,6 +18,7 @@
 package org.opendata.core.io;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -210,6 +211,19 @@ public final class FileSystem {
         
         return files;
     }
+    
+    /**
+     * Open a buffered writer for output to a given file.
+     * 
+     * @param file
+     * @return
+     * @throws java.io.IOException 
+     */
+    public static BufferedWriter openBufferedWriter(File file) throws java.io.IOException {
+        
+        return new BufferedWriter(new OutputStreamWriter(openOutputFile(file)));
+    }
+    
     
     /**
      * Returns an input stream for the given file.

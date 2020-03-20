@@ -17,11 +17,8 @@
  */
 package org.opendata.db.eq;
 
-import java.io.PrintWriter;
 import org.opendata.core.object.IdentifiableObjectImpl;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.ImmutableIDSet;
 
 /**
  * An equivalence class is an identifiable set of terms. All terms in the
@@ -33,42 +30,26 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     
     private final IDSet _columns;
     private final IDSet _terms;
+    private final int _termCount;
     
-    public EQImpl(int id, IDSet terms, IDSet columns) {
+    public EQImpl(int id, IDSet terms, int termCount, IDSet columns) {
         
         super(id);
         
         _terms = terms;
+        _termCount = termCount;
         _columns = columns;
     }
-
-    public EQImpl(String[] tokens) {
-
-        this(
-                Integer.parseInt(tokens[0]),
-                new ImmutableIDSet(tokens[1]),
-                parseColumnList(tokens[2])
-        );
+    
+    public EQImpl(int id, IDSet terms, IDSet columns) {
+        
+        this(id, terms, terms.length(), columns);
     }
     
     @Override
     public IDSet columns() {
         
         return _columns;
-    }
-    
-    private static IDSet parseColumnList(String list) {
-    
-        HashIDSet columns = new HashIDSet();
-        
-        for (String token : list.split(",")) {
-            if (token.contains(":")) {
-                columns.add(Integer.parseInt(token.substring(0, token.indexOf(":"))));
-            } else {
-                columns.add(Integer.parseInt(token));
-            }
-        }
-        return columns;
     }
     
     @Override
@@ -78,12 +59,8 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     }
     
     @Override
-    public void write(PrintWriter out) {
+    public int termCount() {
         
-        out.println(
-                this.id() + "\t" +
-                this.terms().toIntString() + "\t" +
-                this.columns().toIntString()
-        );
+        return _termCount;
     }
 }

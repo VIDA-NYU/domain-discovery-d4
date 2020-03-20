@@ -44,7 +44,6 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
@@ -197,8 +196,6 @@ public class ParallelColumnExpander {
         Date start = new Date();
         System.out.println("START @ " + start);
         
-        new MemUsagePrinter().print();
-        
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             ExpanderTask expander = new ExpanderTask(
@@ -226,8 +223,6 @@ public class ParallelColumnExpander {
         _telemetry.add(TELEMETRY_ID, execTime);
         
         System.out.println("END @ " + end);
-        
-        new MemUsagePrinter().print();
     }
     
     private static final String ARG_COLUMNS = "columns";

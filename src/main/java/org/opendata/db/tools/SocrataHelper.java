@@ -15,16 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.db.tools;
+
+import java.io.File;
+import java.io.InputStreamReader;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.opendata.core.io.FileSystem;
 
 /**
- * D4 constant declarations.
+ * Collection of helper methods for Socrata dataset files.
+ * 
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public final class SocrataHelper {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.28.0.dev03";
+    public static CSVParser tsvParser(File file) throws java.io.IOException {
+        
+        return new CSVParser(
+                new InputStreamReader(FileSystem.openFile(file)),
+                CSVFormat.TDF
+                        .withFirstRecordAsHeader()
+                        .withIgnoreHeaderCase()
+                        .withIgnoreSurroundingSpaces(false)
+        );
+    }
 }

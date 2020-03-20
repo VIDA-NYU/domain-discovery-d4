@@ -48,6 +48,8 @@ public class ExpandedColumnWriter implements ExpandedColumnConsumer {
         if (_openCount == 0) {
             _out.close();
             _out = null;
+        } else {
+            _out.flush();
         }
     }
 

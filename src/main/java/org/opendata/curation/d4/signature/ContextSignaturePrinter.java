@@ -98,7 +98,7 @@ public class ContextSignaturePrinter {
             columnNodes = column.toArray();
             nodeSizes = eqIndex.nodeSizes();
             for (int n : column) {
-                columnSize += eqIndex.get(n).terms().length();
+                columnSize += eqIndex.get(n).termCount();
             }
             scores = new ArrayList<>();
         }
@@ -118,7 +118,7 @@ public class ContextSignaturePrinter {
             for (int iEl = start; iEl < pruneIndex; iEl++) {
                 SignatureValue el = sig.get(iEl);
                 block[iEl - start] = el.id();
-                termCount += eqIndex.get(el.id()).terms().length();
+                termCount += eqIndex.get(el.id()).termCount();
             }
             blocks.add(block);
             Arrays.sort(block);

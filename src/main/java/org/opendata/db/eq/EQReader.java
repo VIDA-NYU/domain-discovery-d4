@@ -20,8 +20,11 @@ package org.opendata.db.eq;
 import java.io.BufferedReader;
 import java.io.File;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
+import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.set.ImmutableIDSet;
 
 /**
  * Read a set of equivalence classes.
@@ -37,6 +40,42 @@ public class EQReader implements EQStream {
         _file = file;
     }
     
+    private EQ parseLine(String line) throws java.lang.IllegalArgumentException {
+        
+        String[] tokens = line.split("\t");
+        switch (tokens.length) {
+            case 3:
+                return new EQImpl(
+                        Integer.parseInt(tokens[0]),
+                        new ImmutableIDSet(tokens[1]),
+                        parseColumnList(tokens[2])
+                );
+            case 4:
+                return new EQImpl(
+                        Integer.parseInt(tokens[0]),
+                        new ImmutableIDSet(tokens[2]),
+                        Integer.parseInt(tokens[1]),
+                        parseColumnList(tokens[3])
+                );
+            default:
+                throw new java.lang.IllegalArgumentException(line);
+        }
+    }
+    
+    private IDSet parseColumnList(String list) {
+    
+        HashIDSet columns = new HashIDSet();
+        
+        for (String token : list.split(",")) {
+            if (token.contains(":")) {
+                columns.add(Integer.parseInt(token.substring(0, token.indexOf(":"))));
+            } else {
+                columns.add(Integer.parseInt(token));
+            }
+        }
+        return columns;
+    }
+        
     public IdentifiableObjectSet<EQ> read() throws java.io.IOException {
         
         HashObjectSet<EQ> result = new HashObjectSet<>();
@@ -46,7 +85,7 @@ public class EQReader implements EQStream {
             while ((line = in.readLine()) != null) {
                 line = line.trim();
                 if (!line.equals("")) {
-                    result.add(new EQImpl(line.split("\t")));
+                    result.add(this.parseLine(line));
                 }
             }
         }
@@ -64,7 +103,7 @@ public class EQReader implements EQStream {
             while ((line = in.readLine()) != null) {
                 line = line.trim();
                 if (!line.equals("")) {
-                    consumer.consume(new EQImpl(line.split("\t")));
+                    consumer.consume(this.parseLine(line));
                 }
             }
         } catch (java.io.IOException ex) {

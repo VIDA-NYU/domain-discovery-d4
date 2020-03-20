@@ -17,60 +17,16 @@
  */
 package org.opendata.db.tools;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.count.Counter;
-
 /**
- *
+ * Interface for column value handlers that are used to generate list of unique
+ * column values.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnHandler {
+public interface ColumnHandler {
     
-    private final PrintWriter _out;
-    private final HashMap<String, Counter> _terms;
-    private final boolean _toUpper;
-
-    public ColumnHandler(File file, boolean toUpper) throws java.io.IOException {
-
-        _out = FileSystem.openPrintWriter(file);
-        _terms = new HashMap<>();
-        _toUpper = toUpper;
-    }
-
-    public ColumnHandler() {
-
-        _out = null;
-        _terms = null;
-        _toUpper = false;
-    }
-
-    public void add(String value) {
-
-        String term = value;
-        if (_toUpper) {
-            term = term.toUpperCase();
-        }
-        
-        if (_out != null) {
-            if (!_terms.containsKey(term)) {
-                _terms.put(term, new Counter(1));
-            } else {
-                _terms.get(term).inc();
-            }
-        }
-    }
-
-    public void close() {
-
-        if (_out != null) {
-            for (String key : _terms.keySet()) {
-                String term = key.replaceAll("\\t", " ").replaceAll("\\n", " ");
-                _out.println(term + "\t" + _terms.get(key).value());
-            }
-            _out.close();
-        }
-    }
+    public void add(String value);
+    public int id();
+    public String name();
+    public ColumnStats write() throws java.io.IOException;
 }

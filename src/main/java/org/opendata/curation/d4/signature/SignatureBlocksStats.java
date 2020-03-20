@@ -123,6 +123,9 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     public void print() {
 
         System.out.println("SIGNATURE COUNT: " + _blockStats.count());
+        if (_blockStats.count() == 0) {
+            return;
+        }
         System.out.println();
         System.out.println("SIGNATURE BLOCKS");
         System.out.println("MIN. SIZE      : " + _blockStats.min());

@@ -17,7 +17,6 @@
  */
 package org.opendata.db.eq;
 
-import java.io.PrintWriter;
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
@@ -82,12 +81,8 @@ public class MutableEQ extends IdentifiableObjectImpl implements EQ {
     }
     
     @Override
-    public void write(PrintWriter out) {
-	
-        out.println(
-                this.id() + "\t" +
-                _terms.toIntString() + "\t" +
-                _columns.toIntString()
-        );
+    public int termCount() {
+        
+        return _terms.length();
     }
 }

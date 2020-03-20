@@ -38,7 +38,7 @@ public class Node extends IdentifiableObjectImpl {
 
     public Node(EQ eq) {
     
-        this(eq.id(), eq.columns().toArray(), eq.terms().length());
+        this(eq.id(), eq.columns().toArray(), eq.termCount());
     }
     
     public int columnCount() {

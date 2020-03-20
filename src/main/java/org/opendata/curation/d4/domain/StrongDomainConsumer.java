@@ -15,16 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.d4.domain;
+
+import org.opendata.core.set.IdentifiableIDSet;
 
 /**
- * D4 constant declarations.
+ * Consumer for strong domain. A strong domain is an identifiable ID set where
+ * the identifier reference local domains.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface StrongDomainConsumer {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    /**
+     * Signal the end of the output stream.
+     * 
+     */
+    public void close();
     
-    public static final String VERSION = "0.28.0.dev03";
+    /**
+     * Consume the next strong domain.
+     * 
+     * @param domain 
+     */
+    public void consume(IdentifiableIDSet domain);
+    
+    /**
+     * Signal the beginning of the output stream.
+     * 
+     */
+    public void open();
 }

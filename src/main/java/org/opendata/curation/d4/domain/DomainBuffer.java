@@ -15,39 +15,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq;
+package org.opendata.curation.d4.domain;
 
-import org.opendata.core.object.IdentifiableObject;
-import org.opendata.core.set.IDSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Each equivalence class is a set of terms that always occur together in the
- * same set of columns.
+ * In-memory buffer for domains. Maintains a list of domains that were passed
+ * to the consumer. Assumes that no domain is passed more than once, i.e., does
+ * not check for duplicates based on domain identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface EQ extends IdentifiableObject {
-   
-    /**
-     * List of identifier for columns the equivalence class occurs in.
-     * 
-     * @return 
-     */
-    public IDSet columns();
+public class DomainBuffer implements DomainConsumer {
+
+    private final List<Domain> _domains = new ArrayList<>();
     
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public synchronized void consume(Domain domain) {
+
+        _domains.add(domain);
+    }
+
     /**
-     * List of identifier for terms in the equivalence class.
+     * Access the list of domains in the buffer.
      * 
      * @return 
      */
-    public IDSet terms();
+    public List<Domain> domains() {
+        
+        return _domains;
+    }
     
-    /**
-     * Total number of terms in the equivalence class. The number of terms in
-     * the term list may not include all terms if the list has been limited
-     * by a threshold during data generation for space reasons.
-     * 
-     * @return 
-     */
-    public int termCount();
+    @Override
+    public void open() {
+
+    }    
 }

@@ -85,6 +85,9 @@ public class ExpandedColumnStats implements ExpandedColumnConsumer {
     public void print() {
 
         System.out.println("NUMBER OF COLUMNS: " + _columnCount);
+        if (_columnCount == 0) {
+            return;
+        }
         System.out.println("AVG. COLUMN SIZE : " + new Avg(_totalColumnNodes,(long) _columnCount));
         System.out.println("EXPANDED COLUMNS : " + _expandedCount);
         System.out.println("MAX. EXPANSION   : " + _maxExpansion);
