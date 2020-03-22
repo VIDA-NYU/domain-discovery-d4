@@ -33,10 +33,17 @@ import org.opendata.core.set.IdentifiableObjectSet;
 public class TermIndexReader {
     
     private final File _file;
+    private final boolean _includeColumns;
     
-    public TermIndexReader(File file) {
+    public TermIndexReader(File file, boolean includeColumns) {
 	
         _file = file;
+        _includeColumns = includeColumns;
+    }
+    
+    public TermIndexReader(File file) {
+        
+        this(file, true);
     }
     
     public void read(TermConsumer consumer) throws java.io.IOException {
@@ -44,16 +51,16 @@ public class TermIndexReader {
         consumer.open();
         
         try (BufferedReader in = FileSystem.openReader(_file)) {
-	    String line;
-	    while ((line = in.readLine()) != null) {
-		String[] tokens = line.split("\t");
-                consumer.consume(
-                        new Term(
-                                Integer.parseInt(tokens[0]),
-                                tokens[1],
-                                new HashIDSet(tokens[2].split(","))
-                        )
-                );
+            String line;
+            while ((line = in.readLine()) != null) {
+                String[] tokens = line.split("\t");
+                int termId = Integer.parseInt(tokens[0]);
+                if (_includeColumns) {
+                    HashIDSet columns = new HashIDSet(tokens[2].split(","));
+                    consumer.consume(new Term(termId, tokens[1], columns));
+                } else {
+                    consumer.consume(new Term(termId, tokens[1]));
+                }
             }
         }
         

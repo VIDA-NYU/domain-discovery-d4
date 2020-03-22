@@ -91,7 +91,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
     }
     
     @Override
-    public void edge(int sourceId, int targetId) {	
+    public synchronized void edge(int sourceId, int targetId) {	
         
         int sourceCompId = this.getComponentForNode(sourceId);
         int targetCompId = this.getComponentForNode(targetId);

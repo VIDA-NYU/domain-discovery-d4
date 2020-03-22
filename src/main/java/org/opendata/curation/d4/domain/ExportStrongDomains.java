@@ -49,8 +49,12 @@ public class ExportStrongDomains {
             File outputDir
     ) throws java.io.IOException {
         
-        // Create the output directory if it does not exist
+        // Create the output directory if it does not exist. Remove all files
+        // from the directory if it exists.
         FileSystem.createFolder(outputDir);
+        for (File file : outputDir.listFiles()) {
+            file.delete();
+        }
         
         // Read local domains
         IdentifiableObjectSet<Domain> localDomains;

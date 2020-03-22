@@ -69,7 +69,6 @@ public class DiscoverDomains {
         
         System.out.println("\n\n" + runDir.getName() + "\n\n");
         
-        File signaturesFile = FileSystem.joinPath(runDir, "signatures.txt.gz");
         File columnsFile = FileSystem.joinPath(runDir, "expanded-columns.txt.gz");
         File localDomainsFile = FileSystem.joinPath(runDir, "local-domains.txt.gz");
         File strongDomainsFile = FileSystem.joinPath(runDir, "strong-domains.txt.gz");
@@ -89,7 +88,6 @@ public class DiscoverDomains {
                 new TelemetryPrinter(),
                 null
         );
-        //signatures = new SignatureBlocksReader(signaturesFile).read();
         
         // EXPAND COLUMNS
         d4.expandColumns(
@@ -137,7 +135,6 @@ public class DiscoverDomains {
                 );
         
         if (cleanUp) {
-            //signaturesFile.delete();
             columnsFile.delete();
         }
     }

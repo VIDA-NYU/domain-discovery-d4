@@ -41,6 +41,11 @@ public class Term extends Entity implements EQ {
         _columns = columns;
     }
 
+    public Term(int id, String value) {
+        
+        this(id, value, null);
+    }
+
     @Override
     public IDSet columns() {
         

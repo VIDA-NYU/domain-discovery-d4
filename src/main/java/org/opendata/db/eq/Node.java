@@ -51,6 +51,11 @@ public class Node extends IdentifiableObjectImpl {
         return _columns;
     }
 
+    public int length() {
+        
+        return _columns.length;
+    }
+    
     public int overlap(Node node) {
 
         final int[] colJ = node.columns();
