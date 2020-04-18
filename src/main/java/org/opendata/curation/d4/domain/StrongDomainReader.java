@@ -78,12 +78,12 @@ public class StrongDomainReader {
                     HashObjectSet<StrongDomainMember> members;
                     members = new HashObjectSet<>();
                     for (String token : tokens[2].split(",")) {
-                        int pos = token.indexOf(":");
-                        int nodeId = Integer.parseInt(token.substring(0, pos));
-                        int domCount = Integer.parseInt(token.substring(pos + 1));
+                        String[] node = token.split(":");
+                        int nodeId = Integer.parseInt(node[0]);
+                        int colCount = Integer.parseInt(node[2]);
                         StrongDomainMember member;
                         Support weight;
-                        weight = new Support(domCount, localDomains.length());
+                        weight = new Support(colCount, columns.length());
                         member = new StrongDomainMember(nodeId, weight.value());
                         members.add(member);
                     }

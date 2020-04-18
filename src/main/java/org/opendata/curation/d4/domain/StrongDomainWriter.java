@@ -82,12 +82,15 @@ public class StrongDomainWriter implements StrongDomainConsumer {
         String delim = "\t";
         for (int nodeId : domainNodes) {
             int domCount = 0;
+            HashIDSet nodeColumns = new HashIDSet();
             for (Domain locDomain : domainSet) {
                 if (locDomain.contains(nodeId)) {
                     domCount++;
+                    nodeColumns.add(locDomain.columns());
                 }
             }
-            _out.print(delim + nodeId + ":" + domCount);
+            int colCount = nodeColumns.length();
+            _out.print(delim + nodeId + ":" + domCount + ":" + colCount);
             delim = ",";
         }
         _out.println("\t" + domainColumns.toIntString());

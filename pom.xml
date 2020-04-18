@@ -70,7 +70,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.DiscoverDomains</mainClass>
+                            <mainClass>org.opendata.curation.d4.column.SinglePassColumnExpander</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

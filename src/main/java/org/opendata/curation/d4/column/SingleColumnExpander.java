@@ -50,25 +50,21 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
 
     private static final Logger LOGGER = Logger
             .getLogger(SingleColumnExpander.class.getName());
-    
+        
     private class SupportCounter {
         
-        private int _expansionSupport = 0;
-        private int _originalSupport = 0;
+        private final int _expansionSupport;
+        private final int _originalSupport;
+        
+        public SupportCounter(int[] support) {
+            
+            _originalSupport = support[0];
+            _expansionSupport = support[1];
+        }
         
         public int expansionSupportCount() {
             
             return _expansionSupport;
-        }
-        
-        public void incExpansionSupport(int value) {
-            
-            _expansionSupport += value;
-        }
-        
-        public void incOriginalSupport(int value) {
-            
-            _originalSupport += value;
         }
         
         public BigDecimal originalSupport(int size) {
@@ -101,7 +97,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
             return _originalSupport + _expansionSupport;
         }
     }
-    
+
     private ExpandedColumn _column = null;
     private final int _columnSize;
     private final BigDecimal _decreaseFactor;
@@ -113,25 +109,26 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     private final int _maxNodeId;
     private final int[] _nodeSizes;
     private final int _numberOfIterations;
-    private SupportCounter[] _support;
+    private int[][] _support;
     private final Threshold _threshold;
         
     public SingleColumnExpander(
-            EQIndex nodes,
             ExpandedColumn column,
             Threshold threshold,
             BigDecimal decreaseFactor,
             int numberOfIterations,
+            int[] nodeSizes,
+            int maxNodeId,
             List<IdentifiableObjectSet<SupportSet>> expansionCollector
     ) {
-        _nodeSizes = nodes.nodeSizes();
+        _nodeSizes = nodeSizes;
         _column = column;
         _numberOfIterations = numberOfIterations;
         _decreaseFactor = decreaseFactor;
         _threshold = threshold;
         _expansionCollector = expansionCollector;
         
-        _maxNodeId = nodes.getMaxId();
+        _maxNodeId = maxNodeId;
         
         _done = (_numberOfIterations <= 0);
         _iteration = 0;
@@ -154,11 +151,20 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
             ExpandedColumn column,
             Threshold threshold,
             BigDecimal decreaseFactor,
-            int numberOfIterations
+            int numberOfIterations,
+            List<IdentifiableObjectSet<SupportSet>> expansionCollector
     ) {
-        this(nodes, column, threshold, decreaseFactor, numberOfIterations, null);
+        this(
+                column,
+                threshold,
+                decreaseFactor,
+                numberOfIterations,
+                nodes.nodeSizes(),
+                nodes.getMaxId(),
+                expansionCollector
+        );
     }
-    
+
     public ExpandedColumn column() {
 
         return _column;
@@ -188,7 +194,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         
         for (int nodeId = 0; nodeId <= _maxNodeId; nodeId++) {
             if (_support[nodeId] != null) {
-                SupportCounter sup = _support[nodeId];
+                SupportCounter sup = new SupportCounter(_support[nodeId]);
                 boolean added = false;
                 BigDecimal orgSup = null;
                 try {
@@ -196,7 +202,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
                 } catch (java.lang.ArithmeticException ex) {
                     LOGGER.log(
                             Level.SEVERE,
-                            "Error dividing {0} / {1}",
+                            ex.toString(),
                             new int[]{sup.originalSupportCount(), _columnSize}
                     );
                     System.exit(-1);
@@ -208,7 +214,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
                     }   catch (java.lang.ArithmeticException ex) {
                         LOGGER.log(
                                 Level.SEVERE,
-                                "Error dividing {0} / {1}",
+                                ex.toString(),
                                 new int[]{sup.overallSupportCount(), overallSize}
                         );
                         System.exit(-1);
@@ -246,17 +252,10 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
             for (int nodeId : sig.get(iBlock)) {
                 if (!_column.contains(nodeId)) {
-                    SupportCounter sup;
-                    if (_support[nodeId] == null) {
-                        sup = new SupportCounter();
-                        _support[nodeId] = sup;
-                    } else {
-                        sup = _support[nodeId];
-                    }
                     if (isOriginalNode) {
-                        sup.incOriginalSupport(weight);
+                        _support[nodeId][0] += weight;
                     } else {
-                        sup.incExpansionSupport(weight);
+                        _support[nodeId][1] += weight;
                     }
                     if (_expansion != null) {
                         if (!_expansion.contains(nodeId)) {
@@ -273,7 +272,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     public void open() {
 
         _done = false;        
-        _support = new SupportCounter[_maxNodeId + 1];
+        _support = new int[_maxNodeId + 1][2];
         if (_expansionCollector != null) {
             _expansion = new HashObjectSet();
             _expansionCollector.add(_expansion);

@@ -45,7 +45,7 @@ public class Counter implements Comparable<Counter> {
     
     public synchronized int inc() {
 	
-	return ++_value;
+        return ++_value;
     }
     
     public synchronized int inc(int value) {

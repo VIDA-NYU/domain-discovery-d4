@@ -19,8 +19,11 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.constraint.Threshold;
 import org.opendata.core.util.Avg;
 import org.opendata.core.util.SimilarityHistogram;
 
@@ -80,6 +83,7 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     @Override
     public void close() {
 
+        this.print();
     }
 
     @Override
@@ -140,25 +144,31 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     
     private static final String COMMAND =
             "Usage:\n" +
-            "  <signature-blocks-file>";
+            "  <similarity-threshold>\n" +
+            "  <signature-blocks-file-1>\n" +
+            "  ...";
     
     private static final Logger LOGGER = Logger
             .getLogger(SignatureBlocksStats.class.getName());
     
     public static void main(String[] args) {
         
-        if (args.length != 1) {
+        if (args.length < 2) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
-        File signatureFile = new File(args[0]);
+        Threshold threshold = Threshold.getConstraint(args[0]);
+        List<File> files = new ArrayList<>();
+        for (int iArg = 1; iArg < args.length; iArg++) {
+            files.add(new File(args[iArg]));
+        }
         
-        SignatureBlocksStats consumer = new SignatureBlocksStats();
-
-        try (PrintWriter out = new PrintWriter(System.out)) {
-            new SignatureBlocksReader(signatureFile).stream(consumer);
-            consumer.print(out);
+        SignatureBlocksConsumer consumer = new SignatureBlocksStats();
+        consumer = new SignatureSimilarityFilter(threshold, consumer);
+        
+        try {
+            new SignatureBlocksReader(files).stream(consumer);
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

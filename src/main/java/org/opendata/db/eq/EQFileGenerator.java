@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
+import org.opendata.curation.d4.Constants;
 import org.opendata.db.term.TermIndexReader;
 
 /**
@@ -45,6 +46,8 @@ public class EQFileGenerator {
     
     public static void main(String[] args) {
         
+        System.out.println(Constants.NAME + " - Version (" + Constants.VERSION + ")\n");
+
         if (args.length != 2) {
             System.out.println(COMMAND);
             System.exit(-1);

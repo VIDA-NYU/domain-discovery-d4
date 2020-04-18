@@ -82,7 +82,8 @@ public class ColumnExpander implements Runnable {
                     column,
                     _threshold,
                     _decreaseFactor,
-                    _numberOfIterations
+                    _numberOfIterations,
+                    null
             );
             if (!columnExpander.isDone()) {
                 SignatureTrimmer trimmer;

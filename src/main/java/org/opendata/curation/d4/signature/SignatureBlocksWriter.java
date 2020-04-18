@@ -30,7 +30,6 @@ import org.opendata.core.util.StringHelper;
 public class SignatureBlocksWriter implements SignatureBlocksConsumer {
 
     private final File _file;
-    private int _openCount = 0;
     private PrintWriter _out = null;
     
     public SignatureBlocksWriter(File file) {
@@ -41,11 +40,8 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     @Override
     public void close() {
 
-        _openCount--;
-        if (_openCount == 0) {
-            _out.close();
-            _out = null;
-        }
+        _out.close();
+        _out = null;
     }
 
     @Override
@@ -63,14 +59,11 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     @Override
     public void open() {
         
-        if (_out == null) {
-            try {
-                _out = FileSystem.openPrintWriter(_file);
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
-            }
+        try {
+            _out = FileSystem.openPrintWriter(_file);
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException(ex);
         }
-        _openCount++;
     }
     
     public void write(SignatureBlocksIndex signatures) {

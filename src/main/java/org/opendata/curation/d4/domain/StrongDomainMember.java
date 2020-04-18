@@ -22,8 +22,8 @@ import org.opendata.core.object.IdentifiableObjectImpl;
 
 /**
  * Member node in a strong domain. Each member has a weight that reflects the
- * fraction of local domains included in the strong domain that the node
- * occurred in.
+ * fraction of columns the strong domain occurs in that had a local domain with
+ * this term.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */

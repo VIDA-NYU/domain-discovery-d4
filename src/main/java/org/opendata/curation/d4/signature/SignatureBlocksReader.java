@@ -20,6 +20,9 @@ package org.opendata.curation.d4.signature;
 import java.io.BufferedReader;
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.opendata.core.io.FileSetReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.ArrayHelper;
@@ -32,6 +35,9 @@ import org.opendata.core.util.ArrayHelper;
  */
 public class SignatureBlocksReader extends FileSetReader implements SignatureBlocksStream {
    
+    private final static Logger LOGGER = Logger
+            .getLogger(SignatureBlocksReader.class.getName());
+    
     public SignatureBlocksReader(File file, boolean verbose) {
         
         super(file, verbose);
@@ -40,6 +46,11 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     public SignatureBlocksReader(File file) {
         
         this(file, false);
+    }
+    
+    public SignatureBlocksReader(List<File> files) {
+        
+        super(files, true);
     }
     
     public SignatureBlocksIndex read() throws java.io.IOException {
@@ -55,6 +66,7 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
         consumer.open();
 
         for (File file : this) {
+            System.out.println("READING " + file.getName());
             try (BufferedReader in = FileSystem.openReader(file)) {
                 String line;
                 while ((line = in.readLine()) != null) {
@@ -70,6 +82,8 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
                     );
                     consumer.consume(sig);
                 }
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, file.getName(), ex);
             }
         }
 

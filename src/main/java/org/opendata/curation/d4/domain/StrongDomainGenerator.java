@@ -185,7 +185,7 @@ public class StrongDomainGenerator {
                     }
                 }
                 // Minimum number of columns the domain needs support from to
-                // be considered a stronng domain.
+                // be considered a strong domain.
                 int frequency = _frequencyEstimate.get(domain.id()).value();
                 int minColumnCount = ((int)Math.floor(
                         new BigDecimal(frequency)
@@ -380,7 +380,7 @@ public class StrongDomainGenerator {
     
     public static void main(String[] args) {
         
-	System.out.println(Constants.NAME + " - Strong Domain Generator - Version (" + Constants.VERSION + ")\n");
+        System.out.println(Constants.NAME + " - Strong Domain Generator - Version (" + Constants.VERSION + ")\n");
 
         if (args.length < 3) {
             System.out.println(COMMAND);

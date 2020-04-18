@@ -18,7 +18,6 @@
 package org.opendata.curation.d4.column;
 
 import java.io.File;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -34,8 +33,6 @@ import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
-import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
@@ -44,88 +41,126 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.signature.SignatureBlocks;
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.SignatureSimilarityFilter;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Expand columns using multiple threads. Each thread expands a single columns
- * while a given queue is not empty. This implementation relies on a in-memory
- * index of signature blocks.
+ * Expand columns using multiple threads. Makes a single pass over the data
+ * and therefore does not support multi-iteration. Reads the data once. Reads
+ * chunks of signatures into main memory. Then uses multiple threads to process
+ * the signatures.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ParallelColumnExpander {
+public class SinglePassColumnExpander {
     
     public static final String TELEMETRY_ID = "EXPANDED COLUMNS";
     
+    private class BufferedWorker implements SignatureBlocksConsumer {
+
+        private final List<SignatureBlocks> _buffer;
+        private final int _bufferSize;
+        private final List<SignatureBlocksConsumer> _expanders;
+        private final int _threads;
+
+        // Statistics
+        private int _readCount = 0;
+        
+        public BufferedWorker(
+                List<SignatureBlocksConsumer> expanders,
+                int bufferSize,
+                int threads
+        ) {
+            _expanders = expanders;
+            _bufferSize = bufferSize;
+            _threads = threads;
+            
+            _buffer = new ArrayList<>(bufferSize);
+        }
+        
+        @Override
+        public void close() {
+
+            if (!_buffer.isEmpty()) {
+                this.processBuffer();
+            }
+        }
+
+        @Override
+        public void consume(SignatureBlocks sig) {
+
+            _buffer.add(sig);
+            _readCount++;
+            if (_buffer.size() == _bufferSize) {
+                this.processBuffer();
+            }
+        }
+
+        @Override
+        public void open() {
+
+        }
+        
+        private void processBuffer() {
+        
+            System.out.println("PROCESS BUFFER OF " + _buffer.size() + " SIGNATURES (" + _readCount + ") @ " + new Date());
+            ConcurrentLinkedQueue<SignatureBlocksConsumer> queue;
+            queue = new ConcurrentLinkedQueue<>(_expanders);
+            new MemUsagePrinter().print();
+            ExecutorService es = Executors.newCachedThreadPool();
+            for (int iThread = 0; iThread < _threads; iThread++) {
+                ExpanderTask expander = new ExpanderTask(iThread, queue, _buffer);
+                es.execute(expander);
+            }
+            es.shutdown();
+            try {
+                es.awaitTermination(_threads, TimeUnit.DAYS);
+            } catch (java.lang.InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            
+            System.out.println("DONE BUFFER PROCESSING @ " + new Date());
+        
+            _buffer.clear();
+        }
+    }
+    
     private class ExpanderTask implements Runnable {
 
-        private final BigDecimal _decreaseFactor;
-        private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
-        private final ExpandedColumnConsumer _consumer;
+        private final ConcurrentLinkedQueue<SignatureBlocksConsumer> _columns;
         private final int _id;
-        private final EQIndex _nodes;
-        private final int _numberOfIterations;
-        private final SignatureBlocksIndex _signatures;
-        private final Threshold _threshold;
-        private final SignatureTrimmerFactory _trimmerFactory;
+        private final List<SignatureBlocks> _signatures;
 
         public ExpanderTask(
                 int id,
-                EQIndex nodes,
-                ConcurrentLinkedQueue<ExpandedColumn> columns,
-                SignatureBlocksIndex signatures,
-                SignatureTrimmerFactory trimmerFactory,
-                Threshold threshold,
-                BigDecimal decreaseFactor,
-                int numberOfIterations,
-                ExpandedColumnConsumer consumer
+                ConcurrentLinkedQueue<SignatureBlocksConsumer> columns,
+                List<SignatureBlocks> signatures
         ) {
             _id = id;
-            _nodes = nodes;
             _columns = columns;
             _signatures = signatures;
-            _trimmerFactory = trimmerFactory;
-            _threshold = threshold;
-            _decreaseFactor = decreaseFactor;
-            _numberOfIterations = numberOfIterations;
-            _consumer = consumer;
         }
         
         @Override
         public void run() {
 
-            _consumer.open();
-            
             int count = 0;
             
             Date start = new Date();
             
-            ExpandedColumn column;
+            SignatureBlocksConsumer column;
             while ((column = _columns.poll()) != null) {
-                SingleColumnExpander expander;
-                expander = new SingleColumnExpander(
-                        _nodes,
-                        column,
-                        _threshold,
-                        _decreaseFactor,
-                        _numberOfIterations,
-                        null
-                );
-                while (!expander.isDone()) {
-                    SignatureTrimmer trimmer;
-                    trimmer = _trimmerFactory
-                            .getTrimmer(column.nodes(), expander);
-                    _signatures.stream(trimmer, expander.column().nodes());
-                    column = expander.column();
+                for (SignatureBlocks sig : _signatures) {
+                    column.consume(sig);
                 }
-                _consumer.consume(column);
                 count++;
             }
             
             Date end = new Date();
-            
-            _consumer.close();
 
             long execTime = end.getTime() - start.getTime();
             
@@ -135,28 +170,30 @@ public class ParallelColumnExpander {
     
     private final TelemetryCollector _telemetry;
     
-    public ParallelColumnExpander(TelemetryCollector telemetry) {
+    public SinglePassColumnExpander(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public ParallelColumnExpander() {
+    public SinglePassColumnExpander() {
         
         this(new TelemetryPrinter());
     }
     
     public void run(
-            EQIndex nodes,
-            SignatureBlocksIndex signatures,
+            int[] nodeSizes,
+            SignatureBlocksReader signatures,
             SignatureTrimmerFactory trimmerFactory,
             IdentifiableObjectSet<Column> db,
             IDSet columnFilter,
             Threshold threshold,
-            BigDecimal decreaseFactor,
-            int numberOfIterations,
+            Threshold sigsim,
+            int sigBufferSize,
+            boolean lowMemUsage,
             int threads,
             ExpandedColumnConsumerFactory consumerFactory
-    ) {
+    ) throws java.io.IOException {
+        
         HashMap<String, ExpandedColumn> columnIndex = new HashMap<>();
         HashMap<Integer, HashIDSet> groups = new HashMap<>();
         HashMap<String, Integer> mapping = new HashMap<>();
@@ -180,44 +217,58 @@ public class ParallelColumnExpander {
         }
         
         // Sort column in decreasing number of nodes
-        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.values());
-        Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
+        List<ExpandedColumn> columns;
+        columns = new ArrayList<>(columnIndex.values());
+        Collections.sort(columns, (ExpandedColumn c1, ExpandedColumn c2) -> 
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
-        Collections.reverse(columnList);
-        ConcurrentLinkedQueue<ExpandedColumn> columns;
-        columns = new ConcurrentLinkedQueue<>(columnList);
+        Collections.reverse(columns);
         
         System.out.println(
-                "EXPAND " + db.length() + " COLUMNS " +
+                "EXPAND " + columnFilter.length() + " COLUMNS " +
                 "IN " + columns.size() + " GROUPS " +
                 "USING " + threads + " THREADS"
         );
         
         Date start = new Date();
         System.out.println("START @ " + start);
-        
-        ExecutorService es = Executors.newCachedThreadPool();
-        for (int iThread = 0; iThread < threads; iThread++) {
-            ExpanderTask expander = new ExpanderTask(
-                    iThread,
-                    nodes,
-                    columns,
-                    signatures,
-                    trimmerFactory,
+
+        List<SingleIterationExpander> expanders = new ArrayList<>();
+        List<SignatureBlocksConsumer> trimmers = new ArrayList<>();
+        for (ExpandedColumn column : columns) {
+            SingleIterationExpander expander;
+            expander = new SingleIterationExpander(
+                    column,
                     threshold,
-                    decreaseFactor,
-                    numberOfIterations,
-                    consumerFactory.getConsumer(groups)
+                    nodeSizes,
+                    lowMemUsage
             );
-            es.execute(expander);
+            SignatureTrimmer trimmer;
+            trimmer = trimmerFactory.getTrimmer(column.nodes(), expander);
+            expander.open();
+            expanders.add(expander);
+            trimmers.add(trimmer);
         }
-        es.shutdown();
-        try {
-            es.awaitTermination(threads, TimeUnit.DAYS);
-        } catch (java.lang.InterruptedException ex) {
-            throw new RuntimeException(ex);
+        
+        System.out.println("START STREAMING @ " + new Date());
+        new MemUsagePrinter().print();
+        signatures.stream(
+                new SignatureSimilarityFilter(
+                        sigsim,
+                        new BufferedWorker(trimmers, sigBufferSize, threads)
+                )
+        );
+
+        ExpandedColumnConsumer writer = consumerFactory.getConsumer(groups);
+        writer.open();
+
+        for (SingleIterationExpander expander : expanders) {
+            expander.close();
+            writer.consume(expander.column());
         }
+        System.out.println("DONE READING FOR COLUMN BLOCK @ " + new Date());
+        
+        writer.close();
         
         Date end = new Date();
         long execTime = end.getTime() - start.getTime();
@@ -226,19 +277,19 @@ public class ParallelColumnExpander {
         System.out.println("END @ " + end);
     }
     
+    private static final String ARG_BUFFERSIZE = "buffer";
     private static final String ARG_COLUMNS = "columns";
-    private static final String ARG_DECREASE = "decrease";
-    private static final String ARG_ITERATIONS = "iterations";
-    private static final String ARG_OUTDIR = "outputToDir";
+    private static final String ARG_LOWMEMUSE = "low-mem-use";
+    private static final String ARG_SIGSIM = "sigsim";
     private static final String ARG_THREADS = "threads";
     private static final String ARG_THRESHOLD = "threshold";
     private static final String ARG_TRIMMER = "trimmer";
     
     private static final String[] ARGS = {
+        ARG_BUFFERSIZE,
         ARG_COLUMNS,
-        ARG_DECREASE,
-        ARG_ITERATIONS,
-        ARG_OUTDIR,
+        ARG_LOWMEMUSE,
+        ARG_SIGSIM,
         ARG_THREADS,
         ARG_THRESHOLD,
         ARG_TRIMMER
@@ -246,11 +297,11 @@ public class ParallelColumnExpander {
     
     private static final String COMMAND =
             "Usage\n" +
-            "  --" + ARG_DECREASE + "=<real> [default: 0.05]\n" +
-            "  --" + ARG_ITERATIONS + "=<int> [default: 5]\n" +
+            "  --" + ARG_BUFFERSIZE + "=<int> [default: 10000]\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
-            "  --" + ARG_OUTDIR + "=[true | false] [default: false]\n" +
+            "  --" + ARG_LOWMEMUSE + "=<boolean> [default: true]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
+            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.25]\n" +
             "  --" + ARG_THRESHOLD + "=<constraint> [default: GT0.25]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +
                     TrimmerType.CENTRIST.toString() +"]\n" +
@@ -259,11 +310,11 @@ public class ParallelColumnExpander {
             "  <output-file-or-directory>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(SignatureBlocksGenerator.class.getName());
+            .getLogger(SinglePassColumnExpander.class.getName());
     
     public static void main(String[] args) {
         
-        System.out.println(Constants.NAME + " - Column Expander - Version (" + Constants.VERSION + ")\n");
+        System.out.println(Constants.NAME + " - Single Pass Column Expander - Version (" + Constants.VERSION + ")\n");
 
         if (args.length < 3) {
             System.out.println(COMMAND);
@@ -277,10 +328,10 @@ public class ParallelColumnExpander {
 
         TrimmerType trimmer = TrimmerType
                 .valueOf(params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString()));
+        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.25"));
         Threshold threshold = Threshold.getConstraint(params.getAsString(ARG_THRESHOLD, "GT0.25"));
-        int numberOfIterations = params.getAsInt(ARG_ITERATIONS, 5);
-        BigDecimal decreaseFactor = params.getAsBigDecimal(ARG_DECREASE, new BigDecimal("0.05"));
-        boolean outputToDir = params.getAsBool(ARG_OUTDIR, false);
+        int sigBufferSize = params.getAsInt(ARG_BUFFERSIZE, 10000);
+        boolean lowMemUsage = params.getAsBool(ARG_LOWMEMUSE, true);
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
         File columnsFile = null;
@@ -292,6 +343,7 @@ public class ParallelColumnExpander {
             // Read the node index and the list of columns
             EQIndex nodeIndex = new EQIndex(eqFile);
             IdentifiableObjectSet<Column> db = nodeIndex.columns();
+            int[] nodeSizes = nodeIndex.nodeSizes();
             // Read the list of column identifier if a columns file was given
             IDSet columnFilter;
             if (columnsFile != null) {
@@ -299,19 +351,18 @@ public class ParallelColumnExpander {
             } else {
                 columnFilter = db.keys();
             }
-            SignatureBlocksIndex buffer = new SignatureBlocksIndex();
-            new SignatureBlocksReader(signatureFile).stream(buffer);
-            new ParallelColumnExpander().run(
-                    nodeIndex,
-                    buffer,
-                    new SignatureTrimmerFactory(nodeIndex, trimmer),
+            new SinglePassColumnExpander().run(
+                    nodeSizes,
+                    new SignatureBlocksReader(signatureFile),
+                    new SignatureTrimmerFactory(nodeSizes, trimmer),
                     db,
                     columnFilter,
                     threshold,
-                    decreaseFactor,
-                    numberOfIterations,
+                    sigsim,
+                    sigBufferSize,
+                    lowMemUsage,
                     threads,
-                    new ExpandedColumnWriterFactory(output, outputToDir)
+                    new ExpandedColumnWriterFactory(output, false)
             );
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);

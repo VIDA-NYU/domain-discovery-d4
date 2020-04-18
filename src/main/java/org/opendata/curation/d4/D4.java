@@ -53,7 +53,6 @@ import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.domain.StrongDomainWriter;
 import org.opendata.curation.d4.export.DomainsExportWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksIndexFactory;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.db.column.Column;
@@ -144,8 +143,8 @@ public class D4 {
         
         System.out.println("\n-- SIGNATURE BLOCKS\n");
         
-        SignatureBlocksIndexFactory sigBlocksIndex;
-        sigBlocksIndex = new SignatureBlocksIndexFactory();
+        SignatureBlocksIndex sigBlocksIndex;
+        sigBlocksIndex = new SignatureBlocksIndex();
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
@@ -156,13 +155,13 @@ public class D4 {
         );
 
         if (outputFile != null) {
-            new SignatureBlocksWriter(outputFile).write(sigBlocksIndex.signatures());
+            new SignatureBlocksWriter(outputFile).write(sigBlocksIndex);
         }
         SignatureBlocksStats sigStats = new SignatureBlocksStats();
-        sigBlocksIndex.signatures().stream(sigStats);
+        sigBlocksIndex.stream(sigStats);
         sigStats.print();
         
-        return sigBlocksIndex.signatures();
+        return sigBlocksIndex;
     }
     
     public void strongDomains(

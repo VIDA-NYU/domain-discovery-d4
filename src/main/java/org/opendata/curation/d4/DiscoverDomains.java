@@ -41,6 +41,7 @@ public class DiscoverDomains {
      * 
      * @param eqFile
      * @param termFile
+     * @param columnNamesFile
      * @param trimmer
      * @param expandThreshold
      * @param numIterations
@@ -56,6 +57,7 @@ public class DiscoverDomains {
     public void run(
             File eqFile,
             File termFile,
+            File columnNamesFile,
             TrimmerType trimmer,
             Threshold expandThreshold,
             int numIterations,
@@ -129,7 +131,7 @@ public class DiscoverDomains {
                 .run(
                         eqFile,
                         termFile,
-                        localDomainsFile,
+                        columnNamesFile,
                         strongDomainsFile,
                         domainsDir
                 );
@@ -143,6 +145,7 @@ public class DiscoverDomains {
             "Usage:\n" +
             "  <eq-file>\n" +
             "  <term-file>\n" +
+            "  <columns-file>\n" +
             "  <threads>\n" +
             "  <clean-up> [true | false]\n" +
             "  <run-dir>";
@@ -154,21 +157,23 @@ public class DiscoverDomains {
         
         System.out.println("D4 - Discover Domains - Version (" + Constants.VERSION + ")\n");
 
-        if (args.length != 5) {
+        if (args.length != 6) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
         File eqFile = new File(args[0]);
         File termFile = new File(args[1]);
-        int threads = Integer.parseInt(args[2]);
-        boolean cleanUp = Boolean.parseBoolean(args[3]);
-        File runDir = new File(args[4]);
+        File columnsFile = new File(args[2]);
+        int threads = Integer.parseInt(args[3]);
+        boolean cleanUp = Boolean.parseBoolean(args[4]);
+        File runDir = new File(args[5]);
         
         try {
             new DiscoverDomains().run(
                     eqFile,
                     termFile,
+                    columnsFile,
                     TrimmerType.CENTRIST,
                     Threshold.getConstraint("GT0.5"),
                     1,

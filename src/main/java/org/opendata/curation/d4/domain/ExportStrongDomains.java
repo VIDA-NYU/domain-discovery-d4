@@ -17,13 +17,29 @@
  */
 package org.opendata.curation.d4.domain;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.sort.DoubleValueDescSort;
+import org.opendata.core.util.StringHelper;
+import org.opendata.core.util.count.Counter;
+import org.opendata.curation.d4.Constants;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;
@@ -41,10 +57,72 @@ import org.opendata.db.term.TermIndexReader;
  */
 public class ExportStrongDomains {
     
+    private List<List<IdentifiableDouble>> getBlocks(List<IdentifiableDouble> items) {
+        
+        MaxDropFinder dropFinder = new MaxDropFinder(0.0, true, true);
+
+        int start = 0;
+        final int end = items.size();
+        ArrayList<List<IdentifiableDouble>> blocks = new ArrayList<>();
+        while (start < end) {
+            int pruneIndex = dropFinder.getPruneIndex(items, start);
+            if (pruneIndex <= start) {
+                break;
+            }
+            List<IdentifiableDouble> block = new ArrayList<>();
+            for (int iEl = start; iEl < pruneIndex; iEl++) {
+                block.add(items.get(iEl));
+            }
+            blocks.add(block);
+            start = pruneIndex;
+        }
+        return blocks;
+    }
+
+    private String getDomainName(List<String> names) {
+    
+        HashMap<String, Counter> tokens = new HashMap<>();
+        for (String name : names) {
+            for (String token : name.split("[\\s_]")) {
+                token = token.toLowerCase();
+                if ((!tokens.containsKey(token)) && (!token.isEmpty())) {
+                    tokens.put(token, new Counter(0));
+                }
+            }
+        }
+        
+        int maxCount = 0;
+        for (String name : names) {
+            name = name.toLowerCase();
+            for (String token : tokens.keySet()) {
+                if (name.contains(token)) {
+                    int count = tokens.get(token).inc();
+                    if (count > maxCount) {
+                        maxCount = count;
+                    }
+                }
+            }
+        }
+        
+        List<String> candidates = new ArrayList<>();
+        for (String token : tokens.keySet()) {
+            if (tokens.get(token).value() == maxCount) {
+                candidates.add(token);
+            }
+        }
+        
+        if (candidates.size() > 1) {
+            Collections.sort(candidates);
+            return StringHelper.joinStrings(candidates);
+        } else {
+            return candidates.get(0);
+        }
+    }
+    
     public void run(
             File eqFile,
             File termFile,
-            File localDomainFile,
+            File columnFile,
             File strongDomainFile,
             File outputDir
     ) throws java.io.IOException {
@@ -56,9 +134,18 @@ public class ExportStrongDomains {
             file.delete();
         }
         
-        // Read local domains
-        IdentifiableObjectSet<Domain> localDomains;
-        localDomains = new DomainReader(localDomainFile).read();
+        // Read column names. Expects a tab-delimited file with column id,
+        // dataset-id and column name.
+        HashMap<Integer, String> columnNames = new HashMap<>();
+        try (BufferedReader in = FileSystem.openReader(columnFile)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                String[] tokens = line.split("\t");
+                int columnId = Integer.parseInt(tokens[0]);
+                String columnName = tokens[2];
+                columnNames.put(columnId, columnName);
+            }
+        }
         
         // Read the strong domains
         IdentifiableObjectSet<StrongDomain> strongDomains;
@@ -80,29 +167,49 @@ public class ExportStrongDomains {
         terms = new TermIndexReader(termFile).read(termFilter);
         
         // Write each domain to a separate file in the output directory
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
         for (StrongDomain domain : strongDomains) {
-            String filename = domain.id() + ".txt.gz";
+            String filename = domain.id() + ".json";
             File outputFile = FileSystem.joinPath(outputDir, filename);
-            int supportSetSize = domain.localDomains().length();
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                for (StrongDomainMember node : domain.members()) {
-                    HashIDSet nodeDoms = new HashIDSet();
-                    for (int locDomId : domain.localDomains()) {
-                        if (localDomains.get(locDomId).contains(node.id())) {
-                            nodeDoms.add(locDomId);
-                        }
-                    }
-                    for (int termId : eqIndex.get(node.id()).terms()) {
-                        if (terms.contains(termId)) {
-                            Term term = terms.get(termId);
-                            out.println(
-                                    term.name() + "\t" +
-                                    supportSetSize + "\t" +
-                                    nodeDoms.toIntString()
-                            );
-                        }
-                    }
+                List<String> names = new ArrayList<>();
+                JsonArray arrColumns = new JsonArray();
+                for (int columnId : domain.columns()) {
+                    String columnName = columnNames.get(columnId);
+                    JsonObject objCol = new JsonObject();
+                    objCol.add("id", new JsonPrimitive(columnId));
+                    objCol.add("name", new JsonPrimitive(columnName));
+                    arrColumns.add(objCol);
+                    names.add(columnName);
                 }
+                String domainName = this.getDomainName(names);
+                List<IdentifiableDouble> items = new ArrayList<>();
+                for (StrongDomainMember node : domain.members()) {
+                    double weight = node.weight().doubleValue();
+                    for (int termId : eqIndex.get(node.id()).terms()) {
+                        items.add(new IdentifiableDouble(termId, weight));
+                    }
+                    Collections.sort(items, new DoubleValueDescSort());
+                }
+                List<List<IdentifiableDouble>> blocks = this.getBlocks(items);
+                JsonArray arrTerms = new JsonArray();
+                for (List<IdentifiableDouble> block : blocks) {
+                    JsonArray arrBlock = new JsonArray();
+                    for (IdentifiableDouble item : block) {
+                        Term term = terms.get(item.id());
+                        JsonObject objTerm = new JsonObject();
+                        objTerm.add("id", new JsonPrimitive(term.id()));
+                        objTerm.add("name", new JsonPrimitive(term.name()));
+                        objTerm.add("weight", new JsonPrimitive(item.toPlainString()));
+                        arrBlock.add(objTerm);
+                    }
+                    arrTerms.add(arrBlock);
+                }
+                JsonObject doc = new JsonObject();
+                doc.add("name", new JsonPrimitive(domainName));
+                doc.add("columns", arrColumns);
+                doc.add("terms", arrTerms);
+                out.println(gson.toJson(doc));
             }
         }
     }
@@ -111,7 +218,7 @@ public class ExportStrongDomains {
             "Usage:\n" +
             "  <eq-file>\n" +
             "  <term-file>\n" +
-            "  <local-domain-file>\n" +
+            "  <column-file>\n" +
             "  <strong-domain-file>\n" +
             "  <output-dir>";
     
@@ -120,6 +227,8 @@ public class ExportStrongDomains {
     
     public static void main(String[] args) {
         
+        System.out.println(Constants.NAME + " - Export Strong Domains - Version (" + Constants.VERSION + ")\n");
+        
         if (args.length != 5) {
             System.out.println(COMMAND);
             System.exit(-1);
@@ -127,7 +236,7 @@ public class ExportStrongDomains {
         
         File eqFile = new File(args[0]);
         File termFile = new File(args[1]);
-        File localDomainFile = new File(args[3]);
+        File columnFile = new File(args[2]);
         File strongDomainFile = new File(args[3]);
         File outputDir = new File(args[4]);
 
@@ -136,7 +245,7 @@ public class ExportStrongDomains {
                     .run(
                             eqFile,
                             termFile,
-                            localDomainFile,
+                            columnFile,
                             strongDomainFile,
                             outputDir
                     );

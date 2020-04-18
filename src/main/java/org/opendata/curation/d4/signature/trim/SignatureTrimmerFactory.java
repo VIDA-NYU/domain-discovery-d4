@@ -28,13 +28,18 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
-    private final EQIndex _nodes;
+    private final int[] _nodeSizes;
     private final TrimmerType _trimmerType;
+    
+    public SignatureTrimmerFactory(int[] nodeSizes, TrimmerType trimmerType) {
+        
+        _nodeSizes = nodeSizes;
+        _trimmerType = trimmerType;
+    }
     
     public SignatureTrimmerFactory(EQIndex nodes, TrimmerType trimmerType) {
         
-        _nodes = nodes;
-        _trimmerType = trimmerType;
+        this(nodes.nodeSizes(), trimmerType);
     }
     
     /**
@@ -51,7 +56,7 @@ public class SignatureTrimmerFactory {
             case CONSERVATIVE:
                 return new ConservativeTrimmer(column, consumer);
             case CENTRIST:
-                return new CentristTrimmer(column, _nodes.nodeSizes(), consumer);
+                return new CentristTrimmer(column, _nodeSizes, consumer);
             default:
                 return new NonTrimmer(column, consumer);
         }

@@ -35,12 +35,12 @@ public final class ColumnHelper {
      */
     public static int getColumnId(File file) {
         
-        String[] tokens = file.getName().split("\\.");
-        try {
-            return Integer.parseInt(tokens[0]);
-        } catch (java.lang.NumberFormatException ex) {
+        for (String token : file.getName().split("\\.")) {
+            try {
+                return Integer.parseInt(token);
+            } catch (java.lang.NumberFormatException ex) {
+            }
         }
-        return Integer.parseInt(tokens[2]);
+        throw new IllegalArgumentException(file.getName());
     }
-    
 }

@@ -17,14 +17,41 @@
  */
 package org.opendata.curation.d4.signature;
 
+import org.opendata.core.constraint.Threshold;
+
 /**
- * Factory pattern for signature blocks consumers.
+ * Filter signature blocks based on the similarity of their first entry.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksConsumerFactory {
-    
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes);
-    public SignatureBlocksIndex signatures() throws java.io.IOException;
+public class SignatureSimilarityFilter implements SignatureBlocksConsumer {
 
+    private final SignatureBlocksConsumer _consumer;
+    private final Threshold _threshold;
+    
+    public SignatureSimilarityFilter(Threshold threshold, SignatureBlocksConsumer consumer) {
+        
+        _threshold = threshold;
+        _consumer = consumer;
+    }
+    
+    @Override
+    public void close() {
+
+        _consumer.close();
+    }
+
+    @Override
+    public void consume(SignatureBlocks sig) {
+
+        if (_threshold.isSatisfied(sig.maxSim())) {
+            _consumer.consume(sig);
+        }
+    }
+
+    @Override
+    public void open() {
+
+        _consumer.open();
+    }
 }
