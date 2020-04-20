@@ -41,6 +41,11 @@ public class ExpandedColumnWriter implements ExpandedColumnConsumer {
         _groups = groups;
     }
     
+    public ExpandedColumnWriter(File file) {
+        
+        this(file, new HashMap<>());
+    }
+    
     @Override
     public synchronized void close() {
 

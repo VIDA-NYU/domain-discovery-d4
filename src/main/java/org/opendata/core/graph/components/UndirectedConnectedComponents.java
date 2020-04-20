@@ -57,7 +57,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         return _components.size();
     }
 
-    public boolean contains(int nodeId) {
+    public synchronized boolean contains(int nodeId) {
     
         //return _nodes.contains(nodeId);
         if (nodeId < _componentMap.length) {

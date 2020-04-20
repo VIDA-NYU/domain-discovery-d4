@@ -68,4 +68,10 @@ public abstract class ExpandedColumn extends IdentifiableObjectImpl {
 
         return _nodes;
     }
+    
+    @Override
+    public String toString() {
+        
+        return this.id() + " [" + _nodes.toIntString() + "][" + _expansion.toIntString() + "]";
+    }
 }

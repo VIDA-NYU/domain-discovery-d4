@@ -64,18 +64,18 @@ public class SinglePassColumnExpander {
 
         private final List<SignatureBlocks> _buffer;
         private final int _bufferSize;
-        private final List<SignatureBlocksConsumer> _expanders;
+        private final List<ColumnExpanderWrapper> _columns;
         private final int _threads;
 
         // Statistics
         private int _readCount = 0;
         
         public BufferedWorker(
-                List<SignatureBlocksConsumer> expanders,
+                List<ColumnExpanderWrapper> columns,
                 int bufferSize,
                 int threads
         ) {
-            _expanders = expanders;
+            _columns = columns;
             _bufferSize = bufferSize;
             _threads = threads;
             
@@ -108,8 +108,8 @@ public class SinglePassColumnExpander {
         private void processBuffer() {
         
             System.out.println("PROCESS BUFFER OF " + _buffer.size() + " SIGNATURES (" + _readCount + ") @ " + new Date());
-            ConcurrentLinkedQueue<SignatureBlocksConsumer> queue;
-            queue = new ConcurrentLinkedQueue<>(_expanders);
+            ConcurrentLinkedQueue<ColumnExpanderWrapper> queue;
+            queue = new ConcurrentLinkedQueue<>(_columns);
             new MemUsagePrinter().print();
             ExecutorService es = Executors.newCachedThreadPool();
             for (int iThread = 0; iThread < _threads; iThread++) {
@@ -129,15 +129,39 @@ public class SinglePassColumnExpander {
         }
     }
     
+    private class ColumnExpanderWrapper {
+    
+        private final SingleIterationExpander _expander;
+        private final SignatureTrimmer _trimmer;
+        
+        public ColumnExpanderWrapper(
+                SingleIterationExpander expander,
+                SignatureTrimmer trimmer
+        ) {
+            _expander = expander;
+            _trimmer = trimmer;
+        }
+        
+        public SingleIterationExpander expander() {
+            
+            return _expander;
+        }
+        
+        public SignatureTrimmer trimmer() {
+            
+            return _trimmer;
+        }
+    }
+    
     private class ExpanderTask implements Runnable {
 
-        private final ConcurrentLinkedQueue<SignatureBlocksConsumer> _columns;
+        private final ConcurrentLinkedQueue<ColumnExpanderWrapper> _columns;
         private final int _id;
         private final List<SignatureBlocks> _signatures;
 
         public ExpanderTask(
                 int id,
-                ConcurrentLinkedQueue<SignatureBlocksConsumer> columns,
+                ConcurrentLinkedQueue<ColumnExpanderWrapper> columns,
                 List<SignatureBlocks> signatures
         ) {
             _id = id;
@@ -152,11 +176,13 @@ public class SinglePassColumnExpander {
             
             Date start = new Date();
             
-            SignatureBlocksConsumer column;
+            ColumnExpanderWrapper column;
             while ((column = _columns.poll()) != null) {
+                SignatureTrimmer trimmer = column.trimmer();
                 for (SignatureBlocks sig : _signatures) {
-                    column.consume(sig);
+                    trimmer.consume(sig);
                 }
+                column.expander().cleanSupport();
                 count++;
             }
             
@@ -189,7 +215,6 @@ public class SinglePassColumnExpander {
             Threshold threshold,
             Threshold sigsim,
             int sigBufferSize,
-            boolean lowMemUsage,
             int threads,
             ExpandedColumnConsumerFactory consumerFactory
     ) throws java.io.IOException {
@@ -233,21 +258,18 @@ public class SinglePassColumnExpander {
         Date start = new Date();
         System.out.println("START @ " + start);
 
-        List<SingleIterationExpander> expanders = new ArrayList<>();
-        List<SignatureBlocksConsumer> trimmers = new ArrayList<>();
+        List<ColumnExpanderWrapper> expanders = new ArrayList<>();
         for (ExpandedColumn column : columns) {
             SingleIterationExpander expander;
             expander = new SingleIterationExpander(
                     column,
                     threshold,
-                    nodeSizes,
-                    lowMemUsage
+                    nodeSizes
             );
             SignatureTrimmer trimmer;
             trimmer = trimmerFactory.getTrimmer(column.nodes(), expander);
             expander.open();
-            expanders.add(expander);
-            trimmers.add(trimmer);
+            expanders.add(new ColumnExpanderWrapper(expander, trimmer));
         }
         
         System.out.println("START STREAMING @ " + new Date());
@@ -255,16 +277,16 @@ public class SinglePassColumnExpander {
         signatures.stream(
                 new SignatureSimilarityFilter(
                         sigsim,
-                        new BufferedWorker(trimmers, sigBufferSize, threads)
+                        new BufferedWorker(expanders, sigBufferSize, threads)
                 )
         );
 
         ExpandedColumnConsumer writer = consumerFactory.getConsumer(groups);
         writer.open();
 
-        for (SingleIterationExpander expander : expanders) {
-            expander.close();
-            writer.consume(expander.column());
+        for (ColumnExpanderWrapper column : expanders) {
+            column.trimmer().close();
+            writer.consume(column.expander().column());
         }
         System.out.println("DONE READING FOR COLUMN BLOCK @ " + new Date());
         
@@ -279,7 +301,6 @@ public class SinglePassColumnExpander {
     
     private static final String ARG_BUFFERSIZE = "buffer";
     private static final String ARG_COLUMNS = "columns";
-    private static final String ARG_LOWMEMUSE = "low-mem-use";
     private static final String ARG_SIGSIM = "sigsim";
     private static final String ARG_THREADS = "threads";
     private static final String ARG_THRESHOLD = "threshold";
@@ -288,7 +309,6 @@ public class SinglePassColumnExpander {
     private static final String[] ARGS = {
         ARG_BUFFERSIZE,
         ARG_COLUMNS,
-        ARG_LOWMEMUSE,
         ARG_SIGSIM,
         ARG_THREADS,
         ARG_THRESHOLD,
@@ -299,7 +319,6 @@ public class SinglePassColumnExpander {
             "Usage\n" +
             "  --" + ARG_BUFFERSIZE + "=<int> [default: 10000]\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
-            "  --" + ARG_LOWMEMUSE + "=<boolean> [default: true]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.25]\n" +
             "  --" + ARG_THRESHOLD + "=<constraint> [default: GT0.25]\n" +
@@ -331,7 +350,6 @@ public class SinglePassColumnExpander {
         Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.25"));
         Threshold threshold = Threshold.getConstraint(params.getAsString(ARG_THRESHOLD, "GT0.25"));
         int sigBufferSize = params.getAsInt(ARG_BUFFERSIZE, 10000);
-        boolean lowMemUsage = params.getAsBool(ARG_LOWMEMUSE, true);
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
         File columnsFile = null;
@@ -360,7 +378,6 @@ public class SinglePassColumnExpander {
                     threshold,
                     sigsim,
                     sigBufferSize,
-                    lowMemUsage,
                     threads,
                     new ExpandedColumnWriterFactory(output, false)
             );

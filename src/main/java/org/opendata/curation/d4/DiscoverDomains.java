@@ -23,7 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileSystem;
-import org.opendata.curation.d4.domain.ExportStrongDomains;
+import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksIndex;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;

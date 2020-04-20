@@ -36,7 +36,6 @@ import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
@@ -44,6 +43,7 @@ import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -65,14 +65,14 @@ public class ParallelLocalDomainGenerator {
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
-        private final SignatureBlocksIndex _signatures;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         
         public DomainGeneratorTask(
                 int id,
                 EQIndex nodes,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
-                SignatureBlocksIndex signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 UniqueDomainSet domains
        ) {
@@ -102,7 +102,11 @@ public class ParallelLocalDomainGenerator {
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
-                _signatures.stream(trimmer, col);
+                try {
+                    _signatures.stream(trimmer, col);
+                } catch (java.io.IOException ex) {
+                    throw new RuntimeException(ex);
+                }
                 count++;
             }
             
@@ -129,7 +133,7 @@ public class ParallelLocalDomainGenerator {
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
-            SignatureBlocksIndex signatures,
+            SignatureBlocksStream signatures,
             TrimmerType trimmer,
             int threads,
             DomainConsumer consumer
@@ -240,12 +244,10 @@ public class ParallelLocalDomainGenerator {
             } else {
                  new ExpandedColumnReader(columnFile).stream(columnIndex);
             }
-            SignatureBlocksIndex buffer = new SignatureBlocksIndex();
-            new SignatureBlocksReader(signatureFile).stream(buffer);
             new ParallelLocalDomainGenerator().run(
                     nodeIndex,
                     columnIndex,
-                    buffer,
+                    new SignatureBlocksReader(signatureFile),
                     trimmer,
                     threads,
                     new DomainWriter(outputFile)

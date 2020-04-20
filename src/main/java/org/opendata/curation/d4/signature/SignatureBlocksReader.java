@@ -25,6 +25,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSetReader;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.object.filter.AnyObjectFilter;
+import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.ArrayHelper;
 
 /**
@@ -61,7 +64,7 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     }
     
     @Override
-    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException {
+    public void stream(SignatureBlocksConsumer consumer, ObjectFilter<Integer> filter) throws java.io.IOException {
 
         consumer.open();
 
@@ -71,16 +74,68 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
                 String line;
                 while ((line = in.readLine()) != null) {
                     String[] tokens = line.split("\t");
+                    int sigId = Integer.parseInt(tokens[0]);
+                    if (!filter.contains(sigId)) {
+                        continue;
+                    }
                     int[][] blocks = new int[tokens.length - 2][];
                     for (int iToken = 2; iToken < tokens.length; iToken++) {
                         blocks[iToken - 2] = ArrayHelper.arrayFromString(tokens[iToken]);
                     }
                     SignatureBlocks sig = new SignatureBlocksImpl(
-                            Integer.parseInt(tokens[0]),
+                            sigId,
                             new BigDecimal(tokens[1]),
                             blocks
                     );
                     consumer.consume(sig);
+                }
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, file.getName(), ex);
+            }
+        }
+
+        consumer.close();
+    }
+
+    @Override
+    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException {
+
+        this.stream(consumer, new AnyObjectFilter());
+    }
+
+    public void streamSet(SignatureBlocksConsumer consumer, HashIDSet filter) throws java.io.IOException {
+
+        consumer.open();
+
+        for (File file : this) {
+            System.out.println("READING " + file.getName());
+            try (BufferedReader in = FileSystem.openReader(file)) {
+                int lineCount= 0;
+                String line;
+                while ((line = in.readLine()) != null) {
+                    String[] tokens = line.split("\t");
+                    int sigId = Integer.parseInt(tokens[0]);
+                    if (!filter.contains(sigId)) {
+                        continue;
+                    }
+                    int[][] blocks = new int[tokens.length - 2][];
+                    for (int iToken = 2; iToken < tokens.length; iToken++) {
+                        blocks[iToken - 2] = ArrayHelper.arrayFromString(tokens[iToken]);
+                    }
+                    SignatureBlocks sig = new SignatureBlocksImpl(
+                            sigId,
+                            new BigDecimal(tokens[1]),
+                            blocks
+                    );
+                    consumer.consume(sig);
+                    lineCount++;
+                    if ((lineCount % 10000) == 0) {
+                        System.out.println("READ " + lineCount + " LINES @ " + new java.util.Date());
+                    }
+                    filter.remove(sigId);
+                    if (filter.isEmpty()) {
+                        break;
+                    }
                 }
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, file.getName(), ex);

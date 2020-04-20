@@ -15,17 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
-
-import org.opendata.core.object.filter.ObjectFilter;
+package org.opendata.core.object;
 
 /**
- * Stream of signature blocks.
+ * Numeric count associated with a unique name.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksStream {
+public class NamedCount implements Comparable<NamedCount>, NamedObject {
+
+    private final int _count;
+    private final String _name;
     
-    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException;
-    public void stream(SignatureBlocksConsumer consumer, ObjectFilter<Integer> filter) throws java.io.IOException;
+    public NamedCount(String name, int count) {
+        
+        _name = name;
+        _count = count;
+    }
+
+    @Override
+    public int compareTo(NamedCount obj) {
+
+        return Integer.compare(_count, obj.count());
+    }
+
+    public int count() {
+        
+        return _count;
+    }
+    
+    @Override
+    public String name() {
+
+        return _name;
+    }
 }

@@ -21,11 +21,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
@@ -34,15 +36,15 @@ import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
+import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.signature.SignatureBlocks;
+import org.opendata.curation.d4.signature.SignatureSimilarityFilter;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -56,49 +58,96 @@ public class LocalDomainUndirectedGenerator {
                    
     public static final String TELEMETRY_ID = "LOCAL DOMAINS";
 
+    private class BufferedWorker implements SignatureBlocksConsumer {
+
+        private final List<SignatureBlocks> _buffer;
+        private final int _bufferSize;
+        private final List<SignatureBlocksConsumer> _columns;
+        private final int _threads;
+
+        // Statistics
+        private int _readCount = 0;
+        
+        public BufferedWorker(
+                List<SignatureBlocksConsumer> columns,
+                int bufferSize,
+                int threads
+        ) {
+            _columns = columns;
+            _bufferSize = bufferSize;
+            _threads = threads;
+            
+            _buffer = new ArrayList<>(bufferSize);
+        }
+        
+        @Override
+        public void close() {
+
+            if (!_buffer.isEmpty()) {
+                this.processBuffer();
+            }
+        }
+
+        @Override
+        public void consume(SignatureBlocks sig) {
+
+            _buffer.add(sig);
+            _readCount++;
+            if (_buffer.size() == _bufferSize) {
+                this.processBuffer();
+            }
+        }
+
+        @Override
+        public void open() {
+
+        }
+        
+        private void processBuffer() {
+        
+            System.out.println("PROCESS BUFFER OF " + _buffer.size() + " SIGNATURES (" + _readCount + ") @ " + new Date());
+            ConcurrentLinkedQueue<SignatureBlocks> queue;
+            queue = new ConcurrentLinkedQueue<>(_buffer);
+            new MemUsagePrinter().print();
+            ExecutorService es = Executors.newCachedThreadPool();
+            for (int iThread = 0; iThread < _threads; iThread++) {
+                DomainGeneratorTask worker = new DomainGeneratorTask(_columns, queue);
+                es.execute(worker);
+            }
+            es.shutdown();
+            try {
+                es.awaitTermination(_threads, TimeUnit.DAYS);
+            } catch (java.lang.InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+            
+            System.out.println("DONE BUFFER PROCESSING @ " + new Date());
+        
+            _buffer.clear();
+        }
+    }
+
     private class DomainGeneratorTask implements Runnable {
 
-        private final List<ExpandedColumn> _columns;
-        private final UniqueDomainSet _domains;
-        private final EQIndex _nodes;
-        private final SignatureBlocksStream _signatures;
-        private final SignatureTrimmerFactory _trimmerFactory;
+        private final List<SignatureBlocksConsumer> _columns;
+        private final ConcurrentLinkedQueue<SignatureBlocks> _signatures;
         
         public DomainGeneratorTask(
-                EQIndex nodes,
-                List<ExpandedColumn> columns,
-                SignatureBlocksStream signatures,
-                SignatureTrimmerFactory trimmerFactory,
-                UniqueDomainSet domains
+                List<SignatureBlocksConsumer> columns,
+                ConcurrentLinkedQueue<SignatureBlocks> signatures
        ) {
-            _nodes = nodes;
             _columns = columns;
             _signatures = signatures;
-            _trimmerFactory = trimmerFactory;
-            _domains = domains;
         }
         
         @Override
         public void run() {
 
-            SignatureBlocksDispatcher dispatcher = new SignatureBlocksDispatcher();
-            for (ExpandedColumn column : _columns) {
-                IDSet col = column.nodes();
-                SignatureBlocksConsumer domainGenerator;
-                domainGenerator = new UndirectedDomainGenerator(
-                        column,
-                        _domains,
-                        _nodes.nodeSizes()
-                );
-                SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
-                dispatcher.add(trimmer);
-            }
-
-            try {
-                _signatures.stream(dispatcher);
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
+            SignatureBlocks sig;
+            while ((sig = _signatures.poll()) != null) {
+                for (SignatureBlocksConsumer column : _columns) {
+                    column.consume(sig);
+                }
             }
         }
     }
@@ -120,39 +169,43 @@ public class LocalDomainUndirectedGenerator {
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
             TrimmerType trimmer,
+            Threshold sigsim,
             int threads,
             DomainConsumer consumer
     ) throws java.io.IOException {
 
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
+        SignatureTrimmerFactory trimmerFactory;
+        trimmerFactory = new SignatureTrimmerFactory(nodes, trimmer);
+        
         Date start = new Date();
         System.out.println("START @ " + start);
 
-        ExecutorService es = Executors.newCachedThreadPool();
+        int[] nodeSizes = nodes.nodeSizes();
         
-        List<ExpandedColumn> columnList = columnIndex.columns();
-        for (int iThread = 0; iThread < threads; iThread++) {
-            List<ExpandedColumn> columns = new ArrayList<>();
-            for (int iColumn = iThread; iColumn < columnList.size(); iColumn += threads) {
-                columns.add(columnList.get(iColumn));
-            }
-            DomainGeneratorTask task = new DomainGeneratorTask(
-                    nodes,
-                    columns,
-                    signatures,
-                    new SignatureTrimmerFactory(nodes, trimmer),
-                    domains
+        List<SignatureBlocksConsumer> domainGenerators = new ArrayList<>();
+        for (ExpandedColumn column : columnIndex.columns()) {
+            //IDSet col = column.nodes();
+            SignatureBlocksConsumer domainGenerator;
+            domainGenerator = trimmerFactory.getTrimmer(
+                    column.nodes(),
+                    new UndirectedDomainGenerator(column, domains, nodeSizes)
             );
-            es.execute(task);
+            domainGenerator.open();
+            domainGenerators.add(domainGenerator);
         }
-        es.shutdown();
-        try {
-            es.awaitTermination(threads, TimeUnit.DAYS);
-        } catch (java.lang.InterruptedException ex) {
-            throw new RuntimeException(ex);
-        }
+
+        signatures.stream(
+                new SignatureSimilarityFilter(
+                        sigsim,
+                        new BufferedWorker(domainGenerators, 10000, threads)
+                )
+        );
         
+        for (SignatureBlocksConsumer domainGenerator : domainGenerators) {
+            domainGenerator.close();
+        }
         domains.stream(consumer);
         
         Date end = new Date();
@@ -163,11 +216,13 @@ public class LocalDomainUndirectedGenerator {
     }
     
     private static final String ARG_COLUMNS = "columns";
+    private static final String ARG_SIGSIM = "sigsim";
     private static final String ARG_THREADS = "threads";
     private static final String ARG_TRIMMER = "trimmer";
     
     private static final String[] ARGS = {
         ARG_COLUMNS,
+        ARG_SIGSIM,
         ARG_THREADS,
         ARG_TRIMMER
     };
@@ -175,6 +230,7 @@ public class LocalDomainUndirectedGenerator {
     private static final String COMMAND =
             "Usage\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
+            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.25]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
                     TrimmerType.CENTRIST.toString() +"]\n" +
@@ -204,6 +260,7 @@ public class LocalDomainUndirectedGenerator {
         TrimmerType trimmer = TrimmerType.valueOf(
                 params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
         );
+        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.25"));
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
         File columnsFile = null;
@@ -229,6 +286,7 @@ public class LocalDomainUndirectedGenerator {
                     columnIndex,
                     new SignatureBlocksReader(signatureFile),
                     trimmer,
+                    sigsim,
                     threads,
                     new DomainWriter(outputFile)
             );

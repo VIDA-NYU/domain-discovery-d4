@@ -202,14 +202,15 @@ public class StrongDomainGenerator {
                                 new DomainSupport(domain.id(), support)
                         );
                     }
-                    if (_verbose) {
-                        System.out.println(
-                                domain.id() + "\t" +
-                                domain.columns().length() + "\t" +
-                                frequency + "\t" +
-                                minColumnCount
-                        );
-                    }
+                }
+                if (_verbose) {
+                    System.out.println(
+                            domain.id() + "\t" +
+                            domain.columns().length() + "\t" +
+                            frequency + "\t" +
+                            minColumnCount + "\t" +
+                            edgeCount
+                    );
                 }
             }
         }
@@ -317,7 +318,7 @@ public class StrongDomainGenerator {
                     supportFraction,
                     frequencyEstimate,
                     helper,
-                    false,
+                    true,
                     strongDomains
             );
             es.execute(command);
@@ -357,6 +358,7 @@ public class StrongDomainGenerator {
     }
     
     private static final String ARG_DOMAINOVERLAP = "domainOverlap";
+    private static final String ARG_FREQEST = "freqEst";
     private static final String ARG_SUPPORTFRAC = "supportFraction";
     private static final String ARG_THREADS = "threads";
 
@@ -369,6 +371,7 @@ public class StrongDomainGenerator {
     private static final String COMMAND =
             "Usage\n" +
             "  --" + ARG_DOMAINOVERLAP + "=<constraint> [default: GT0.5]\n" +
+            "  --" + ARG_FREQEST + "=<constraint> [default: GT0.1]\n" +
             "  --" + ARG_SUPPORTFRAC + "=<real> [default: 0.25]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  <eq-file>\n" +
@@ -394,6 +397,8 @@ public class StrongDomainGenerator {
 
         Threshold domainOverlapConstraint = Threshold
                 .getConstraint(params.getAsString(ARG_DOMAINOVERLAP, "GT0.5"));
+        Threshold freqEstConstraint = Threshold
+                .getConstraint(params.getAsString(ARG_FREQEST, "GT0.1"));
         BigDecimal supportFraction = params.getAsBigDecimal(ARG_SUPPORTFRAC, new BigDecimal("0.25"));
         int threads = params.getAsInt(ARG_THREADS, 6);
         
@@ -405,7 +410,7 @@ public class StrongDomainGenerator {
                     eqIndex,
                     localDomains,
                     domainOverlapConstraint,
-                    Threshold.getConstraint("GT0.1"),
+                    freqEstConstraint,
                     supportFraction,
                     true,
                     threads,

@@ -17,10 +17,10 @@
  */
 package org.opendata.curation.d4.column;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +30,14 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.similarity.Support;
 import org.opendata.core.util.count.Counter;
+import org.opendata.curation.d4.signature.SignatureBlocksReader;
+import org.opendata.curation.d4.signature.SignatureSimilarityFilter;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.signature.trim.TrimmerType;
+import org.opendata.db.Database;
+import org.opendata.db.column.Column;
+import org.opendata.db.eq.EQIndex;
 
 /**
  * Simplified version of the single column expander. This expander does only a
@@ -44,7 +52,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
         
     private ExpandedColumn _column = null;
     private final int _columnSize;
-    private final boolean _lowMemUsage;
     private final int[] _nodeSizes;
     private int _remainingWeight;
     private HashMap<Integer, Counter> _support;
@@ -58,13 +65,11 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
     public SingleIterationExpander(
             ExpandedColumn column,
             Threshold threshold,
-            int[] nodeSizes,
-            boolean lowMemUsage
+            int[] nodeSizes
     ) {
         _nodeSizes = nodeSizes;
         _column = column;
         _threshold = threshold;
-        _lowMemUsage = lowMemUsage;
         
         int size = 0;
         for (int nodeId : column.originalNodes()) {
@@ -81,6 +86,8 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
         
         _columnSize = size;
         _remainingWeight = _columnSize;
+        
+        System.out.println("COLUMN " + _column);
     }
 
     public ExpandedColumn column() {
@@ -88,6 +95,25 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
         return _column;
     }
 
+    public void cleanSupport() {
+
+        long t1 = new Date().getTime();
+        
+        // Remove nodes that cannot meet the threshold constraint anymore.
+        List<Integer> nodes = new ArrayList<>(_support.keySet());
+        for (int nodeId : nodes) {
+            Counter counter = _support.get(nodeId);
+            int ub = counter.value() + _remainingWeight;
+            Support sup = new Support(ub, _columnSize);
+            if (!_threshold.isSatisfied(sup.value())) {
+                _support.remove(nodeId);
+            }
+        }
+        
+        long t2 = new Date().getTime();
+        _cleanTime += (t2 - t1);
+}
+    
     @Override
     public void close() {
 
@@ -113,7 +139,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
         if (_column.isColumnNode(sig.id())) {
             int weight = _nodeSizes[sig.id()];
             _remainingWeight -= weight;
-            HashSet<Integer> positiveNodes = new HashSet<>();
             long t0 = new Date().getTime();
             for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
                 for (int nodeId : sig.get(iBlock)) {
@@ -125,7 +150,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
                             Support sup = new Support(ub, _columnSize);
                             if (_threshold.isSatisfied(sup.value())) {
                                 _support.put(nodeId, new Counter(weight));
-                                positiveNodes.add(nodeId);
                             }
                         } else {
                             Counter counter = _support.get(nodeId);
@@ -133,7 +157,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
                             Support sup = new Support(ub, _columnSize);
                             if (_threshold.isSatisfied(sup.value())) {
                                 counter.inc(weight);
-                                positiveNodes.add(nodeId);
                             } else {
                                 _support.remove(nodeId);
                             }
@@ -142,22 +165,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
                 }
             }
             long t1 = new Date().getTime();
-            // Remove nodes that cannot meet the threshold constraint anymore.
-            if (_lowMemUsage) {
-                List<Integer> nodes = new ArrayList<>(_support.keySet());
-                for (int nodeId : nodes) {
-                    if (!positiveNodes.contains(nodeId)) {
-                        Counter counter = _support.get(nodeId);
-                        int ub = counter.value() + _remainingWeight;
-                        Support sup = new Support(ub, _columnSize);
-                        if (!_threshold.isSatisfied(sup.value())) {
-                            _support.remove(nodeId);
-                        }
-                    }
-                }
-                long t2 = new Date().getTime();
-                _cleanTime += (t2 = t1);
-            }
             _sigCount++;
             _supportTime += (t1 - t0);
        }
@@ -167,5 +174,58 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
     public void open() {
 
         _support = new HashMap<>();
+    }
+    
+    private final static String COMMAND =
+            "Usage:\n" +
+            "  <eq-file>\n" +
+            "  <signautres-file>\n" +
+            "  <column-id>\n" +
+            "  <trimmer-type>\n" +
+            "  <sim-threshold>\n" +
+            "  <expand-threshold>\n" +
+            "  <output-file>";
+    
+    public static void main(String[] args) {
+        
+        if (args.length != 7) {
+            System.out.println(COMMAND);
+            System.exit(-1);
+        }
+        
+        File eqFile = new File(args[0]);
+        File signatureFile = new File(args[1]);
+        int columnId = Integer.parseInt(args[2]);
+        TrimmerType trimmer = TrimmerType.valueOf(args[3]);
+        Threshold simThreshold = Threshold.getConstraint(args[4]);
+        Threshold expandThreshold = Threshold.getConstraint(args[5]);
+        File outputFile = new File(args[6]);
+        
+        try {
+            EQIndex eqIndex = new EQIndex(eqFile);
+            int[] nodeSizes = eqIndex.nodeSizes();
+            Column column = new Database(eqIndex).columns().get(columnId);
+            SingleIterationExpander expander;
+            expander = new SingleIterationExpander(
+                    new ImmutableExpandedColumn(column),
+                    expandThreshold,
+                    nodeSizes
+            );
+            SignatureTrimmer consumer;
+            consumer = new SignatureTrimmerFactory(nodeSizes, trimmer)
+                    .getTrimmer(column, expander);
+            SignatureBlocksReader signatures;
+            signatures = new SignatureBlocksReader(signatureFile);
+            SignatureSimilarityFilter sigFilter;
+            sigFilter = new SignatureSimilarityFilter(simThreshold, consumer);
+            signatures.streamSet(sigFilter, new HashIDSet(column));
+            ExpandedColumnWriter writer = new ExpandedColumnWriter(outputFile);
+            writer.open();
+            writer.consume(expander.column());
+            writer.close();
+        } catch (java.io.IOException ex) {
+            LOGGER.log(Level.SEVERE, "RUN", ex);
+            System.exit(-1);
+        }
     }
 }

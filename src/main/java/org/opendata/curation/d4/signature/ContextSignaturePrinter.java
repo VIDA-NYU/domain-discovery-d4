@@ -157,7 +157,7 @@ public class ContextSignaturePrinter {
         }
         
         if (column != null) {
-            RobustSignatureIndex buffer = new RobustSignatureIndex();
+            SignatureBlocksIndex buffer = new SignatureBlocksIndex();
             new LiberalTrimmer(
                     nodeSizes,
                     new CentristTrimmer(column, nodeSizes, buffer)

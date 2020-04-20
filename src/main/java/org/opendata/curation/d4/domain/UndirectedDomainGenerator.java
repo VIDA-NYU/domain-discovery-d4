@@ -69,10 +69,12 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
 
         final int sigId = sig.id();
         
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            for (int nodeId : sig.get(iBlock)) {
-                if (this.contains(nodeId)) {
-                    this.edge(sigId, nodeId);
+        if (_column.contains(sigId)) {
+            for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+                for (int nodeId : sig.get(iBlock)) {
+                    if (this.contains(nodeId)) {
+                        this.edge(sigId, nodeId);
+                    }
                 }
             }
         }

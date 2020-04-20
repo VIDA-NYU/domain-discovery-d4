@@ -19,8 +19,8 @@ package org.opendata.curation.d4.signature;
 
 import java.util.Iterator;
 import java.util.List;
+import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.core.set.HashObjectSet;
-import org.opendata.core.set.IDSet;
 
 /**
  * Memory buffer for signature blocks indexed by their identifier.
@@ -80,13 +80,14 @@ public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, Signatur
         consumer.close();
     }
 
-    public void stream(SignatureBlocksConsumer consumer, IDSet filter) {
+    @Override
+    public void stream(SignatureBlocksConsumer consumer, ObjectFilter<Integer> filter) {
 
         consumer.open();
         
-        for (int sigId : filter) {
-            if (_signatures.contains(sigId)) {
-                consumer.consume(_signatures.get(sigId));
+        for (SignatureBlocks sig : _signatures) {
+            if (filter.contains(sig.id())) {
+                consumer.consume(sig);
             }
         }
         

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.domain;
+package org.opendata.curation.d4.export;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -40,6 +40,9 @@ import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.count.Counter;
 import org.opendata.curation.d4.Constants;
+import org.opendata.curation.d4.domain.StrongDomain;
+import org.opendata.curation.d4.domain.StrongDomainMember;
+import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;
@@ -136,14 +139,15 @@ public class ExportStrongDomains {
         
         // Read column names. Expects a tab-delimited file with column id,
         // dataset-id and column name.
-        HashMap<Integer, String> columnNames = new HashMap<>();
+        HashMap<Integer, String[]> columnNames = new HashMap<>();
         try (BufferedReader in = FileSystem.openReader(columnFile)) {
             String line;
             while ((line = in.readLine()) != null) {
                 String[] tokens = line.split("\t");
                 int columnId = Integer.parseInt(tokens[0]);
+                String domain = tokens[1];
                 String columnName = tokens[2];
-                columnNames.put(columnId, columnName);
+                columnNames.put(columnId, new String[]{columnName, domain});
             }
         }
         
@@ -175,12 +179,13 @@ public class ExportStrongDomains {
                 List<String> names = new ArrayList<>();
                 JsonArray arrColumns = new JsonArray();
                 for (int columnId : domain.columns()) {
-                    String columnName = columnNames.get(columnId);
+                    String[] columnInfo = columnNames.get(columnId);
                     JsonObject objCol = new JsonObject();
                     objCol.add("id", new JsonPrimitive(columnId));
-                    objCol.add("name", new JsonPrimitive(columnName));
+                    objCol.add("name", new JsonPrimitive(columnInfo[0]));
+                    objCol.add("domain", new JsonPrimitive(columnInfo[1]));
                     arrColumns.add(objCol);
-                    names.add(columnName);
+                    names.add(columnInfo[0]);
                 }
                 String domainName = this.getDomainName(names);
                 List<IdentifiableDouble> items = new ArrayList<>();
