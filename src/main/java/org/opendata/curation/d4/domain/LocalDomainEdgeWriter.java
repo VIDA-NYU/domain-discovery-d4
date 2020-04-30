@@ -18,6 +18,8 @@
 package org.opendata.curation.d4.domain;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -30,8 +32,6 @@ import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
-import org.opendata.curation.d4.telemetry.TelemetryCollector;
-import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
@@ -41,23 +41,23 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.domain.graph.HexEdgeWriter;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureSimilarityFilter;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Generator for local domains using undirected graphs. Each connected component
- * in the graph generated from the robust signatures of the column elements 
- * represents a local domain.
+ * Write edges for all nodes in an expanded column. Trims the signature of each
+ * column member and writes the identifier of the referenced column nodes to
+ * file.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class LocalDomainUndirectedGenerator {
+public class LocalDomainEdgeWriter {
                    
-    public static final String TELEMETRY_ID = "LOCAL DOMAINS";
-
     private class BufferedWorker implements SignatureBlocksConsumer {
 
         private final List<SignatureBlocks> _buffer;
@@ -111,8 +111,7 @@ public class LocalDomainUndirectedGenerator {
             new MemUsagePrinter().print();
             ExecutorService es = Executors.newCachedThreadPool();
             for (int iThread = 0; iThread < _threads; iThread++) {
-                DomainGeneratorTask worker = new DomainGeneratorTask(_columns, queue);
-                es.execute(worker);
+                es.execute(new EdgeWriterTask(_columns, queue));
             }
             es.shutdown();
             try {
@@ -127,12 +126,13 @@ public class LocalDomainUndirectedGenerator {
         }
     }
 
-    private class DomainGeneratorTask implements Runnable {
+    
+    private class EdgeWriterTask implements Runnable {
 
         private final List<SignatureBlocksConsumer> _columns;
         private final ConcurrentLinkedQueue<SignatureBlocks> _signatures;
         
-        public DomainGeneratorTask(
+        public EdgeWriterTask(
                 List<SignatureBlocksConsumer> columns,
                 ConcurrentLinkedQueue<SignatureBlocks> signatures
        ) {
@@ -152,18 +152,6 @@ public class LocalDomainUndirectedGenerator {
         }
     }
     
-    private final TelemetryCollector _telemetry;
-    
-    public LocalDomainUndirectedGenerator(TelemetryCollector telemetry) {
-        
-        _telemetry = telemetry;
-    }
-    
-    public LocalDomainUndirectedGenerator() {
-        
-        this(new TelemetryPrinter());
-    }
-    
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
@@ -171,48 +159,34 @@ public class LocalDomainUndirectedGenerator {
             TrimmerType trimmer,
             Threshold sigsim,
             int threads,
-            DomainConsumer consumer
+            SynchronizedWriter out
     ) throws java.io.IOException {
 
-        UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
-        
         SignatureTrimmerFactory trimmerFactory;
         trimmerFactory = new SignatureTrimmerFactory(nodes, trimmer);
         
         Date start = new Date();
         System.out.println("START @ " + start);
 
-        int[] nodeSizes = nodes.nodeSizes();
-        
-        List<SignatureBlocksConsumer> domainGenerators = new ArrayList<>();
+        List<SignatureBlocksConsumer> workers = new ArrayList<>();
         for (ExpandedColumn column : columnIndex.columns()) {
-            //IDSet col = column.nodes();
-            SignatureBlocksConsumer domainGenerator;
-            domainGenerator = trimmerFactory.getTrimmer(
-                    column.nodes(),
-                    new UndirectedDomainGenerator(column, domains, nodeSizes)
-            );
-            domainGenerator.open();
-            domainGenerators.add(domainGenerator);
+            SignatureBlocksConsumer consumer;
+            consumer = new HexEdgeWriter(column, out);
+            consumer = trimmerFactory.getTrimmer(column.nodes(), consumer);
+            consumer.open();
+            workers.add(consumer);
         }
 
-        signatures.stream(
-                new SignatureSimilarityFilter(
-                        sigsim,
-                        new BufferedWorker(domainGenerators, 10000, threads)
-                )
-        );
-        
-        for (SignatureBlocksConsumer domainGenerator : domainGenerators) {
-            domainGenerator.close();
+        SignatureBlocksConsumer sigConsumer;
+        sigConsumer = new BufferedWorker(workers, 50000, threads);
+        if (!sigsim.isSatisfied(BigDecimal.ZERO)) {
+            sigConsumer = new SignatureSimilarityFilter(sigsim, sigConsumer);
         }
-        domains.stream(consumer);
         
+        signatures.stream(sigConsumer);
+
         Date end = new Date();
         System.out.println("END @ " + end);
-        
-        long execTime = end.getTime() - start.getTime();
-        _telemetry.add(TELEMETRY_ID, execTime);
     }
     
     private static final String ARG_COLUMNS = "columns";
@@ -230,7 +204,7 @@ public class LocalDomainUndirectedGenerator {
     private static final String COMMAND =
             "Usage\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
-            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.25]\n" +
+            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.0]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
                     TrimmerType.CENTRIST.toString() +"]\n" +
@@ -240,11 +214,11 @@ public class LocalDomainUndirectedGenerator {
             "  <output-file>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(LocalDomainUndirectedGenerator.class.getName());
+            .getLogger(LocalDomainEdgeWriter.class.getName());
     
     public static void main(String[] args) {
         
-	System.out.println(Constants.NAME + " - Local Domain Generator (Undirected) - Version (" + Constants.VERSION + ")\n");
+        System.out.println(Constants.NAME + " - Local Domain Edge Writer - Version (" + Constants.VERSION + ")\n");
 
         if (args.length < 3) {
             System.out.println(COMMAND);
@@ -260,7 +234,7 @@ public class LocalDomainUndirectedGenerator {
         TrimmerType trimmer = TrimmerType.valueOf(
                 params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
         );
-        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.25"));
+        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.0"));
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
         File columnsFile = null;
@@ -270,7 +244,7 @@ public class LocalDomainUndirectedGenerator {
         
         FileSystem.createParentFolder(outputFile);
         
-        try {
+        try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
             // Read the node index and the list of columns
             EQIndex nodeIndex = new EQIndex(eqFile);
             // Read the list of column identifier if a columns file was given
@@ -281,14 +255,14 @@ public class LocalDomainUndirectedGenerator {
             } else {
                  new ExpandedColumnReader(columnFile).stream(columnIndex);
             }
-            new LocalDomainUndirectedGenerator().run(
+            new LocalDomainEdgeWriter().run(
                     nodeIndex,
                     columnIndex,
                     new SignatureBlocksReader(signatureFile),
                     trimmer,
                     sigsim,
                     threads,
-                    new DomainWriter(outputFile)
+                    new SynchronizedWriter(out)
             );
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);

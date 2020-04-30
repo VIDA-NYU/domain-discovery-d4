@@ -15,34 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.build;
+package org.opendata.curation.d4.domain.graph;
 
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.set.Signature;
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 
 /**
- * Test if a node's ID set contains the target node id.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ContainmentCondition implements GraphBuilderEdgeCondition {
-
-    private final IdentifiableObjectSet<Signature> _nodes;
+public interface ColumnEdgeWriter extends SignatureBlocksConsumer {
     
-    public ContainmentCondition(IdentifiableObjectSet<Signature> nodes) {
-        
-        _nodes = nodes;
-    }
-    
-    @Override
-    public boolean hasEdge(int sourceId, int targetId) {
-
-        return _nodes.get(sourceId).contains(targetId);
-    }
-
-    @Override
-    public boolean isSymmetric() {
-
-        return false;
-    }
 }

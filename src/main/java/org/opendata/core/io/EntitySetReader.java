@@ -22,6 +22,7 @@ import java.io.File;
 import org.opendata.core.object.Entity;
 import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.set.EntitySet;
 
 /**
  * Read an entity set file. Assumes a text file where each row has at least two
@@ -64,4 +65,14 @@ public class EntitySetReader {
         
         this.read(new AnyObjectFilter(), consumer);
     }
+    
+    public EntitySet readEntities(ObjectFilter<Integer> filter) throws java.io.IOException {
+        
+        EntitySet result = new EntitySet();
+        
+        this.read(filter, new EntityBuffer(result));
+        
+        return result;
+    }
+
 }

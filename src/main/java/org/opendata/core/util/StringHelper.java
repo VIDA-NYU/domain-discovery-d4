@@ -68,7 +68,7 @@ public final class StringHelper {
         return buf.toString();
     }
 
-    public static String joinIntegers(int[] columns) {
+    public static String joinIntegers(int[] columns, String delimiter) {
         
         if (columns.length == 0) {
             return "";
@@ -76,11 +76,16 @@ public final class StringHelper {
         
         StringBuilder buf = new StringBuilder(Integer.toString(columns[0]));
         for (int iColumn = 1; iColumn < columns.length; iColumn++) {
-            buf.append(",").append(columns[iColumn]);
+            buf.append(delimiter).append(columns[iColumn]);
         }
         return buf.toString();
     }
 
+    public static String joinIntegers(int[] columns) {
+        
+        return StringHelper.joinIntegers(columns, ",");
+    }
+    
     public static String joinStrings(List<String> tokens, int start, int end) {
         
         StringBuilder buf = new StringBuilder(tokens.get(start));

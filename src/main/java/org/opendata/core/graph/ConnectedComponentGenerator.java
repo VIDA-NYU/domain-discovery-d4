@@ -15,36 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.components;
+package org.opendata.core.graph;
 
 import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.graph.build.GraphBuilderEdgeCondition;
+import org.opendata.core.set.IdentifiableObjectSet;
 
 /**
- * Draw an edge between two nodes if the source node contains the target node id
- * in its id set.
+ * Generate connected components for a set of nodes. Starts with a single
+ * component for each node. Merges components to find connected components.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class DirectedEdgeCondition <T extends IdentifiableIDSet> implements GraphBuilderEdgeCondition {
-
-    private final GraphBuilderEdgeCondition _condition;
+public interface ConnectedComponentGenerator {
     
-    public DirectedEdgeCondition(GraphBuilderEdgeCondition condition) {
+    /**
+     * Add adjacent edges for a given node.
+     * 
+     * @param nodeId
+     * @param edges 
+     */
+    public void add(int nodeId, int[] edges);
     
-        _condition = condition;
-    }
-    
-    @Override
-    public boolean hasEdge(int sourceId, int targetId) {
-
-	return _condition.hasEdge(sourceId, targetId);
-    }
-
-    @Override
-    public boolean isSymmetric() {
-
-        return false;
-    }
+    /**
+     * Connected component result.
+     * 
+     * @return 
+     */
+    public IdentifiableObjectSet<IdentifiableIDSet> getComponents();
 }

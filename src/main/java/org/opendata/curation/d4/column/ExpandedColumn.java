@@ -59,6 +59,11 @@ public abstract class ExpandedColumn extends IdentifiableObjectImpl {
         return _nodes.contains(id);
     }
 
+    public int length() {
+        
+        return _nodes.length() + _expansion.length();
+    }
+    
     public IDSet nodes() {
         
         return _nodes.union(_expansion);

@@ -216,7 +216,7 @@ public class SinglePassColumnExpander {
             Threshold sigsim,
             int sigBufferSize,
             int threads,
-            ExpandedColumnConsumerFactory consumerFactory
+            File outputFile
     ) throws java.io.IOException {
         
         HashMap<String, ExpandedColumn> columnIndex = new HashMap<>();
@@ -281,14 +281,15 @@ public class SinglePassColumnExpander {
                 )
         );
 
-        ExpandedColumnConsumer writer = consumerFactory.getConsumer(groups);
+        System.out.println("DONE STREAMING @ " + new Date());
+        
+        ExpandedColumnConsumer writer = new ExpandedColumnWriter(outputFile, groups);
         writer.open();
 
         for (ColumnExpanderWrapper column : expanders) {
             column.trimmer().close();
             writer.consume(column.expander().column());
         }
-        System.out.println("DONE READING FOR COLUMN BLOCK @ " + new Date());
         
         writer.close();
         
@@ -320,8 +321,8 @@ public class SinglePassColumnExpander {
             "  --" + ARG_BUFFERSIZE + "=<int> [default: 10000]\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
-            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.25]\n" +
-            "  --" + ARG_THRESHOLD + "=<constraint> [default: GT0.25]\n" +
+            "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.0]\n" +
+            "  --" + ARG_THRESHOLD + "=<constraint> [default: GT0.5]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +
                     TrimmerType.CENTRIST.toString() +"]\n" +
             "  <eq-file>\n" +
@@ -347,8 +348,8 @@ public class SinglePassColumnExpander {
 
         TrimmerType trimmer = TrimmerType
                 .valueOf(params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString()));
-        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.25"));
-        Threshold threshold = Threshold.getConstraint(params.getAsString(ARG_THRESHOLD, "GT0.25"));
+        Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.0"));
+        Threshold threshold = Threshold.getConstraint(params.getAsString(ARG_THRESHOLD, "GT0.5"));
         int sigBufferSize = params.getAsInt(ARG_BUFFERSIZE, 10000);
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
@@ -379,7 +380,7 @@ public class SinglePassColumnExpander {
                     sigsim,
                     sigBufferSize,
                     threads,
-                    new ExpandedColumnWriterFactory(output, false)
+                    output
             );
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);

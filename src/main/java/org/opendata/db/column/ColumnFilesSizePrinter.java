@@ -19,46 +19,60 @@ package org.opendata.db.column;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.db.Database;
-import org.opendata.db.eq.EQIndex;
 
 /**
- * Print number of equivalence classes and terms in columns.
+ * Print number of distinct values and total values in a collection of database
+ * column files.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnSizePrinter {
+public class ColumnFilesSizePrinter {
     
     /**
-     * Output number of equivalence classes and terms per column.
+     * Output number of total values and distinct values per column.
      * 
-     * @param eqIndex
+     * @param files
      * @param out
      * @throws java.io.IOException 
      */
-    public void run(EQIndex eqIndex, PrintWriter out) throws java.io.IOException {
+    public void run(List<File> files, PrintWriter out) throws java.io.IOException {
         
-        Database db = new Database(eqIndex);
+        System.out.println(files.size() + " COLUMNS");
         
-        for (Column column : db.columns()) {
-            int termCount = 0;
-            for (int nodeId : column) {
-                termCount += eqIndex.get(nodeId).termCount();
+        for (File file : files) {
+            try (FlexibleColumnReader reader = new FlexibleColumnReader(file)) {
+                int cellCount = 0;
+                int valueCount = 0;
+                while (reader.hasNext()) {
+                    cellCount += reader.next().getCount();
+                    valueCount++;
+                }
+                String name = file.getName();
+                name = name.substring(0, name.length() - 7);
+                int pos = name.indexOf(".");
+                String line = name.substring(0, pos) + "\t" + name.substring(pos + 1);
+                line += "\t" + valueCount + "\t" + cellCount;
+                out.println(line);
+                System.out.println(line);
+            } catch (java.lang.NumberFormatException ex) {
+                LOGGER.log(Level.SEVERE, file.getName(), ex);
+                System.exit(-1);
             }
-            out.println(column.id() + "\t" + column.length() + "\t" + termCount);
         }
     }
     
     private static final String COMMAND =
             "Usage:\n" +
-            "  <eq-file>\n" +
+            "  <column-file-or-dir>\n" +
             "  <output-file>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(ColumnSizePrinter.class.getName());
+            .getLogger(ColumnFilesSizePrinter.class.getName());
     
     public static void main(String[] args) {
         
@@ -67,11 +81,14 @@ public class ColumnSizePrinter {
             System.exit(-1);
         }
         
-        File eqFile = new File(args[0]);
+        File inFile = new File(args[0]);
         File outputFile = new File(args[1]);
         
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new ColumnSizePrinter().run(new EQIndex(eqFile), out);
+            new ColumnFilesSizePrinter().run(
+                    new FileListReader(".txt").listFiles(inFile),
+                    out
+            );
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

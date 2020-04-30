@@ -86,8 +86,6 @@ public class SingleIterationExpander implements SignatureBlocksConsumer {
         
         _columnSize = size;
         _remainingWeight = _columnSize;
-        
-        System.out.println("COLUMN " + _column);
     }
 
     public ExpandedColumn column() {

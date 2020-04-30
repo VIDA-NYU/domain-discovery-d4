@@ -32,7 +32,7 @@ import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.core.graph.components.UndirectedConnectedComponents;
+import org.opendata.core.graph.UndirectedConnectedComponents;
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
@@ -364,6 +364,7 @@ public class StrongDomainGenerator {
 
     private static final String[] ARGS = {
         ARG_DOMAINOVERLAP,
+        ARG_FREQEST,
         ARG_SUPPORTFRAC,
         ARG_THREADS
     };

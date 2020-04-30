@@ -15,43 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph;
+package org.opendata.core.io;
 
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.set.ObjectSet;
-import org.opendata.core.set.Signature;
+import org.opendata.core.object.Entity;
+import org.opendata.core.set.HashObjectSet;
 
 /**
- * Adjacency graph with fixed set of edges.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class StaticGraph extends AdjacencyGraph {
+public class EntityBuffer implements EntityConsumer {
+    
+    private final HashObjectSet<Entity> _buffer;
 
-    private final IdentifiableObjectSet<Signature> _edges;
+    public EntityBuffer(HashObjectSet<Entity> buffer) {
 
-    public StaticGraph(IdentifiableObjectSet<Signature> edges) {
-        
-        super(edges.keys());
-        
-        _edges = edges;
+        _buffer = buffer;
     }
 
     @Override
-    public ObjectSet<Integer> adjacent(int nodeId) {
+    public void close() {
 
-	return _edges.get(nodeId);
     }
 
     @Override
-    public AdjacencyGraph reverse() {
+    public void consume(Entity entity) {
 
-	return new ReverseGraph(this);
-    }    
+        _buffer.add(entity);
+    }
 
     @Override
-    public boolean hasEdge(int sourceId, int targetId) {
+    public void open() {
 
-        return _edges.get(sourceId).contains(targetId);
     }
 }

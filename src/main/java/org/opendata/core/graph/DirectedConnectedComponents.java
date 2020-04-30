@@ -15,38 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.components;
+package org.opendata.core.graph;
 
-import org.opendata.core.graph.build.GraphBuilderEdgeCondition;
+import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
 
 /**
- * Draw an edge between two nodes if one node contains the other node's id in
- * its id set.
+ * Default connected component generator. Use  for nodes that are unstructured
+ * integers.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SingleEdgeCondition implements GraphBuilderEdgeCondition {
+public class DirectedConnectedComponents implements ConnectedComponentGenerator {
 
-    private final GraphBuilderEdgeCondition _condition;
+    private final ArrayGraph _graph;
     
-    public SingleEdgeCondition(GraphBuilderEdgeCondition condition) {
-    
-        _condition = condition;
-    }
-    
-    @Override
-    public boolean hasEdge(int sourceId, int targetId) {
-
-        if (_condition.isSymmetric()) {
-            return _condition.hasEdge(sourceId, targetId);
-        } else {
-            return _condition.hasEdge(sourceId, targetId) || _condition.hasEdge(targetId, sourceId);
-        }
+    public DirectedConnectedComponents(IDSet nodes) {
+	
+        _graph = new ArrayGraph(nodes);
     }
 
     @Override
-    public boolean isSymmetric() {
+    public void add(int nodeId, int[] edges) {
 
-        return true;
+        _graph.add(nodeId, edges);
+    }
+    
+    @Override
+    public synchronized IdentifiableObjectSet<IdentifiableIDSet> getComponents() {
+
+        return new Kosaraju().stronglyConnectedComponents(_graph);
     }
 }

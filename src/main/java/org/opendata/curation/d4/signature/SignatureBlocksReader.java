@@ -29,6 +29,7 @@ import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.ArrayHelper;
+import org.opendata.core.util.MemUsagePrinter;
 
 /**
  * Reader for a signature blocks file. Generates a stream of signature blocks
@@ -72,7 +73,13 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
             System.out.println("READING " + file.getName());
             try (BufferedReader in = FileSystem.openReader(file)) {
                 String line;
+                int lineCount = 0;
                 while ((line = in.readLine()) != null) {
+                    lineCount++;
+                    if ((lineCount % 10000) == 0) {
+                        System.out.println("READ " + lineCount + " @ " + new java.util.Date());
+                        new MemUsagePrinter().print();
+                    }
                     String[] tokens = line.split("\t");
                     int sigId = Integer.parseInt(tokens[0]);
                     if (!filter.contains(sigId)) {

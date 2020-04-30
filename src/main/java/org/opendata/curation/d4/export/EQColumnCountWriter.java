@@ -15,50 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.column;
+package org.opendata.curation.d4.export;
 
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
-import org.opendata.db.Database;
+import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Print number of equivalence classes and terms in columns.
+ * Write number of columns for each equivalence class.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnSizePrinter {
+public class EQColumnCountWriter {
     
-    /**
-     * Output number of equivalence classes and terms per column.
-     * 
-     * @param eqIndex
-     * @param out
-     * @throws java.io.IOException 
-     */
-    public void run(EQIndex eqIndex, PrintWriter out) throws java.io.IOException {
+    public void run(EQIndex nodes, PrintWriter out) throws java.io.IOException {
         
-        Database db = new Database(eqIndex);
-        
-        for (Column column : db.columns()) {
-            int termCount = 0;
-            for (int nodeId : column) {
-                termCount += eqIndex.get(nodeId).termCount();
-            }
-            out.println(column.id() + "\t" + column.length() + "\t" + termCount);
+        for (EQ node : nodes) {
+            out.println(node.id() + "\t" + node.columns().length());
         }
     }
     
-    private static final String COMMAND =
+    private final static String COMMAND =
             "Usage:\n" +
             "  <eq-file>\n" +
-            "  <output-file>";
+            "  <output-file";
     
-    private static final Logger LOGGER = Logger
-            .getLogger(ColumnSizePrinter.class.getName());
+    private final static Logger LOGGER = Logger
+            .getLogger(EQColumnCountWriter.class.getName());
     
     public static void main(String[] args) {
         
@@ -71,7 +58,8 @@ public class ColumnSizePrinter {
         File outputFile = new File(args[1]);
         
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new ColumnSizePrinter().run(new EQIndex(eqFile), out);
+            new EQColumnCountWriter()
+                    .run(new EQIndex(eqFile), out);
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

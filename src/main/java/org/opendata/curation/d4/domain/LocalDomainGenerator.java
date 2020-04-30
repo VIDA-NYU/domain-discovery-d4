@@ -17,8 +17,9 @@
  */
 package org.opendata.curation.d4.domain;
 
+import org.opendata.curation.d4.domain.graph.GraphFileReader;
 import java.io.File;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -27,6 +28,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.graph.ConnectedComponentGenerator;
+import org.opendata.core.graph.DirectedConnectedComponents;
+import org.opendata.core.graph.UndirectedConnectedComponents;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
@@ -34,13 +38,6 @@ import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksReader;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
@@ -51,61 +48,75 @@ import org.opendata.db.eq.EQIndex;
  * in the graph generated from the robust signatures of the column elements 
  * represents a local domain.
  * 
- * Uses a concurrent queue to distribute columns across workers. Relies
- * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureStreamLocalDomainGenerator {
+public class LocalDomainGenerator {
                    
     public static final String TELEMETRY_ID = "LOCAL DOMAINS";
 
     private class DomainGeneratorTask implements Runnable {
 
-        private final List<SignatureTrimmer> _columns;
-        private final int _id;
-        private final ConcurrentLinkedQueue<SignatureBlocks> _signatures;
+        private final ConcurrentLinkedQueue<GraphFileReader> _columns;
+        private final UniqueDomainSet _domains;
+        private final EdgeType _edgeType;
+        private final int[] _nodeSizes;
+        private final int _thread;
         
         public DomainGeneratorTask(
-                int id,
-                List<SignatureTrimmer> columns,
-                ConcurrentLinkedQueue<SignatureBlocks> signatures
-       ) {
-            _id = id;
+                int thread,
+                ConcurrentLinkedQueue<GraphFileReader> columns,
+                EdgeType edgeType,
+                int[] nodeSizes,
+                UniqueDomainSet domains
+        ) {
+            _thread = thread;
             _columns = columns;
-            _signatures = signatures;
+            _edgeType = edgeType;
+            _nodeSizes = nodeSizes;
+            _domains = domains;
         }
         
         @Override
         public void run() {
 
-            int count = 0;
+            System.out.println("THREAD " + _thread + " START @ " + new Date());
             
-            Date start = new Date();
-            
-            SignatureBlocks sig;
-            while ((sig = _signatures.poll()) != null) {
-                for (SignatureTrimmer column : _columns) {
-                    column.consume(sig);
+            GraphFileReader reader;
+            while ((reader = _columns.poll()) != null) {
+                System.out.println(_thread + "\t" + reader.file().getName() + " (" + _columns.size() + ")");
+                IDSet colNodes = reader.column().nodes();
+                ConnectedComponentGenerator domainGenerator;
+                switch (_edgeType) {
+                    case Directed:
+                        domainGenerator = new DirectedConnectedComponents(colNodes);
+                        break;
+                    case Single:
+                        domainGenerator = new UndirectedConnectedComponents(colNodes);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown edge type: " + _edgeType.toString());
                 }
-                count++;
+                DomainComponentGenerator compGen;
+                compGen = new DomainComponentGenerator(
+                        reader.column(),
+                        domainGenerator,
+                        _domains,
+                        _nodeSizes
+                );
+                reader.run(compGen);
             }
-            
-            Date end = new Date();
-            
-            long execTime = end.getTime() - start.getTime();
-            
-            System.out.println(_id + " DONE WITH " + count + " COLUMNS IN " + execTime + " ms");
+            System.out.println(_thread + "\tDONE");
         }
     }
     
     private final TelemetryCollector _telemetry;
     
-    public SignatureStreamLocalDomainGenerator(TelemetryCollector telemetry) {
+    public LocalDomainGenerator(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public SignatureStreamLocalDomainGenerator() {
+    public LocalDomainGenerator() {
         
         this(new TelemetryPrinter());
     }
@@ -113,42 +124,37 @@ public class SignatureStreamLocalDomainGenerator {
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
-            SignatureBlocksIndex signatures,
-            TrimmerType trimmer,
+            File graphDir,
+            EdgeType edgeType,
             int threads,
             DomainConsumer consumer
     ) throws java.io.IOException {
 
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
-
-        SignatureTrimmerFactory trimmerFact;
-        trimmerFact = new SignatureTrimmerFactory(nodes, trimmer);
-
-        ConcurrentLinkedQueue<SignatureBlocks> queue;
-        queue = new ConcurrentLinkedQueue<>(signatures.toList());
         
         Date start = new Date();
         System.out.println("START @ " + start);
 
-        List<SignatureTrimmer> columns = new ArrayList<>();
-        for (ExpandedColumn column : columnIndex.columns()) {
-                IDSet col = column.nodes();
-                SignatureBlocksConsumer domainGenerator;
-                domainGenerator = new UndirectedDomainGenerator(
-                        column,
-                        domains,
-                        nodes.nodeSizes()
-                );
-                SignatureTrimmer colTrimmer;
-                colTrimmer = trimmerFact.getTrimmer(col, domainGenerator);
-                colTrimmer.open();
-                columns.add(colTrimmer);
+        int[] nodeSizes = nodes.nodeSizes();
+        
+        List<ExpandedColumn> columns = columnIndex.columns();
+        Collections.sort(columns, (ExpandedColumn c1, ExpandedColumn c2) -> {
+            return Integer.compare(c2.length(), c1.length());
+        });
+        
+        ConcurrentLinkedQueue<GraphFileReader> workers;
+        workers = new ConcurrentLinkedQueue<>();
+        for (ExpandedColumn column : columns) {
+            String filename = column.id() + ".txt.gz";
+            File graphFile = FileSystem.joinPath(graphDir, filename);
+            workers.add(new GraphFileReader(graphFile, column));
         }
+
+        System.out.println("USING " + threads + " THREADS FOR " + workers.size() + " WORKERS @ " + new Date());
         
         ExecutorService es = Executors.newCachedThreadPool();
-        
         for (int iThread = 0; iThread < threads; iThread++) {
-            es.execute(new DomainGeneratorTask(iThread, columns, queue));
+            es.execute(new DomainGeneratorTask(iThread, workers, edgeType, nodeSizes, domains));
         }
         es.shutdown();
         try {
@@ -156,10 +162,8 @@ public class SignatureStreamLocalDomainGenerator {
         } catch (java.lang.InterruptedException ex) {
             throw new RuntimeException(ex);
         }
-        
-        for (SignatureTrimmer colTrimmer : columns) {
-            colTrimmer.close();
-        }
+
+        System.out.println("WRITE DOMAINS");
         
         domains.stream(consumer);
         
@@ -171,46 +175,45 @@ public class SignatureStreamLocalDomainGenerator {
     }
     
     private static final String ARG_COLUMNS = "columns";
+    private static final String ARG_EDGETYPE = "edges";
     private static final String ARG_THREADS = "threads";
-    private static final String ARG_TRIMMER = "trimmer";
     
     private static final String[] ARGS = {
         ARG_COLUMNS,
-        ARG_THREADS,
-        ARG_TRIMMER
+        ARG_EDGETYPE,
+        ARG_THREADS
     };
     
     private static final String COMMAND =
             "Usage\n" +
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
+            "  --" + ARG_EDGETYPE + "=<edge-type> [default: " + EdgeType.Single + "]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
-            "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
-                    TrimmerType.CENTRIST.toString() +"]\n" +
             "  <eq-file>\n" +
-            "  <signature-file(s)>\n" +
             "  <columns-file>\n" +
+            "  <graph-dir>\n" +
             "  <output-file>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(SignatureStreamLocalDomainGenerator.class.getName());
+            .getLogger(LocalDomainGenerator.class.getName());
     
     public static void main(String[] args) {
         
-	System.out.println(Constants.NAME + " - Local Domain Generator (Undirected) - Version (" + Constants.VERSION + ")\n");
+	System.out.println(Constants.NAME + " - Local Domain Generator - Version (" + Constants.VERSION + ")\n");
 
-        if (args.length < 3) {
+        if (args.length < 4) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
         Arguments params = new Arguments(ARGS, args, 4);
         File eqFile = new File(params.fixedArg(0));
-        File signatureFile = new File(params.fixedArg(1));
-        File columnFile = new File(params.fixedArg(2));
+        File columnFile = new File(params.fixedArg(1));
+        File graphDir = new File(params.fixedArg(2));
         File outputFile = new File(params.fixedArg(3));
 
-        TrimmerType trimmer = TrimmerType.valueOf(
-                params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
+        EdgeType edgeType = EdgeType.valueOf(
+                params.getAsString(ARG_EDGETYPE, EdgeType.Single.toString())
         );
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
@@ -232,13 +235,11 @@ public class SignatureStreamLocalDomainGenerator {
             } else {
                  new ExpandedColumnReader(columnFile).stream(columnIndex);
             }
-            SignatureBlocksIndex buffer = new SignatureBlocksIndex();
-            new SignatureBlocksReader(signatureFile).stream(buffer);
-            new SignatureStreamLocalDomainGenerator().run(
+            new LocalDomainGenerator().run(
                     nodeIndex,
                     columnIndex,
-                    buffer,
-                    trimmer,
+                    graphDir,
+                    edgeType,
                     threads,
                     new DomainWriter(outputFile)
             );

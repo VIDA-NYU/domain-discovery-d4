@@ -79,9 +79,11 @@ public class CentristTrimmer extends SignatureTrimmer {
                 nodeSizes,
                 new PrecisionScore(),
                 new MaxDropFinder<>(
-                    new GreaterThanConstraint(BigDecimal.ZERO),
-                    false,
-                    false
+                        // Changed for test purposes
+                        //new GreaterThanConstraint(BigDecimal.ZERO),
+                        new GreaterThanConstraint(new BigDecimal(0.1)),
+                        false,
+                        false
                 ),
                 nonEmptyConstraint,
                 consumer

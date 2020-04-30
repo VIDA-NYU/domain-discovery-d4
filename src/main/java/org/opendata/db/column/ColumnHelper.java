@@ -18,6 +18,8 @@
 package org.opendata.db.column;
 
 import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * COllection of helper methods for database column and column files.
@@ -41,6 +43,7 @@ public final class ColumnHelper {
             } catch (java.lang.NumberFormatException ex) {
             }
         }
-        throw new IllegalArgumentException(file.getName());
+        Logger.getLogger(ColumnHelper.class.getName()).log(Level.SEVERE, file.getAbsolutePath());
+        throw new IllegalArgumentException(file.getAbsolutePath());
     }
 }

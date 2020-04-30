@@ -15,18 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.build;
+package org.opendata.curation.d4.domain;
 
 /**
- * Edge condition when building a graph.
- * 
- * The graph builder inserts an edge between all pairs of nodes that satisfy the
- * edge condition.
+ * Enumeration of edge types.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface GraphBuilderEdgeCondition {
-    
-    public boolean hasEdge(int sourceId, int targetId);
-    public boolean isSymmetric();
+public enum EdgeType {
+    Directed,
+    Single
 }

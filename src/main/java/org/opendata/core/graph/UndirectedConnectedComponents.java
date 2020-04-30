@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.components;
+package org.opendata.core.graph;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +49,14 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         _componentMap = new Integer[maxId + 1];
         for (int nodeId : nodes) {
             _componentMap[nodeId] = nodeId;
+        }
+    }
+
+    @Override
+    public void add(int nodeId, int[] edges) {
+
+        for (int target : edges) {
+            this.edge(nodeId, target);
         }
     }
     
@@ -90,7 +98,6 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         return _componentMap[nodeId];
     }
     
-    @Override
     public synchronized void edge(int sourceId, int targetId) {	
         
         int sourceCompId = this.getComponentForNode(sourceId);
@@ -158,12 +165,6 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         return result;
     }
 
-    @Override
-    public boolean isDirected() {
-
-        return false;
-    }
-    
     private void merge(
             HashSet<Integer> target,
             int targetCompId,

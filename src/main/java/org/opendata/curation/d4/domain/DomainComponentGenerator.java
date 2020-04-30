@@ -17,41 +17,39 @@
  */
 package org.opendata.curation.d4.domain;
 
-import org.opendata.curation.d4.column.ExpandedColumn;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.graph.UndirectedConnectedComponents;
+import org.opendata.core.graph.ConnectedComponentGenerator;
 import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.column.ExpandedColumn;
 
 /**
- * Generator for local domains in an expanded column. Domains are generated as
- * connected components in an undirected graph where edges are defined by
- * reference in robust signatures.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class UndirectedDomainGenerator extends UndirectedConnectedComponents implements SignatureBlocksConsumer {
+public class DomainComponentGenerator {
     
     private final ExpandedColumn _column;
+    private final ConnectedComponentGenerator _compGen;
     private final int[] _nodeSizes;
     private final UniqueDomainSet _resultSet;
 
-    public UndirectedDomainGenerator(
+    public DomainComponentGenerator(
             ExpandedColumn column,
+            ConnectedComponentGenerator compGen,
             UniqueDomainSet resultSet,
             int[] nodeSizes
     ) {
-        super(column.nodes());
-
         _column = column;
+        _compGen = compGen;
         _resultSet = resultSet;
         _nodeSizes = nodeSizes;
      }
 
-    @Override
     public void close() {
 
-        for (IdentifiableIDSet comp : this.getComponents()) {
+        new MemUsagePrinter().print();
+        
+        for (IdentifiableIDSet comp : _compGen.getComponents()) {
             if (_column.originalNodes().overlaps(comp)) {
                 boolean isDomain = true;
                 if (comp.length() == 1) {
@@ -64,24 +62,8 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
         }
     }
 
-    @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(int nodeId, int[] edges) {
 
-        final int sigId = sig.id();
-        
-        if (_column.contains(sigId)) {
-            for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-                for (int nodeId : sig.get(iBlock)) {
-                    if (_column.contains(nodeId)) {
-                        this.edge(sigId, nodeId);
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void open() {
-
+        _compGen.add(nodeId, edges);
     }
 }

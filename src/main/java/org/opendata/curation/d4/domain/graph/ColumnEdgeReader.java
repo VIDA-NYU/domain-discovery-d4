@@ -15,27 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.build;
+package org.opendata.curation.d4.domain.graph;
 
 /**
- * The graph builder add edges to a graph.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface GraphBuilder {
+public interface ColumnEdgeReader {
     
-    /**
-     * Add an (directed) edge from the source node to the target node.
-     * 
-     * @param sourceId
-     * @param targetId 
-     */
-    public void edge(int sourceId, int targetId);
-    
-    /**
-     * Return true if the component generator uses directed edges.
-     * 
-     * @return 
-     */
-    public boolean isDirected();
+    public int[] parseLine(String text);
 }

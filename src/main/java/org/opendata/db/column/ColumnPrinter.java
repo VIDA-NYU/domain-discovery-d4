@@ -18,60 +18,81 @@
 package org.opendata.db.column;
 
 import java.io.File;
-import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opendata.core.io.FileSystem;
+import org.opendata.core.io.EntitySetReader;
+import org.opendata.core.object.Entity;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.db.Database;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Print number of equivalence classes and terms in columns.
+ * Print set of terms in a column.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnSizePrinter {
+public class ColumnPrinter {
     
     /**
-     * Output number of equivalence classes and terms per column.
+     * Get sorted list of terms in the column.
      * 
      * @param eqIndex
-     * @param out
+     * @param reader
+     * @param columnId
+     * @return 
      * @throws java.io.IOException 
      */
-    public void run(EQIndex eqIndex, PrintWriter out) throws java.io.IOException {
+    public List<String> read(EQIndex eqIndex, EntitySetReader reader, int columnId) throws java.io.IOException {
         
         Database db = new Database(eqIndex);
         
-        for (Column column : db.columns()) {
-            int termCount = 0;
-            for (int nodeId : column) {
-                termCount += eqIndex.get(nodeId).termCount();
-            }
-            out.println(column.id() + "\t" + column.length() + "\t" + termCount);
+        HashIDSet termFilter = new HashIDSet();
+        for (int nodeId : db.columns().get(columnId)) {
+            termFilter.add(eqIndex.get(nodeId).terms());
         }
+        
+        List<String> terms = new ArrayList<>();
+        for (Entity entity : reader.readEntities(termFilter)) {
+            terms.add(entity.name());
+        }
+        Collections.sort(terms);
+        return terms;
     }
     
     private static final String COMMAND =
             "Usage:\n" +
             "  <eq-file>\n" +
-            "  <output-file>";
+            "  <term-file>\n" +
+            "  <column-id>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(ColumnSizePrinter.class.getName());
+            .getLogger(ColumnPrinter.class.getName());
     
     public static void main(String[] args) {
         
-        if (args.length != 2) {
+        if (args.length != 3) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
         File eqFile = new File(args[0]);
-        File outputFile = new File(args[1]);
+        File termFile = new File(args[1]);
+        int columnId = Integer.parseInt(args[2]);
         
-        try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new ColumnSizePrinter().run(new EQIndex(eqFile), out);
+        try {
+            List<String> terms;
+            terms = new ColumnPrinter()
+                    .read(
+                            new EQIndex(eqFile),
+                            new EntitySetReader(termFile),
+                            columnId
+                    );
+            for (String term : terms) {
+                System.out.println(term);
+            }
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

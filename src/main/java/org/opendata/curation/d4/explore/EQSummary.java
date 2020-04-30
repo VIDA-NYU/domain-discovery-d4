@@ -15,37 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph.build;
+package org.opendata.curation.d4.explore;
 
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.object.IdentifiableObjectImpl;
 
 /**
- * Graph edge condition for duplicate merging.
- * 
- * Generates edges between identical sets if id's.
+ * Summary information about an equivalence class with respect to a local domain
+ * and strong domain result.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class IdenticalSetCondition <T extends IdentifiableIDSet> implements GraphBuilderEdgeCondition {
-
-    public final IdentifiableObjectSet<T> _nodes;
+public class EQSummary extends IdentifiableObjectImpl  {
     
-    public IdenticalSetCondition(IdentifiableObjectSet<T> nodes) {
+    private final String[] _properties;
+    public EQSummary(int nodeId, String[] properties) {
+        super(nodeId);
         
-        _nodes = nodes;
-    }
-    
-    @Override
-    public boolean hasEdge(int sourceId, int targetId) {
-
-        return _nodes.get(sourceId).sameSetAs(_nodes.get(targetId));
+        _properties = properties;
     }
 
-    @Override
-    public boolean isSymmetric() {
-
-        return true;
+    public String[] properties() {
+        
+        return _properties;
     }
 }

@@ -247,7 +247,7 @@ public class ParallelLocalDomainGenerator {
             new ParallelLocalDomainGenerator().run(
                     nodeIndex,
                     columnIndex,
-                    new SignatureBlocksReader(signatureFile),
+                    new SignatureBlocksReader(signatureFile).read(),
                     trimmer,
                     threads,
                     new DomainWriter(outputFile)

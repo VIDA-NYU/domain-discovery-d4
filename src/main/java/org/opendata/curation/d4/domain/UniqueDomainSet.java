@@ -72,7 +72,6 @@ public class UniqueDomainSet implements DomainStream {
         }
     }
 
-
     @Override
     public void stream(DomainConsumer consumer) {
 

@@ -15,48 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph;
+package org.opendata.curation.d4.domain.graph;
 
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
 
 /**
- * Reversed adjacency graph.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ReverseGraph extends AdjacencyGraph {
-
-    private final AdjacencyGraph _g;
-    
-    public ReverseGraph(AdjacencyGraph g) {
-    
-        super(g.nodes());
-	
-        _g = g;
-    }
-    
-    @Override
-    public IDSet adjacent(int nodeId) {
-
-	HashIDSet edges = new HashIDSet();
-	for (int target : this.nodes()) {
-	    if (_g.hasEdge(target, nodeId)) {
-		edges.add(target);
-	    }
-	}
-	return edges;
-    }
+public class ArrayListEdgeReader implements ColumnEdgeReader {
 
     @Override
-    public boolean hasEdge(int sourceId, int targetId) {
+    public int[] parseLine(String text) {
 
-	return _g.hasEdge(targetId, sourceId);
-    }
-
-    @Override
-    public AdjacencyGraph reverse() {
-
-        return _g;
+        return new HashIDSet(text.split(",")).toArray();
     }
 }
