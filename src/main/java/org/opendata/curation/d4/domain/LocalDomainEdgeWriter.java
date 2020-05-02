@@ -29,7 +29,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.constraint.Threshold;
+import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.column.ExpandedColumn;
@@ -38,15 +40,20 @@ import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.SynchronizedWriter;
+import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.domain.graph.HexEdgeWriter;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureSimilarityFilter;
+import org.opendata.curation.d4.signature.trim.CentristTrimmer;
+import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
+import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
+import org.opendata.curation.d4.signature.trim.NonTrimmer;
+import org.opendata.curation.d4.signature.trim.PrecisionScore;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -153,26 +160,54 @@ public class LocalDomainEdgeWriter {
     }
     
     public void run(
-            EQIndex nodes,
+            EQIndex eqIndex,
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
-            TrimmerType trimmer,
+            String trimmer,
             Threshold sigsim,
             int threads,
             SynchronizedWriter out
     ) throws java.io.IOException {
 
-        SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(nodes, trimmer);
-        
         Date start = new Date();
         System.out.println("START @ " + start);
+
+        TrimmerType trimmerType;
+        Threshold threshold;
+        
+        if (trimmer.contains(":")) {
+            String[] tokens = trimmer.split(":");
+            trimmerType = TrimmerType.valueOf(tokens[0]);
+            threshold = Threshold.getConstraint(tokens[1]);
+        } else {
+            trimmerType = TrimmerType.valueOf(trimmer);
+            threshold = new GreaterThanConstraint(BigDecimal.ZERO);
+        }
+        
+        int[] nodeSizes = eqIndex.nodeSizes();
 
         List<SignatureBlocksConsumer> workers = new ArrayList<>();
         for (ExpandedColumn column : columnIndex.columns()) {
             SignatureBlocksConsumer consumer;
             consumer = new HexEdgeWriter(column, out);
-            consumer = trimmerFactory.getTrimmer(column.nodes(), consumer);
+            switch (trimmerType) {
+                case CONSERVATIVE:
+                    consumer = new ConservativeTrimmer(column.nodes(), consumer);
+                    break;
+                case CENTRIST:
+                    consumer = new CentristTrimmer(
+                            column.nodes(),
+                            nodeSizes,
+                            new PrecisionScore(),
+                            new MaxDropFinder<>(threshold, false, false),
+                            new ZeroThreshold(),
+                            consumer
+                    );
+                    consumer = new LiberalTrimmer(eqIndex.nodeSizes(), consumer);
+                    break;
+                default:
+                    consumer = new NonTrimmer(column.nodes(), consumer);
+            }
             consumer.open();
             workers.add(consumer);
         }
@@ -207,7 +242,7 @@ public class LocalDomainEdgeWriter {
             "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.0]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
-                    TrimmerType.CENTRIST.toString() +"]\n" +
+                    TrimmerType.CENTRIST.toString() +":GT0.1]\n" +
             "  <eq-file>\n" +
             "  <signature-file(s)>\n" +
             "  <columns-file>\n" +
@@ -231,9 +266,8 @@ public class LocalDomainEdgeWriter {
         File columnFile = new File(params.fixedArg(2));
         File outputFile = new File(params.fixedArg(3));
 
-        TrimmerType trimmer = TrimmerType.valueOf(
-                params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
-        );
+        String trimmer = params
+                .getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString() + ":GT0.1");
         Threshold sigsim = Threshold.getConstraint(params.getAsString(ARG_SIGSIM, "GT0.0"));
         int threads = params.getAsInt(ARG_THREADS, 6);
                 

@@ -17,7 +17,6 @@
  */
 package org.opendata.core.graph;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;

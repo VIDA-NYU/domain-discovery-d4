@@ -70,7 +70,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.column.ColumnExpansionStatsWriter</mainClass>
+                            <mainClass>org.opendata.curation.d4.domain.LocalDomainEdgeWriter</mainClass>
                       </manifest>
                    </archive>
                 </configuration>
