@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.util.List;
 import org.opendata.core.graph.ConnectedComponentGenerator;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
@@ -26,7 +27,7 @@ import org.opendata.curation.d4.column.ExpandedColumn;
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class DomainComponentGenerator {
+public class DomainComponentGenerator implements EdgeConsumer {
     
     private final ExpandedColumn _column;
     private final ConnectedComponentGenerator _compGen;
@@ -45,6 +46,7 @@ public class DomainComponentGenerator {
         _nodeSizes = nodeSizes;
      }
 
+    @Override
     public void close() {
 
         new MemUsagePrinter().print();
@@ -62,7 +64,8 @@ public class DomainComponentGenerator {
         }
     }
 
-    public void consume(int nodeId, int[] edges) {
+    @Override
+    public void consume(int nodeId, List<Integer> edges) {
 
         _compGen.add(nodeId, edges);
     }

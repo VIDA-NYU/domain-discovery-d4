@@ -17,7 +17,8 @@
  */
 package org.opendata.curation.d4.domain.graph;
 
-import org.opendata.core.set.HashIDSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -26,8 +27,12 @@ import org.opendata.core.set.HashIDSet;
 public class ArrayListEdgeReader implements ColumnEdgeReader {
 
     @Override
-    public int[] parseLine(String text) {
+    public List<Integer> parseLine(String text) {
 
-        return new HashIDSet(text.split(",")).toArray();
+        ArrayList<Integer> edges = new ArrayList<>();
+        for (String token : text.split(",")) {
+            edges.add(Integer.parseInt(token));
+        }
+        return edges;
     }
 }

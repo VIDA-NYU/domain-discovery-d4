@@ -17,17 +17,14 @@
  */
 package org.urban.data.test.graph;
 
-import java.util.ArrayList;
+import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import org.opendata.core.object.IdentifiableDouble;
-import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ImmutableExpandedColumn;
 import org.opendata.curation.d4.domain.graph.HexEdgeReader;
@@ -67,8 +64,8 @@ public class HexEncoderTest {
         
         String hexString = writer.toHexString("36767");
         assertEquals(hexString, "4");
-        int[] edges = reader.parseLine(hexString);
-        assertEquals(edges.length, 1);
-        assertEquals(edges[0], 36767);
+        List<Integer> edges = reader.parseLine(hexString);
+        assertEquals(edges.size(), 1);
+        assertEquals((int)edges.get(0), 36767);
     }
 }

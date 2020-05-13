@@ -121,7 +121,7 @@ public class D4 {
                 nodeIndex,
                 columnIndex,
                 signatures,
-                trimmer,
+                trimmer.toString(),
                 threads,
                 new DomainWriter(outputFile)
         );

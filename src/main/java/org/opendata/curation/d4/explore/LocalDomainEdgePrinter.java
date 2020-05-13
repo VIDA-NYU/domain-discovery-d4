@@ -99,7 +99,7 @@ public class LocalDomainEdgePrinter {
                         }
                     }
                 }
-                _compGen.add(sigId, edges.toArray());
+                _compGen.add(sigId, edges.toList());
             }
         }
 

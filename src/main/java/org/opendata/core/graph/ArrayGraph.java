@@ -18,6 +18,7 @@
 package org.opendata.core.graph;
 
 import java.util.HashMap;
+import java.util.List;
 import org.opendata.core.set.IDSet;
 
 /**
@@ -79,13 +80,13 @@ public class ArrayGraph extends AdjacencyGraph {
         }
     }
     
-    public void add(int nodeId, int[] edges) {
+    public void add(int nodeId, List<Integer> edges) {
         
         int index = _mapping.get(nodeId);
         for (int target : edges) {
             _edges[index][_mapping.get(target)] = true;
         }
-        _edgeCount[index] = edges.length;
+        _edgeCount[index] = edges.size();
     }
     
     @Override

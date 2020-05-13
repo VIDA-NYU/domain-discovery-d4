@@ -19,6 +19,7 @@ package org.opendata.core.graph;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
@@ -53,7 +54,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
     }
 
     @Override
-    public void add(int nodeId, int[] edges) {
+    public void add(int nodeId, List<Integer> edges) {
 
         for (int target : edges) {
             this.edge(nodeId, target);

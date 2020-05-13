@@ -43,7 +43,12 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.5</version>
         </dependency>
-   </dependencies>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+    </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -70,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.domain.LocalDomainEdgeWriter</mainClass>
+                            <mainClass>org.opendata.curation.d4.domain.ParallelLocalDomainGenerator</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

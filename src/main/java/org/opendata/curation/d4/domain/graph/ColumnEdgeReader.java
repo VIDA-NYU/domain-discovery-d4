@@ -17,11 +17,13 @@
  */
 package org.opendata.curation.d4.domain.graph;
 
+import java.util.List;
+
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public interface ColumnEdgeReader {
     
-    public int[] parseLine(String text);
+    public List<Integer> parseLine(String text);
 }

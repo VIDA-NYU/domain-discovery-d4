@@ -17,6 +17,8 @@
  */
 package org.opendata.core.graph;
 
+import java.util.Arrays;
+import java.util.List;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
@@ -37,7 +39,7 @@ public class DirectedConnectedComponents implements ConnectedComponentGenerator 
     }
 
     @Override
-    public void add(int nodeId, int[] edges) {
+    public void add(int nodeId, List<Integer> edges) {
 
         _graph.add(nodeId, edges);
     }

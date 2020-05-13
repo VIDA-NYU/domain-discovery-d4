@@ -23,7 +23,7 @@ import java.util.HashMap;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.column.ExpandedColumn;
-import org.opendata.curation.d4.domain.DomainComponentGenerator;
+import org.opendata.curation.d4.domain.EdgeConsumer;
 
 /**
  * Read a graph file. The file contains one line per node with adjacent edges.
@@ -36,12 +36,14 @@ public class GraphFileReader {
     private final ExpandedColumn _column;
     private final File _file;
     private final ColumnEdgeReader _parser;
+    private final boolean _verbose;
             
-    public GraphFileReader(File file, ExpandedColumn column) {
+    public GraphFileReader(File file, ExpandedColumn column, boolean verbose) {
         
         _file = file;
         _column = column;
         _parser = new HexEdgeReader(column);
+        _verbose = verbose;
     }
 
     public ExpandedColumn column() {
@@ -54,7 +56,7 @@ public class GraphFileReader {
         return _file;
     }
     
-    public void run(DomainComponentGenerator consumer) {
+    public void run(EdgeConsumer consumer) {
 
         IDSet nodes =_column.nodes();
         HashMap<Integer, Integer> mapping = new HashMap<>();
@@ -71,7 +73,7 @@ public class GraphFileReader {
                     int nodeId = Integer.parseInt(tokens[0]);
                     consumer.consume(nodeId, _parser.parseLine(tokens[1]));
                     lineCount++;
-                    if ((lineCount % 10000) == 0) {
+                    if (((lineCount % 10000) == 0) && (_verbose)) {
                         System.out.println("READ " + lineCount + " LINES");
                     }
                 }
@@ -80,7 +82,9 @@ public class GraphFileReader {
             }
         }
         
-        System.out.println("READ " + lineCount + " LINES");
+        if (_verbose) {
+            System.out.println("READ " + lineCount + " LINES");
+        }
         
         consumer.close();
     }

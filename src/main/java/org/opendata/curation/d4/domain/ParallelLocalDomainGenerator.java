@@ -18,6 +18,7 @@
 package org.opendata.curation.d4.domain;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -28,6 +29,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.constraint.GreaterThanConstraint;
+import org.opendata.core.constraint.Threshold;
+import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
@@ -38,12 +42,18 @@ import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
+import org.opendata.curation.d4.signature.trim.CentristTrimmer;
+import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
+import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
+import org.opendata.curation.d4.signature.trim.NonTrimmer;
+import org.opendata.curation.d4.signature.trim.PrecisionScore;
+import static org.opendata.curation.d4.signature.trim.TrimmerType.CONSERVATIVE;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -66,21 +76,24 @@ public class ParallelLocalDomainGenerator {
         private final int _id;
         private final EQIndex _nodes;
         private final SignatureBlocksStream _signatures;
-        private final SignatureTrimmerFactory _trimmerFactory;
+        private final Threshold _trimmerThreshold;
+        private final TrimmerType _trimmerType;
         
         public DomainGeneratorTask(
                 int id,
                 EQIndex nodes,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
-                SignatureTrimmerFactory trimmerFactory,
+                TrimmerType trimmerType,
+                Threshold trimmerThreshold,
                 UniqueDomainSet domains
        ) {
             _id = id;
             _nodes = nodes;
             _columns = columns;
             _signatures = signatures;
-            _trimmerFactory = trimmerFactory;
+            _trimmerType = trimmerType;
+            _trimmerThreshold = trimmerThreshold;
             _domains = domains;
         }
         
@@ -101,7 +114,28 @@ public class ParallelLocalDomainGenerator {
                         _nodes.nodeSizes()
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
+                switch (_trimmerType) {
+                    case CONSERVATIVE:
+                        trimmer = new ConservativeTrimmer(
+                                column.nodes(),
+                                domainGenerator
+                        );
+                        break;
+                    case CENTRIST:
+                        int[] nodeSizes = _nodes.nodeSizes();
+                        trimmer = new CentristTrimmer(
+                                column.nodes(),
+                                nodeSizes,
+                                new PrecisionScore(),
+                                new MaxDropFinder<>(_trimmerThreshold, false, false),
+                                new ZeroThreshold(),
+                                domainGenerator
+                        );
+                        trimmer = new LiberalTrimmer(nodeSizes, trimmer);
+                        break;
+                    default:
+                        trimmer = new NonTrimmer(column.nodes(), domainGenerator);
+                }
                 try {
                     _signatures.stream(trimmer, col);
                 } catch (java.io.IOException ex) {
@@ -134,7 +168,7 @@ public class ParallelLocalDomainGenerator {
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
-            TrimmerType trimmer,
+            String trimmer,
             int threads,
             DomainConsumer consumer
     ) throws java.io.IOException {
@@ -155,13 +189,25 @@ public class ParallelLocalDomainGenerator {
         ConcurrentLinkedQueue<ExpandedColumn> columns;
         columns = new ConcurrentLinkedQueue(columnList);
         
+        TrimmerType trimmerType;
+        Threshold trimmerThreshold;
+        if (trimmer.contains(":")) {
+            String[] tokens = trimmer.split(":");
+            trimmerType = TrimmerType.valueOf(tokens[0]);
+            trimmerThreshold = Threshold.getConstraint(tokens[1]);
+        } else {
+            trimmerType = TrimmerType.valueOf(trimmer);
+            trimmerThreshold = new GreaterThanConstraint(BigDecimal.ZERO);
+        }
+
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
                     nodes,
                     columns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, trimmer),
+                    trimmerType,
+                    trimmerThreshold,
                     domains
             );
             es.execute(task);
@@ -197,7 +243,7 @@ public class ParallelLocalDomainGenerator {
             "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
-                    TrimmerType.CENTRIST.toString() +"]\n" +
+                    TrimmerType.CENTRIST.toString() +":GT0.001]\n" +
             "  <eq-file>\n" +
             "  <signature-file(s)>\n" +
             "  <columns-file>\n" +
@@ -221,9 +267,8 @@ public class ParallelLocalDomainGenerator {
         File columnFile = new File(params.fixedArg(2));
         File outputFile = new File(params.fixedArg(3));
 
-        TrimmerType trimmer = TrimmerType.valueOf(
-                params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
-        );
+        String trimmer = params
+                .getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString() + ":GT0.001");
         int threads = params.getAsInt(ARG_THREADS, 6);
                 
         File columnsFile = null;
