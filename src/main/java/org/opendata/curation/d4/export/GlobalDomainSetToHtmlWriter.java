@@ -25,6 +25,7 @@ import org.opendata.core.io.FileSystem;
 import org.opendata.core.object.NamedCount;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.core.util.count.Counter;
+import org.opendata.curation.d4.Constants;
 
 /**
  * Convert a list of universal domain files to Html.
@@ -226,7 +227,7 @@ public class GlobalDomainSetToHtmlWriter {
         
         String mainNav = 
                 "<a class=\"nav\" href=\"#data-sources\">Data Sources (" + domains.size() + ")</a>&nbsp;&nbsp;&nbsp;" +
-                "<a class=\"nav\" href=\"#columns\">Columns (distinct " + columnsArray.size() + ", total " + columns.size() + ")</a>&nbsp;&nbsp;&nbsp;" +
+                "<a class=\"nav\" href=\"#columns\">Columns (distinct " + columns.size() + ", total " + columnsArray.size() + ")</a>&nbsp;&nbsp;&nbsp;" +
                 "<a class=\"nav\" href=\"#terms\">Terms (" + termCount + ")</a>";
         out.println("<p class=\"main-navbar\">" + mainNav + "</p>");
         
@@ -244,7 +245,7 @@ public class GlobalDomainSetToHtmlWriter {
         }
         Collections.sort(columnNames);
         Collections.reverse(columnNames);
-        out.println("<h4><a class=\"name\" name=\"columns\">Columns (distinct " + columnsArray.size() + ", total " + columns.size() + ")</a></h4>");
+        out.println("<h4><a class=\"name\" name=\"columns\">Columns (distinct " + columns.size() + ", total " + columnsArray.size() + ")</a></h4>");
         for (NamedCount col : columnNames) {
             out.println(
                     "<p class=\"col-name\">" +
@@ -304,6 +305,8 @@ public class GlobalDomainSetToHtmlWriter {
             .getLogger(GlobalDomainSetToHtmlWriter.class.getName());
     
     public static void main(String[] args) {
+        
+        System.out.println(Constants.NAME + " - Global Domain to Html Writer - Version (" + Constants.VERSION + ")\n");
         
         if (args.length != 4) {
             System.out.println(COMMAND);

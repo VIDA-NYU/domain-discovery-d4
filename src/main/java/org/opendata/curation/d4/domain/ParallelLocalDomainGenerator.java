@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,11 +45,10 @@ import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.ColumnDispatcher;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.CentristTrimmer;
 import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
-import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
 import org.opendata.curation.d4.signature.trim.NonTrimmer;
 import org.opendata.curation.d4.signature.trim.PrecisionScore;
 import static org.opendata.curation.d4.signature.trim.TrimmerType.CONSERVATIVE;
@@ -71,7 +69,7 @@ public class ParallelLocalDomainGenerator {
 
     private class DomainGeneratorTask implements Runnable {
 
-        private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
+        private final List<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
@@ -82,7 +80,7 @@ public class ParallelLocalDomainGenerator {
         public DomainGeneratorTask(
                 int id,
                 EQIndex nodes,
-                ConcurrentLinkedQueue<ExpandedColumn> columns,
+                List<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
                 TrimmerType trimmerType,
                 Threshold trimmerThreshold,
@@ -100,18 +98,17 @@ public class ParallelLocalDomainGenerator {
         @Override
         public void run() {
 
-            int count = 0;
-            
             Date start = new Date();
             
-            ExpandedColumn column;
-            while ((column = _columns.poll()) != null) {
-                IDSet col = column.nodes();
+            final int[] nodeSizes = _nodes.nodeSizes();
+
+            ColumnDispatcher dispatcher = new ColumnDispatcher(_nodes);
+            for (ExpandedColumn column : _columns) {
                 SignatureBlocksConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
-                        _nodes.nodeSizes()
+                        nodeSizes
                 );
                 SignatureTrimmer trimmer;
                 switch (_trimmerType) {
@@ -122,33 +119,39 @@ public class ParallelLocalDomainGenerator {
                         );
                         break;
                     case CENTRIST:
-                        int[] nodeSizes = _nodes.nodeSizes();
                         trimmer = new CentristTrimmer(
                                 column.nodes(),
                                 nodeSizes,
                                 new PrecisionScore(),
-                                new MaxDropFinder<>(_trimmerThreshold, false, false),
+                                new MaxDropFinder<>(
+                                        _trimmerThreshold,
+                                        false,
+                                        false
+                                ),
                                 new ZeroThreshold(),
                                 domainGenerator
                         );
-                        trimmer = new LiberalTrimmer(nodeSizes, trimmer);
                         break;
                     default:
-                        trimmer = new NonTrimmer(column.nodes(), domainGenerator);
+                        trimmer = new NonTrimmer(
+                                column.nodes(),
+                                domainGenerator
+                        );
                 }
-                try {
-                    _signatures.stream(trimmer, col);
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-                count++;
+                dispatcher.add(column.id(), trimmer);
             }
             
+            try {
+                _signatures.stream(dispatcher);
+            } catch (java.io.IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
             Date end = new Date();
             
             long execTime = end.getTime() - start.getTime();
             
-            System.out.println(_id + " DONE WITH " + count + " COLUMNS IN " + execTime + " ms");
+            System.out.println(_id + " DONE IN " + execTime + " ms");
         }
     }
     
@@ -178,16 +181,12 @@ public class ParallelLocalDomainGenerator {
         Date start = new Date();
         System.out.println("START @ " + start);
 
-        ExecutorService es = Executors.newCachedThreadPool();
-        
         // Sort column in decreasing number of nodes
         List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
         Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
         Collections.reverse(columnList);
-        ConcurrentLinkedQueue<ExpandedColumn> columns;
-        columns = new ConcurrentLinkedQueue(columnList);
         
         TrimmerType trimmerType;
         Threshold trimmerThreshold;
@@ -200,7 +199,12 @@ public class ParallelLocalDomainGenerator {
             trimmerThreshold = new GreaterThanConstraint(BigDecimal.ZERO);
         }
 
+        ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
+            List<ExpandedColumn> columns = new ArrayList<>();
+            for (int iColumn = iThread; iColumn < columnList.size(); iColumn += threads) {
+                columns.add(columnList.get(iColumn));
+            }
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
                     nodes,
@@ -292,7 +296,7 @@ public class ParallelLocalDomainGenerator {
             new ParallelLocalDomainGenerator().run(
                     nodeIndex,
                     columnIndex,
-                    new SignatureBlocksReader(signatureFile).read(),
+                    new SignatureBlocksReader(signatureFile),
                     trimmer,
                     threads,
                     new DomainWriter(outputFile)

@@ -40,6 +40,7 @@ import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.curation.d4.domain.graph.HexEdgeWriter;
+import org.opendata.curation.d4.signature.ColumnDispatcher;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.trim.CentristTrimmer;
@@ -57,55 +58,7 @@ import org.opendata.db.eq.EQIndex;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class LocalDomainEdgeWriter {
-                   
-    public class ColumnDispatcher implements SignatureBlocksConsumer {
-
-        private final HashMap<Integer, SignatureBlocksConsumer> _columns;
-        private final EQIndex _eqIndex;
-
-        public ColumnDispatcher(EQIndex eqIndex) {
-
-            _eqIndex = eqIndex;
-            _columns = new HashMap<>();
-        }
-
-        public void add(int columnId, SignatureBlocksConsumer consumer) {
-
-            _columns.put(columnId, consumer);
-        }
-
-        @Override
-        public void close() {
-
-            for (SignatureBlocksConsumer consumer : _columns.values()) {
-                consumer.close();
-            }
-       }
-
-        @Override
-        public void consume(SignatureBlocks sig) {
-
-            for (int columnId : _eqIndex.get(sig.id()).columns()) {
-                if (_columns.containsKey(columnId)) {
-                    _columns.get(columnId).consume(sig);
-                }
-            }
-        }
-
-        @Override
-        public void open() {
-
-            for (SignatureBlocksConsumer consumer : _columns.values()) {
-                consumer.open();
-            }
-        }
-        
-        public int size() {
-            
-            return _columns.size();
-        }
-    }
-    
+                       
     public void run(
             EQIndex eqIndex,
             ExpandedColumnIndex columnIndex,

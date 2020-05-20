@@ -75,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.domain.ParallelLocalDomainGenerator</mainClass>
+                            <mainClass>org.opendata.curation.d4.explore.DomainStatsPrinter</mainClass>
                       </manifest>
                    </archive>
                 </configuration>
