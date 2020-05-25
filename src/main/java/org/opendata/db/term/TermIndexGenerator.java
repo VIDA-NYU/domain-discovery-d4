@@ -35,7 +35,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.value.ValueCounter;
-import org.opendata.core.profiling.datatype.ValueTypeFactory;
 import org.opendata.core.value.DefaultValueTransformer;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.io.FileSystem;
@@ -138,7 +137,6 @@ public class TermIndexGenerator {
     
         private BufferedReader _in = null;
         private IOTerm _term = null;
-        private final ValueTypeFactory _typeFactory = new ValueTypeFactory();
         
         public TermFileReader(InputStream is) throws java.io.IOException {
 
@@ -236,7 +234,7 @@ public class TermIndexGenerator {
         HashMap<String, HashIDSet> termIndex = new HashMap<>();
         int columnCount = 0;
         while (readers.hasNext()) {
-            ColumnReader reader = readers.next();
+            ColumnReader<ValueCounter> reader = readers.next();
             columnCount++;
             HashSet<String> columnValues = new HashSet<>();
             while (reader.hasNext()) {

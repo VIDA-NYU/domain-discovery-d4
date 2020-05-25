@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,7 +40,6 @@ import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.curation.d4.domain.graph.HexEdgeWriter;
 import org.opendata.curation.d4.signature.ColumnDispatcher;
-import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.trim.CentristTrimmer;
 import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
@@ -141,7 +139,7 @@ public class LocalDomainEdgeWriter {
             "  --" + ARG_SIGSIM + "=<constraint> [default: GT0.0]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
-                    TrimmerType.CENTRIST.toString() +":GT0.1]\n" +
+                    TrimmerType.CENTRIST.toString() +":GT0.001]\n" +
             "  <eq-file>\n" +
             "  <columns-file>\n" +
             "  <output-file>";

@@ -51,7 +51,6 @@ import org.opendata.curation.d4.signature.trim.CentristTrimmer;
 import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
 import org.opendata.curation.d4.signature.trim.NonTrimmer;
 import org.opendata.curation.d4.signature.trim.PrecisionScore;
-import static org.opendata.curation.d4.signature.trim.TrimmerType.CONSERVATIVE;
 import org.opendata.db.eq.EQIndex;
 
 /**

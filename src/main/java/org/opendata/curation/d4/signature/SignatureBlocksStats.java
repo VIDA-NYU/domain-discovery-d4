@@ -90,15 +90,8 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     public void consume(SignatureBlocks sig) {
 
         _blockStats.add(sig.size());
-        _histogram.add(sig.maxSim());
-        
-        int nodeCount = 0;
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            nodeCount += sig.get(iBlock).length;
-        }
-        
-        _nodeStats.add(nodeCount);
-        
+        _histogram.add(sig.maxSim());        
+        _nodeStats.add(sig.nodeCount());
     }
 
     @Override

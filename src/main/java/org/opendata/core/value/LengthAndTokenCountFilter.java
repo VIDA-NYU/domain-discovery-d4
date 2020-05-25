@@ -41,7 +41,6 @@ public class LengthAndTokenCountFilter implements ValueFilter {
         } else if ((_maxValueLength > 0) && (value.length() > _maxValueLength)) {
             return false;
         } else {
-            String[] tokens = value.split("\\s");
             if ((_maxTokenCount > 0) && (value.split("\\s").length > _maxTokenCount)) {
                 return false;
             }

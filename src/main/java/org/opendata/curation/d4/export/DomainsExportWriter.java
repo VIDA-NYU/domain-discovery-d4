@@ -87,7 +87,7 @@ public class DomainsExportWriter {
                     domainTerms.add(termIndex.get(termId));
                 }
             }
-            Collections.sort(domainTerms, new EntityNameSort());
+            Collections.sort(domainTerms, new EntityNameSort<Term>());
             // Write domain columns and terms to file. The output file is named
             // by the domain identifier.
             File outputFile = FileSystem.joinPath(outputDir, domain.id() + ".json");

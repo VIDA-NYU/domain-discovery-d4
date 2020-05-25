@@ -51,7 +51,7 @@ public class DomainReader implements DomainStream {
      */
     public IdentifiableObjectSet<Domain> read() throws java.io.IOException {
         
-        return this.read(new AnyObjectFilter());
+        return this.read(new AnyObjectFilter<Integer>());
     }
     
     /**

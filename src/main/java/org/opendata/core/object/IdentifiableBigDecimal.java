@@ -15,37 +15,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.graph;
+package org.opendata.core.object;
 
-import java.util.List;
-import org.opendata.core.set.IDSet;
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
+import java.math.BigDecimal;
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- * Default connected component generator. Use  for nodes that are unstructured
- * integers.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class DirectedConnectedComponents implements ConnectedComponentGenerator {
-
-    private final ArrayGraph _graph;
+public class IdentifiableBigDecimal extends IdentifiableObjectImpl implements Comparable<IdentifiableBigDecimal> {
     
-    public DirectedConnectedComponents(IDSet nodes) {
-	
-        _graph = new ArrayGraph(nodes);
+    private BigDecimal _value;
+    
+    public IdentifiableBigDecimal(int id, BigDecimal value) {
+        
+        super(id);
+        
+        _value = value;
     }
 
     @Override
-    public void add(int nodeId, List<Integer> edges) {
+    public int compareTo(IdentifiableBigDecimal obj) {
 
-        _graph.add(nodeId, edges);
+        return Integer.compare(this.id(), obj.id());
     }
     
-    @Override
-    public synchronized IdentifiableObjectSet<IdentifiableIDSet> getComponents() {
-
-        return new Kosaraju().stronglyConnectedComponents(_graph);
+    public FormatedBigDecimal toFormatedDecimal() {
+    
+        return new FormatedBigDecimal(_value);
+    }
+    
+    public String toPlainString() {
+    
+        return this.toFormatedDecimal().toString();
+    }
+    
+    public BigDecimal value() {
+        
+        return _value;
     }
 }

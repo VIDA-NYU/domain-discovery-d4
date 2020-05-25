@@ -48,7 +48,7 @@ public class NamedObjectSetReader {
         this(DEFAULT_DELIMITER);
     }
     
-    public IdentifiableObjectSet<Entity> read(File file, ObjectFilter filter) throws java.io.IOException {
+    public IdentifiableObjectSet<Entity> read(File file, ObjectFilter<Integer> filter) throws java.io.IOException {
         
         HashObjectSet<Entity> result;
         result = new HashObjectSet<>();
@@ -70,6 +70,6 @@ public class NamedObjectSetReader {
 
     public IdentifiableObjectSet<Entity> read(File file) throws java.io.IOException {
         
-        return this.read(file, new AnyObjectFilter());
+        return this.read(file, new AnyObjectFilter<Integer>());
     }
  }

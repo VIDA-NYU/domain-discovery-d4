@@ -394,7 +394,7 @@ public class DatabaseLoadFileWriter {
                 termFilter = consumer.terms();
             } else {
                 //reader.stream(new EQWriter(outNodeTermMap, outColumnNodeMap));
-                termFilter = new AnyObjectFilter();
+                termFilter = new AnyObjectFilter<Integer>();
             }
         //}
 

@@ -51,6 +51,15 @@ public abstract class SignatureBlocks extends IdentifiableObjectImpl {
         return _maxSim;
     }
     
+    public int nodeCount() {
+    	
+        int nodeCount = 0;
+        for (int iBlock = 0; iBlock < _size; iBlock++) {
+            nodeCount += this.get(iBlock).length;
+        }
+        return nodeCount;
+    }
+    
     public int size() {
         
         return _size;

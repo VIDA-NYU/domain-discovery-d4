@@ -29,7 +29,7 @@ import org.opendata.core.value.ValueCounter;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ValueColumnsReaderFactory implements ColumnReaderFactory {
+public class ValueColumnsReaderFactory implements ColumnReaderFactory<ValueCounter> {
 
     private final LinkedList<File> _files;
     private final int _hashLengthThreshold;

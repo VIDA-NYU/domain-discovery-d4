@@ -50,7 +50,7 @@ public class ExpandedColumnReader extends FileSetReader implements ExpandedColum
     @Override
     public void stream(ExpandedColumnConsumer consumer) throws java.io.IOException {
 
-        this.stream(consumer, new AnyObjectFilter());
+        this.stream(consumer, new AnyObjectFilter<Integer>());
     }
 
     @Override

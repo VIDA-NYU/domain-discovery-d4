@@ -98,6 +98,7 @@ public class ValueSetIndex implements ColumnHandler {
             for (String term : _terms.keySet()) {
                 csvPrinter.printRecord(term, _terms.get(term).value());
             }
+            csvPrinter.close();
         } catch (java.io.IOException ex) {
             throw new RuntimeException(ex);
         }

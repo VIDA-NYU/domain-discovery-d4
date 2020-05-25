@@ -176,8 +176,8 @@ public class D4 {
         
         System.out.println("\n-- STRONG DOMAINS\n");
 
-        IdentifiableObjectSet localDomains;
-        localDomains =new DomainReader(localDomainFile).read();
+        IdentifiableObjectSet<Domain> localDomains;
+        localDomains = new DomainReader(localDomainFile).read();
         new StrongDomainGenerator(telemetry).run(
                 nodeIndex,
                 localDomains,

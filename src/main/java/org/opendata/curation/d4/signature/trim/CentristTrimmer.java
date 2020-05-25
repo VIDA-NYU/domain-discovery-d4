@@ -140,7 +140,7 @@ public class CentristTrimmer extends SignatureTrimmer {
                 elements.add(new IdentifiableDouble(iBlock, 0.0));
             }
         }
-        Collections.sort(elements, new DoubleValueDescSort());
+        Collections.sort(elements, new DoubleValueDescSort<IdentifiableDouble>());
         int dropIndex = _dropFinder.getPruneIndex(elements);
         if (dropIndex > 0) {
             if (elements.get(0).value() > 0) {

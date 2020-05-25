@@ -78,6 +78,6 @@ public class TermIndexReader {
     
     public IdentifiableObjectSet<Term> read() throws java.io.IOException {
         
-        return this.read(new AnyObjectFilter());
+        return this.read(new AnyObjectFilter<Integer>());
     }
 }

@@ -33,17 +33,17 @@ import org.opendata.core.similarity.ObjectSimilarityConsumer;
  */
 public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
     
-    private class SimilarityComputeTask  <T extends IdentifiableIDSet> implements Runnable {
+    private class SimilarityComputeTask<U extends IdentifiableIDSet> implements Runnable {
 
         private final ObjectSimilarityConsumer _consumer;
-        private final Collection<T> _elements;
-        private final ConcurrentLinkedQueue<T> _queue;
-        private final SetSimilarityComputer<T> _sim;
+        private final Collection<U> _elements;
+        private final ConcurrentLinkedQueue<U> _queue;
+        private final SetSimilarityComputer<U> _sim;
         
         public SimilarityComputeTask(
-                Collection<T> elements,
-                ConcurrentLinkedQueue<T> queue,
-                SetSimilarityComputer<T> sim,
+                Collection<U> elements,
+                ConcurrentLinkedQueue<U> queue,
+                SetSimilarityComputer<U> sim,
                 ObjectSimilarityConsumer consumer
         ) {
             _elements = elements;
@@ -55,9 +55,9 @@ public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
         @Override
         public void run() {
 
-            T elementI;
+            U elementI;
             while ((elementI = _queue.poll()) != null) {
-                for (T elementJ : _elements) {
+                for (U elementJ : _elements) {
                     if (elementI.id() < elementJ.id()) {
                         _consumer.consume(
                                 elementI,
@@ -82,7 +82,7 @@ public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             es.execute(
-                    new SimilarityComputeTask(
+                    new SimilarityComputeTask<>(
                             elements,
                             queue,
                             sim,

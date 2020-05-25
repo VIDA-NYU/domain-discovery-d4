@@ -142,7 +142,7 @@ public class StrongDomainGenerator {
         private final DomainHelper _helper;
         private final Threshold _overlapConstraint;
         private final ConcurrentLinkedQueue<Domain> _queue;
-        private final HashObjectSet _strongDomains;
+        private final HashObjectSet<DomainSupport> _strongDomains;
         private final BigDecimal _supportFraction;
         private final boolean _verbose;
         
@@ -154,7 +154,7 @@ public class StrongDomainGenerator {
                 IdentifiableCounterSet frequencyEstimate,
                 DomainHelper helper,
                 boolean verbose,
-                HashObjectSet strongDomains
+                HashObjectSet<DomainSupport> strongDomains
         ) {
             _queue = queue;
             _domains = domains;
@@ -305,7 +305,7 @@ public class StrongDomainGenerator {
         // Compte support for all local domains. Maintain domains that are
         // identified as strong domains in a domain buffer together with the
         // local domains that provided support.
-        HashObjectSet<DomainSupport> strongDomains = new HashObjectSet();
+        HashObjectSet<DomainSupport> strongDomains = new HashObjectSet<>();
         queue = new ConcurrentLinkedQueue<>(localDomains.toList());
 
         es = Executors.newCachedThreadPool();

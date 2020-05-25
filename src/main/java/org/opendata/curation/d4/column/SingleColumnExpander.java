@@ -62,11 +62,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
             _expansionSupport = support[1];
         }
         
-        public int expansionSupportCount() {
-            
-            return _expansionSupport;
-        }
-        
         public BigDecimal originalSupport(int size) {
             
             if (size == 0) {
@@ -274,7 +269,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         _done = false;        
         _support = new int[_maxNodeId + 1][2];
         if (_expansionCollector != null) {
-            _expansion = new HashObjectSet();
+            _expansion = new HashObjectSet<>();
             _expansionCollector.add(_expansion);
         }
     }

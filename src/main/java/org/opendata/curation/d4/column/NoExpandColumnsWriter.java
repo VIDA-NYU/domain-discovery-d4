@@ -18,11 +18,13 @@
 package org.opendata.curation.d4.column;
 
 import java.io.File;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
-import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.telemetry.TelemetryCollector;
+import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.db.Database;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
@@ -34,11 +36,30 @@ import org.opendata.db.eq.EQIndex;
  */
 public class NoExpandColumnsWriter {
     
-    public void run(
-            EQIndex nodes,
-            ExpandedColumnConsumer consumer
-    ) {
+    public static final String TELEMETRY_ID = "NO EXPANSION";
+
+    private final TelemetryCollector _telemetry;
+    
+    public NoExpandColumnsWriter(TelemetryCollector telemetry) {
         
+        _telemetry = telemetry;
+    }
+    
+    public NoExpandColumnsWriter() {
+        
+        this(new TelemetryPrinter());
+    }
+
+    public void run(EQIndex nodes, File outputFile) {
+    	
+    	this.run(nodes, new ExpandedColumnWriter(outputFile));
+    }
+    
+    public void run(EQIndex nodes, ExpandedColumnConsumer consumer) {
+        
+        Date start = new Date();
+        System.out.println("START @ " + start);
+
         consumer.open();
         
         for (Column column : new Database(nodes).columns()) {
@@ -46,6 +67,12 @@ public class NoExpandColumnsWriter {
         }
         
         consumer.close();
+        
+        Date end = new Date();
+        long execTime = end.getTime() - start.getTime();
+        _telemetry.add(TELEMETRY_ID, execTime);
+        
+        System.out.println("END @ " + end);
     }
     
     private static final String COMMAND =
@@ -71,7 +98,6 @@ public class NoExpandColumnsWriter {
         try {
             // Read the node index and the list of columns
             EQIndex nodeIndex = new EQIndex(eqFile);
-            IdentifiableObjectSet<Column> db = nodeIndex.columns();
             new NoExpandColumnsWriter().run(
                     nodeIndex,
                     new ExpandedColumnWriter(outputFile)

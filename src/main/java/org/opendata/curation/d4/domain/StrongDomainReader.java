@@ -51,7 +51,7 @@ public class StrongDomainReader {
      */
     public IdentifiableObjectSet<StrongDomain> read() throws java.io.IOException {
         
-        return this.read(new AnyObjectFilter());
+        return this.read(new AnyObjectFilter<Integer>());
     }
     
     /**

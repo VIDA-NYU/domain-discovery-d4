@@ -30,7 +30,7 @@ import org.opendata.db.term.TermConsumer;
  */
 public class TermFileWriter implements TermConsumer {
 
-    private final ObjectFilter _filter;
+    private final ObjectFilter<Integer> _filter;
     private int _maxLength = 0;
     private final PrintWriter _outTerm;
     private final PrintWriter _outColumntermMap;
@@ -38,7 +38,7 @@ public class TermFileWriter implements TermConsumer {
     private final int _valueLengthThreshold;
     
     public TermFileWriter(
-            ObjectFilter filter,
+            ObjectFilter<Integer> filter,
             int valueLengthThreshold,
             PrintWriter outTerm,
             PrintWriter outColumntermMap
@@ -55,7 +55,7 @@ public class TermFileWriter implements TermConsumer {
             PrintWriter outColumntermMap
     ) {
 	
-	this(new AnyObjectFilter(), valueLengthThreshold, outTerm, outColumntermMap);
+    	this(new AnyObjectFilter<Integer>(), valueLengthThreshold, outTerm, outColumntermMap);
     }
     
     @Override

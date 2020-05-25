@@ -34,7 +34,7 @@ public class TermBuffer implements TermConsumer {
     public TermBuffer(ObjectFilter<Integer> filter) {
 
         _filter = filter;
-        _terms = new HashObjectSet();
+        _terms = new HashObjectSet<>();
     }
 
     @Override

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.opendata.core.graph.ConnectedComponentGenerator;
 import org.opendata.core.graph.DirectedConnectedComponents;
 import org.opendata.core.graph.UndirectedConnectedComponents;
@@ -43,9 +44,7 @@ import org.opendata.curation.d4.domain.EdgeType;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
-import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.curation.d4.signature.trim.TrimmerType;
+import org.opendata.curation.d4.signature.trim.ConstraintTrimmerFactory;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -138,7 +137,7 @@ public class LocalDomainEdgePrinter {
     public void run(
             EQIndex eqIndex,
             EntitySet terms,
-            TrimmerType trimmer,
+            String trimmer,
             ExpandedColumn column,
             EdgeType edgeType,
             PrintWriter out
@@ -159,12 +158,11 @@ public class LocalDomainEdgePrinter {
         SignatureBlocksConsumer consumer;
         consumer = new DomainGenerator(eqIndex, terms, column, domGen, out);
 
-        SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(eqIndex, trimmer);
+        ConstraintTrimmerFactory trimmerFactory;
+        trimmerFactory = new ConstraintTrimmerFactory(trimmer, eqIndex);
+        
         consumer = trimmerFactory.getTrimmer(column.nodes(), consumer);
-        if (!trimmer.equals(TrimmerType.LIBERAL)) {
-            consumer = new LiberalTrimmer(eqIndex.nodeSizes(), consumer);
-        }
+
         System.out.println("EDGES\n");
         
         ConcurrentLinkedQueue<Integer> queue;
@@ -213,7 +211,7 @@ public class LocalDomainEdgePrinter {
         
         File eqFile = new File(args[0]);
         File termFile = new File(args[1]);
-        TrimmerType trimmer = TrimmerType.valueOf(args[2]);
+        String trimmer = args[2];
         File columnsFile = new File(args[3]);
         int columnId = Integer.parseInt(args[4]);
         EdgeType edgeType = EdgeType.valueOf(args[5]);

@@ -63,7 +63,7 @@ public class ContextSignatureBlockPrinter {
         int start = 0;
         final int end = sig.size();
 
-        MaxDropFinder candidateFinder = new MaxDropFinder<>(
+        MaxDropFinder<SignatureValue> candidateFinder = new MaxDropFinder<>(
                 new GreaterThanConstraint(BigDecimal.ZERO),
                 false,
                 true

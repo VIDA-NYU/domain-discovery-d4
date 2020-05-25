@@ -71,7 +71,7 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
     
     public IdentifiableObjectSet<Node> nodes() {
         
-        HashObjectSet nodes = new HashObjectSet<>();
+        HashObjectSet<Node> nodes = new HashObjectSet<>();
         for (EQ eq : this) {
             nodes.add(new Node(eq));
         }

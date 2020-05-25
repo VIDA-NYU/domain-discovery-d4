@@ -23,6 +23,8 @@ import org.opendata.core.object.Entity;
 import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.core.set.EntitySet;
+import org.opendata.core.set.IDSet;
+import org.opendata.db.eq.EQIndex;
 
 /**
  * Read an entity set file. Assumes a text file where each row has at least two
@@ -63,7 +65,7 @@ public class EntitySetReader {
     
     public void read(EntityConsumer consumer) throws java.io.IOException {
         
-        this.read(new AnyObjectFilter(), consumer);
+        this.read(new AnyObjectFilter<Integer>(), consumer);
     }
     
     public EntitySet readEntities(ObjectFilter<Integer> filter) throws java.io.IOException {
@@ -75,4 +77,9 @@ public class EntitySetReader {
         return result;
     }
 
+    
+    public EntitySet readEntities(EQIndex eqIndex, IDSet nodes) throws java.io.IOException {
+        
+        return new EntitySet(_file, eqIndex, nodes);
+    }
 }

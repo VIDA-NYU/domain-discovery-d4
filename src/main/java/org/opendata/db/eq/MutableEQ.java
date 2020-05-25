@@ -20,7 +20,6 @@ package org.opendata.db.eq;
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.db.column.ColumnElement;
 import org.opendata.db.term.Term;
 
 /**
@@ -67,11 +66,6 @@ public class MutableEQ extends IdentifiableObjectImpl implements EQ {
     public HashIDSet columns() {
 
         return _columns;
-    }
-
-    public int compareTo(ColumnElement el) {
-
-        return Integer.compare(this.id(), el.id());
     }
     
     @Override

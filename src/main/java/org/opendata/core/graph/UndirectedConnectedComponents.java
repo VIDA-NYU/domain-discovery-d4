@@ -128,7 +128,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
                 _componentMap[sourceId] = targetCompId;
             } else {
                 // Create component for source and add target
-                HashSet<Integer> comp = new HashSet();
+                HashSet<Integer> comp = new HashSet<>();
                 comp.add(sourceId);
                 comp.add(targetId);
                 _components.put(sourceCompId, comp);
@@ -140,7 +140,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
     @Override
     public synchronized IdentifiableObjectSet<IdentifiableIDSet> getComponents() {
 
-        HashObjectSet result = new HashObjectSet();
+        HashObjectSet<IdentifiableIDSet> result = new HashObjectSet<>();
 	
         HashIDSet clusteredNodes = new HashIDSet();
         

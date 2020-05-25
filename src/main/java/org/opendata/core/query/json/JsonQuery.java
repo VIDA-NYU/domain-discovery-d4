@@ -144,33 +144,29 @@ public class JsonQuery {
                 
         try (InputStream is = FileSystem.openFile(_database)) {
             JsonReader reader = new JsonReader(new InputStreamReader(is));
-            String root;
-            if (!reader.hasNext()) {
-                return;
-            }
-            JsonToken firstToken = reader.peek();
-            if (JsonToken.BEGIN_OBJECT.equals(firstToken)) {
-                reader.beginObject();
-                root = reader.nextName();
-            } else {
-                root = "";
-            }
-            HashSet<String> schema = new HashSet();
-            reader.beginArray();
-            while (reader.hasNext()) {
-                JsonObject doc = parser.parse(reader).getAsJsonObject();
-                for (Map.Entry<String, JsonElement> entry : doc.entrySet()) {
-                    this.addPath(entry, "", schema);
-                }
-            }
-            reader.endArray();
-            List<String> paths = new ArrayList<>(schema);
-            Collections.sort(paths);
-            for (String path : paths) {
-                out.println("\t" + path);
-            }
-            if (JsonToken.BEGIN_OBJECT.equals(firstToken)) {
-                reader.endObject();
+            if (reader.hasNext()) {
+	            JsonToken firstToken = reader.peek();
+	            if (JsonToken.BEGIN_OBJECT.equals(firstToken)) {
+	                reader.beginObject();
+	                reader.nextName();
+	            }
+	            HashSet<String> schema = new HashSet<>();
+	            reader.beginArray();
+	            while (reader.hasNext()) {
+	                JsonObject doc = parser.parse(reader).getAsJsonObject();
+	                for (Map.Entry<String, JsonElement> entry : doc.entrySet()) {
+	                    this.addPath(entry, "", schema);
+	                }
+	            }
+	            reader.endArray();
+	            List<String> paths = new ArrayList<>(schema);
+	            Collections.sort(paths);
+	            for (String path : paths) {
+	                out.println("\t" + path);
+	            }
+	            if (JsonToken.BEGIN_OBJECT.equals(firstToken)) {
+	                reader.endObject();
+	            }
             }
         }
     }

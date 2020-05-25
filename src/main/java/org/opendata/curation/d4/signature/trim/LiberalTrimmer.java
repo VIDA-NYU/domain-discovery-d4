@@ -40,7 +40,7 @@ public class LiberalTrimmer extends SignatureTrimmer {
             Threshold nonEmptyConstraint,
             SignatureBlocksConsumer consumer
     ) {
-        super(new AnyObjectFilter(), nonEmptyConstraint, consumer);
+        super(new AnyObjectFilter<Integer>(), nonEmptyConstraint, consumer);
         
         _nodeSizes = nodeSizes;
     }

@@ -23,7 +23,6 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.ImmutableIDSet;
-import org.opendata.core.util.StringHelper;
 
 /**
  * For a given list of identifiable double, find the pruning index for an
@@ -72,7 +71,7 @@ public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
      * @param spec
      * @return 
      */
-    public static CandidateSetFinder getFunction(String spec) {
+    public static CandidateSetFinder<IdentifiableDouble> getFunction(String spec) {
 	
         String[] tokens = spec.split(":");
         
@@ -80,7 +79,7 @@ public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
             String name = tokens[0];
             if (name.equalsIgnoreCase(MAX_DIFF)) {
                 if (tokens.length == 4) {
-                    return new MaxDropFinder(
+                    return new MaxDropFinder<>(
                             Threshold.getConstraint(tokens[1]),
                             Boolean.parseBoolean(tokens[2]),
                             Boolean.parseBoolean(tokens[3])
@@ -88,7 +87,7 @@ public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
                 }
             } else if (name.equalsIgnoreCase(MAX_DIFF_THRESHOLD)) {
                 if (tokens.length == 4) {
-                    return new MaxDropThresholdFinder(
+                    return new MaxDropThresholdFinder<>(
                             Threshold.getConstraint(tokens[1]),
                             Boolean.parseBoolean(tokens[2]),
                             Boolean.parseBoolean(tokens[3])
@@ -96,7 +95,7 @@ public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
                 }
             } else if (name.equalsIgnoreCase(THRESHOLD)) {
                 if (tokens.length == 2) {
-                    return new ThresholdFinder(
+                    return new ThresholdFinder<>(
                             Threshold.getConstraint(tokens[1])
                     );
                 }
@@ -147,42 +146,4 @@ public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
             return new ImmutableIDSet();
         }
     }    
-    
-    /**
-     * Validate a given drop finder specification.
-     * 
-     * Return the given specification if valid. Will raise
-     * IllegalArgumentException if specification is not valid.
-     * 
-     * @param spec
-     * @return 
-     */
-    public static String validateSpecification(String spec) {
-        
-        String[] tokens = spec.split(":");
-        
-        String message = "Invalid candidate set finder specification: " + spec;
-        
-        String name = tokens[0];
-        if (name.equalsIgnoreCase(MAX_DIFF)) {
-            if (tokens.length == 4) {
-                Threshold.validateSpecification(tokens[1]);
-            } else {
-                throw new java.lang.IllegalArgumentException(message);
-            }
-        } else if (name.equalsIgnoreCase(MAX_DIFF_THRESHOLD)) {
-            if (tokens.length == 4) {
-                Threshold.validateSpecification(tokens[1]);
-            } else {
-                throw new java.lang.IllegalArgumentException(message);
-            }
-        } else if (name.equalsIgnoreCase(THRESHOLD)) {
-            Threshold
-                    .validateSpecification(StringHelper.joinStrings(tokens, 1, ":"));
-        } else {
-            throw new java.lang.IllegalArgumentException("Unknown drop finder name: " + name);
-        }
-        
-        return spec;
-    }
 }

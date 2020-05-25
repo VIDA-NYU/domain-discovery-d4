@@ -75,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.explore.DomainStatsPrinter</mainClass>
+                            <mainClass>org.opendata.curation.profiling.NullValueCandidateWriter</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

@@ -15,16 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.column;
+package org.opendata.core.sort;
 
-import org.opendata.core.value.ValueCounter;
+import java.util.Comparator;
+
+import org.opendata.core.object.IdentifiableBigDecimal;
 
 /**
- *
+ * Sort identifiable double objects by value in ascending order.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @param <T>
  */
-public interface ColumnReaderFactory<T extends ValueCounter> {
-    
-    public boolean hasNext();
-    public ColumnReader<T> next();
+public class BigDecimalAscSort <T extends IdentifiableBigDecimal> implements Comparator<T>{
+
+    @Override
+    public int compare(T o1, T o2) {
+
+        return o1.value().compareTo(o2.value());
+    }
 }

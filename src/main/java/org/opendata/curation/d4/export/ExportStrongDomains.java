@@ -62,7 +62,7 @@ public class ExportStrongDomains {
     
     private List<List<IdentifiableDouble>> getBlocks(List<IdentifiableDouble> items) {
         
-        MaxDropFinder dropFinder = new MaxDropFinder(0.0, true, true);
+        MaxDropFinder<IdentifiableDouble> dropFinder = new MaxDropFinder<>(0.0, true, true);
 
         int start = 0;
         final int end = items.size();
@@ -194,7 +194,7 @@ public class ExportStrongDomains {
                     for (int termId : eqIndex.get(node.id()).terms()) {
                         items.add(new IdentifiableDouble(termId, weight));
                     }
-                    Collections.sort(items, new DoubleValueDescSort());
+                    Collections.sort(items, new DoubleValueDescSort<IdentifiableDouble>());
                 }
                 List<List<IdentifiableDouble>> blocks = this.getBlocks(items);
                 JsonArray arrTerms = new JsonArray();

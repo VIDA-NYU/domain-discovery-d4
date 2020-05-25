@@ -79,30 +79,4 @@ public abstract class Threshold {
     public abstract boolean isSatisfied(BigDecimal value);
     
     public abstract String toPlainString();
-    
-    /**
-     * Validate the given specification.
-     * 
-     * Returns the specification if valid. Raises IllegalArgumentException if
-     * the specification is not valid.
-     * 
-     * @param spec
-     * @return 
-     */
-    public static String validateSpecification(String spec) {
-        
-        try {
-            BigDecimal threshold;
-            if (spec.toUpperCase().startsWith(GEQ)) {
-                threshold = new BigDecimal(spec.substring(GEQ.length()));
-            } else if (spec.toUpperCase().startsWith(GT)) {
-                threshold = new BigDecimal(spec.substring(GT.length()));
-            } else {
-                threshold = new BigDecimal(spec);
-            }
-        } catch (java.lang.NumberFormatException ex) {
-            throw new java.lang.IllegalArgumentException("Invalid constraint specification: " + ex);
-        }
-        return spec;
-    }
 }

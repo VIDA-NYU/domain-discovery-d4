@@ -107,7 +107,7 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     @Override
     public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException {
 
-        this.stream(consumer, new AnyObjectFilter());
+        this.stream(consumer, new AnyObjectFilter<Integer>());
     }
 
     public void streamSet(SignatureBlocksConsumer consumer, HashIDSet filter) throws java.io.IOException {

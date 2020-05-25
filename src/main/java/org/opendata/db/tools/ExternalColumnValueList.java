@@ -117,6 +117,7 @@ public class ExternalColumnValueList implements ColumnHandler {
                 csv.printRecord(term, counter);
             }
             csv.flush();
+            csv.close();
         }
         
         return new ColumnStats(distinctCount, terms.size());

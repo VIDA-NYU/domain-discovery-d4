@@ -107,6 +107,7 @@ public class ValueListIndex implements ColumnHandler {
                 csv.printRecord(term, counter);
             }
             csv.flush();
+            csv.close();
         }
         
         return new ColumnStats(distinctCount, _terms.size());
