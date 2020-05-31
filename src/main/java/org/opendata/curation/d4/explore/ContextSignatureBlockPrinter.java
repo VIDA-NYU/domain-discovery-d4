@@ -28,6 +28,7 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.curation.d4.signature.ContextSignatureGenerator;
 import org.opendata.curation.d4.signature.SignatureValue;
+import org.opendata.curation.d4.signature.similarity.ColumnSetLogJaccard;
 import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQIndex;
 
@@ -42,13 +43,24 @@ public class ContextSignatureBlockPrinter {
     public void run(
             File eqFile,
             File termFile,
+            boolean useLog,
             int nodeId,
             PrintWriter out
     ) throws java.io.IOException {
         
         EQIndex eqIndex = new EQIndex(eqFile);
         
-        List<SignatureValue> sig = new ContextSignatureGenerator(eqIndex.nodes())
+        ContextSignatureGenerator signatures;
+        if (useLog) {
+        	signatures = new ContextSignatureGenerator(
+        			eqIndex.nodes(),
+        			new ColumnSetLogJaccard(),
+        			false
+        	);
+        } else {
+        	signatures = new ContextSignatureGenerator(eqIndex.nodes());
+        }
+        List<SignatureValue> sig = signatures
             .getSignature(nodeId)
             .rankedElements();
         
@@ -86,13 +98,13 @@ public class ContextSignatureBlockPrinter {
                 EQ node = eqIndex.get(el.id());
                 int termId = node.terms().first();
                 line += "\t" + terms.get(termId).name();
-                line += "\t" + new FormatedBigDecimal(el.value(), 4);
+                line += "\t" + new FormatedBigDecimal(el.asBigDecimal(), 4);
                 out.println(line);
                 isFirstNode = false;
             }
             if (dropIndex < sig.size()) {
-                FormatedBigDecimal delta = new FormatedBigDecimal(sig.get(dropIndex - 1).value() - sig.get(dropIndex).value());
-                out.println("-- DROP " + delta);
+            	double delta = sig.get(dropIndex - 1).asDouble() - sig.get(dropIndex).asDouble();
+                out.println("-- DROP " + new FormatedBigDecimal(delta));
             }
             start = dropIndex;
         }
@@ -102,22 +114,24 @@ public class ContextSignatureBlockPrinter {
             "Usage: \n" +
             "  <eq-file>\n" +
             "  <term-file>\n" +
+            "  <use-log>\n" +
             "  <eq-id>";
  
     public static void main(String[] args) {
 	
-        if (args.length != 3) {
+        if (args.length != 4) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
 	
         File eqFile = new File(args[0]);
         File termFile = new File(args[1]);
-        int eqId = Integer.parseInt(args[2]);
+        boolean useLog = Boolean.parseBoolean(args[2]);
+        int eqId = Integer.parseInt(args[3]);
 	
         try (PrintWriter out = new PrintWriter(System.out)) {
             new ContextSignatureBlockPrinter()
-                    .run(eqFile, termFile, eqId, out);
+                    .run(eqFile, termFile, useLog, eqId, out);
         } catch (java.io.IOException ex) {
             Logger.getGlobal().log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

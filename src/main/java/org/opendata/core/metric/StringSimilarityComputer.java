@@ -15,21 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.metric;
 
 import java.math.BigDecimal;
 
-import org.opendata.core.metric.Precision;
-
 /**
- *
+ * Compute similarity between a given pair of terms.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
-
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
-
-        return new Precision(overlap, blockSize).value();
-    }    
+public interface StringSimilarityComputer {
+    
+    public BigDecimal sim(String term1, String term2);
 }

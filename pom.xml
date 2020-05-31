@@ -75,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.profiling.NullValueCandidateWriter</mainClass>
+                            <mainClass>org.opendata.curation.d4.export.ContextSignatureHierarchyJSON</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

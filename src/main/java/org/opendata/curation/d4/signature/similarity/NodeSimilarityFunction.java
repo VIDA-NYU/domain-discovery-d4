@@ -15,21 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature.similarity;
 
 import java.math.BigDecimal;
 
-import org.opendata.core.metric.Precision;
+import org.opendata.db.eq.Node;
 
 /**
- *
+ * Interface for functions that measure the similarity for a pair of
+ * equivalence classes (nodes).
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ *
  */
-public class PrecisionScore implements BlockScoreFunction {
+public interface NodeSimilarityFunction {
 
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
-
-        return new Precision(overlap, blockSize).value();
-    }    
+	/**
+	 * Compute similarity between a pair of nodes. Similarity values
+	 * should be between zero and one.
+	 * 
+	 * @param nodeI
+	 * @param nodeJ
+	 * @return
+	 */
+	public BigDecimal eval(Node nodeI, Node nodeJ);
 }

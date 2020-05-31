@@ -20,13 +20,13 @@ package org.opendata.curation.d4.domain;
 import java.io.BufferedReader;
 import java.io.File;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.metric.Support;
 import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.set.ImmutableIDSet;
-import org.opendata.core.similarity.Support;
 
 /**
  * Read a set of strong domains from file.

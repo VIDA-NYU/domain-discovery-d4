@@ -120,7 +120,7 @@ public class SignatureBlocksGenerator {
                 _consumer.consume(
                         new SignatureBlocksImpl(
                                 nodeId,
-                                sig.get(0).toBigDecimal(),
+                                sig.get(0).asBigDecimal(),
                                 blocks
                         )
                 );

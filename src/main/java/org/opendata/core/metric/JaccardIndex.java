@@ -15,21 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.metric;
 
 import java.math.BigDecimal;
-
-import org.opendata.core.metric.Precision;
+import java.math.MathContext;
 
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class JaccardIndex implements OverlapSimilarityFunction {
+
+	private final static MathContext MC = MathContext.DECIMAL64;
+	
+    public BigDecimal logSim(int size1, int size2, int overlap) {
+
+    	int divisor = (size1 + size2) - overlap;
+    	if (overlap == divisor) {
+    		return BigDecimal.ONE;
+    	}
+        return new BigDecimal(Math.log(overlap + 1))
+        		.divide(new BigDecimal(Math.log(divisor + 1)), MC);
+    }
 
     @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+    public BigDecimal sim(int size1, int size2, int overlap) {
 
-        return new Precision(overlap, blockSize).value();
-    }    
+    	int divisor = (size1 + size2) - overlap;
+    	if (overlap == divisor) {
+    		return BigDecimal.ONE;
+    	}
+        return new BigDecimal(overlap)
+        		.divide(new BigDecimal(divisor), MC);
+    }
 }

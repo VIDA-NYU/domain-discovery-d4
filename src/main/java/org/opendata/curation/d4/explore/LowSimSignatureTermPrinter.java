@@ -30,7 +30,6 @@ import org.opendata.core.io.EntitySetReader;
 import org.opendata.core.object.IdentifiableBigDecimal;
 import org.opendata.core.set.EntitySet;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.sort.BigDecimalAscSort;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
@@ -96,7 +95,7 @@ public class LowSimSignatureTermPrinter {
 			BigDecimal columns;
 			columns = new BigDecimal(_eqIndex.get(node).columns().length());
 			BigDecimal weight;
-			weight = node.value().divide(columns, MathContext.DECIMAL64);
+			weight = node.asBigDecimal().divide(columns, MathContext.DECIMAL64);
 			return new IdentifiableBigDecimal(node.id(), weight);
 		}
 	}
@@ -129,7 +128,7 @@ public class LowSimSignatureTermPrinter {
 			for (IdentifiableBigDecimal sig : _signatures) {
 				weights.add(func.eval(sig));
 			}
-			Collections.sort(weights, new BigDecimalAscSort<>());
+			Collections.sort(weights);
 			
 			List<Score> result = new ArrayList<>();
 			for (IdentifiableBigDecimal weight : weights) {

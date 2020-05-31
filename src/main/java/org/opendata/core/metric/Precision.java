@@ -15,21 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.metric;
 
 import java.math.BigDecimal;
-
-import org.opendata.core.metric.Precision;
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- *
+ * BigDecimal for precision of a set from another.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class Precision extends FormatedBigDecimal implements Comparable<Precision> {
+    
+    public Precision(int overlap, int setSize, int scale) {
+        
+        super(new BigDecimal((double)overlap/(double)setSize), scale);
+    }
+    
+    public Precision(int overlap, int setSize) {
+        
+        super(new BigDecimal((double)overlap/(double)setSize));
+    }
+    
+    public Precision() {
+        
+        super(BigDecimal.ZERO);
+    }
 
     @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+    public int compareTo(Precision p) {
 
-        return new Precision(overlap, blockSize).value();
-    }    
+        return this.value().compareTo(p.value());
+    }
 }

@@ -17,16 +17,18 @@
  */
 package org.opendata.curation.d4.signature;
 
-import org.opendata.core.object.IdentifiableDouble;
+import java.math.BigDecimal;
+
+import org.opendata.core.object.IdentifiableBigDecimal;
 
 /**
  * Element in a context signature.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureValue extends IdentifiableDouble {
+public class SignatureValue extends IdentifiableBigDecimal {
     
-    public SignatureValue(int id, double value) {
+    public SignatureValue(int id, BigDecimal value) {
 
         super(id, value);
     }

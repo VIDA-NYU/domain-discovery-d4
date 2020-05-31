@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.similarity.Support;
+import org.opendata.core.metric.Support;
 import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
 
 /**

@@ -19,8 +19,7 @@ package org.opendata.core.prune;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.object.IdentifiableDecimal;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.ImmutableIDSet;
 
@@ -31,82 +30,8 @@ import org.opendata.core.set.ImmutableIDSet;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public abstract class CandidateSetFinder <T extends IdentifiableDouble> {
+public abstract class CandidateSetFinder <T extends IdentifiableDecimal> {
    
-    // Drop finder names
-    public static final String MAX_DIFF = "MAX-DIFF";
-    public static final String MAX_DIFF_THRESHOLD = "MAX-DIFF-THRESHOLD";
-    public static final String THRESHOLD = "THRESHOLD";
-    
-    // Drop finder specification syntax
-    public static final String MAXDIFFFINDER =
-            MAX_DIFF +
-                ":<threshold-constraint>" +
-                ":<full-set-constraint>[true | false]" +
-                ":<ignore-last-drop>[true | false]";
-    public static final String MAXDIFFTHRESHOLDFINDER =
-            MAX_DIFF_THRESHOLD +
-                ":<threshold-constraint>" +
-                ":<full-set-constraint>[true | false]" +
-                ":<ignore-last-drop>[true | false]";
-    public final static String THRESHOLDFINDER =
-            THRESHOLD + ":<threshold-constraint>";
-    
-    /**
-     * Print command line statement for drop finder arguments.
-     * 
-     * @param indent
-     * @return 
-     */
-    public static String getCommand(String indent) {
-     
-        return indent + MAXDIFFFINDER + " |\n" +
-                indent + MAXDIFFTHRESHOLDFINDER + " |\n" +
-                indent + THRESHOLDFINDER;
-    }
-
-    /**
-     * Get candidate set finder instance from specification string.
-     * 
-     * @param spec
-     * @return 
-     */
-    public static CandidateSetFinder<IdentifiableDouble> getFunction(String spec) {
-	
-        String[] tokens = spec.split(":");
-        
-        try {
-            String name = tokens[0];
-            if (name.equalsIgnoreCase(MAX_DIFF)) {
-                if (tokens.length == 4) {
-                    return new MaxDropFinder<>(
-                            Threshold.getConstraint(tokens[1]),
-                            Boolean.parseBoolean(tokens[2]),
-                            Boolean.parseBoolean(tokens[3])
-                    );
-                }
-            } else if (name.equalsIgnoreCase(MAX_DIFF_THRESHOLD)) {
-                if (tokens.length == 4) {
-                    return new MaxDropThresholdFinder<>(
-                            Threshold.getConstraint(tokens[1]),
-                            Boolean.parseBoolean(tokens[2]),
-                            Boolean.parseBoolean(tokens[3])
-                    );
-                }
-            } else if (name.equalsIgnoreCase(THRESHOLD)) {
-                if (tokens.length == 2) {
-                    return new ThresholdFinder<>(
-                            Threshold.getConstraint(tokens[1])
-                    );
-                }
-            } else {
-                throw new java.lang.IllegalArgumentException("Unknown candidate set finder: " + name);
-            }
-        } catch (java.lang.NumberFormatException ex) {
-        }
-        throw new java.lang.IllegalArgumentException("Invalid candidate set finder specification: " + spec);
-    }
-
     /**
      * Return the pruning index.
      * 

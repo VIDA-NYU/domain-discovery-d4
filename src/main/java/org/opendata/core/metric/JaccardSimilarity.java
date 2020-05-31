@@ -15,21 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.metric;
 
-import java.math.BigDecimal;
-
-import org.opendata.core.metric.Precision;
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- *
+ * Formated Jaccard Index value.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
-
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
-
-        return new Precision(overlap, blockSize).value();
-    }    
+public class JaccardSimilarity extends FormatedBigDecimal {
+    
+    public JaccardSimilarity(int setSize1, int setSize2, int overlap, int scale) {
+        
+        super(new JaccardIndex().sim(setSize1, setSize2, overlap), scale);
+    }
+    
+    public JaccardSimilarity(int setSize1, int setSize2, int overlap) {
+        
+        super(new JaccardIndex().sim(setSize1, setSize2, overlap));
+    }
 }

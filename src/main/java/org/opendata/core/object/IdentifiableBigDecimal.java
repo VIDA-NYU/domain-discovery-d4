@@ -21,12 +21,14 @@ import java.math.BigDecimal;
 import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- *
+ * Identifiable decimal that uses a BigDecimal object internally to
+ * represent the decimal value.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class IdentifiableBigDecimal extends IdentifiableObjectImpl implements Comparable<IdentifiableBigDecimal> {
+public class IdentifiableBigDecimal extends IdentifiableDecimal {
     
-    private BigDecimal _value;
+    private final BigDecimal _value;
     
     public IdentifiableBigDecimal(int id, BigDecimal value) {
         
@@ -34,25 +36,44 @@ public class IdentifiableBigDecimal extends IdentifiableObjectImpl implements Co
         
         _value = value;
     }
-
+    
     @Override
-    public int compareTo(IdentifiableBigDecimal obj) {
-
-        return Integer.compare(this.id(), obj.id());
+    public BigDecimal asBigDecimal() {
+        
+        return _value;
     }
     
+    @Override
+    public double asDouble() {
+        
+        return _value.doubleValue();
+    }
+
+	@Override
+	public int compareTo(IdentifiableDecimal value) {
+
+		return _value.compareTo(value.asBigDecimal());
+	}
+
+    @Override
+    public boolean isZero() {
+    	
+    	return _value.compareTo(BigDecimal.ZERO) == 0;
+    }
+    
+    @Override
     public FormatedBigDecimal toFormatedDecimal() {
     
         return new FormatedBigDecimal(_value);
     }
     
-    public String toPlainString() {
-    
-        return this.toFormatedDecimal().toString();
-    }
-    
+    /**
+     * Get double value (for backward compatibility).
+     * 
+     * @return
+     */
     public BigDecimal value() {
-        
-        return _value;
+    	
+    	return _value;
     }
 }

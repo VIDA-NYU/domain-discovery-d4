@@ -36,7 +36,6 @@ import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.count.Counter;
 import org.opendata.curation.d4.Constants;
@@ -194,7 +193,7 @@ public class ExportStrongDomains {
                     for (int termId : eqIndex.get(node.id()).terms()) {
                         items.add(new IdentifiableDouble(termId, weight));
                     }
-                    Collections.sort(items, new DoubleValueDescSort<IdentifiableDouble>());
+                    Collections.sort(items, Collections.reverseOrder());
                 }
                 List<List<IdentifiableDouble>> blocks = this.getBlocks(items);
                 JsonArray arrTerms = new JsonArray();

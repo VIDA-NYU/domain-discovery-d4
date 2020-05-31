@@ -15,21 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.metric;
 
 import java.math.BigDecimal;
-
-import org.opendata.core.metric.Precision;
+import org.opendata.core.object.IdentifiableObject;
 
 /**
- *
+ * Ignore pairs with similarity below given threshold.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class SimilarityThresholdFilter implements ObjectSimilarityConsumer {
 
+    private final ObjectSimilarityConsumer _consumer;
+    private final BigDecimal _threshold;
+    
+    public SimilarityThresholdFilter(
+            ObjectSimilarityConsumer consumer,
+            BigDecimal threshold
+    ) {
+        _consumer = consumer;
+        _threshold = threshold;
+    }
+    
     @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+    public void consume(IdentifiableObject obj1, IdentifiableObject obj2, BigDecimal sim) {
 
-        return new Precision(overlap, blockSize).value();
-    }    
+        if (sim.compareTo(_threshold) >= 0) {
+            _consumer.consume(obj1, obj2, sim);
+        }
+    }
 }

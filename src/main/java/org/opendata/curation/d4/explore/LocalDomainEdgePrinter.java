@@ -33,12 +33,12 @@ import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.object.Entity;
 import org.opendata.core.set.EntitySet;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.similarity.JaccardIndex;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.curation.d4.domain.EdgeType;
 import org.opendata.curation.d4.signature.SignatureBlocks;
@@ -111,8 +111,8 @@ public class LocalDomainEdgePrinter {
             
             int overlap =  colsI.overlap(colsJ);
             if (overlap > 0) {
-               BigDecimal ji = JaccardIndex
-                       .ji(colsI.length(), colsJ.length(), overlap);
+               BigDecimal ji = new JaccardIndex()
+                       .sim(colsI.length(), colsJ.length(), overlap);
                sim = new FormatedBigDecimal(ji);
             } else {
                 sim = new FormatedBigDecimal(BigDecimal.ZERO);

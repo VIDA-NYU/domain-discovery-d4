@@ -19,7 +19,7 @@ package org.opendata.core.prune;
 
 import java.util.List;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.object.IdentifiableDecimal;
 
 /**
  * Return list of candidates that satisfy a given threshold constraint.
@@ -27,7 +27,7 @@ import org.opendata.core.object.IdentifiableDouble;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public class ThresholdFinder <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
+public class ThresholdFinder <T extends IdentifiableDecimal> extends CandidateSetFinder<T> {
  
     private final Threshold _constraint;
 
@@ -40,7 +40,7 @@ public class ThresholdFinder <T extends IdentifiableDouble> extends CandidateSet
     public int getPruneIndex(List<T> elements, int start) {
 
         for (int iIndex = start; iIndex < elements.size(); iIndex++) {
-            if (!_constraint.isSatisfied(elements.get(iIndex).value())) {
+            if (!_constraint.isSatisfied(elements.get(iIndex).asBigDecimal())) {
                 return iIndex;
             }
         }

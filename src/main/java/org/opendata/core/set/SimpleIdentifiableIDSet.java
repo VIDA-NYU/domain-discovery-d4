@@ -20,8 +20,9 @@ package org.opendata.core.set;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
+
+import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.object.IdentifiableObjectImpl;
-import org.opendata.core.similarity.JaccardIndex;
 
 /**
  * Implementation for identifiable identifier set that contains a immutable set
@@ -110,7 +111,8 @@ public class SimpleIdentifiableIDSet extends IdentifiableObjectImpl implements I
     @Override
     public BigDecimal ji(IDSet list) {
     
-        return JaccardIndex.ji(this.length(), list.length(), this.overlap(list));
+        return new JaccardIndex()
+        		.sim(this.length(), list.length(), this.overlap(list));
     }
 
     @Override

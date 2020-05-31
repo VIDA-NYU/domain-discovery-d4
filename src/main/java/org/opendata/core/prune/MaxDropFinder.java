@@ -17,10 +17,11 @@
  */
 package org.opendata.core.prune;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.object.IdentifiableDecimal;
 
 /**
  * Find steepest drop in list of identifiable double values.
@@ -28,7 +29,7 @@ import org.opendata.core.object.IdentifiableDouble;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
+public class MaxDropFinder <T extends IdentifiableDecimal> extends CandidateSetFinder<T> {
         
     private final Threshold _nonEmptySignatureThreshold;
     private final boolean _ignoreLastDrop;
@@ -86,7 +87,7 @@ public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFi
         
         // Result is zero if first element is smaller than the empty signature
         // constraint threshold.
-        final double first = elements.get(0).value();
+        final BigDecimal first = elements.get(0).asBigDecimal();
         if (!_nonEmptySignatureThreshold.isSatisfied(first)) {
             return 0;
         }
@@ -98,9 +99,9 @@ public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFi
         
         // If the full signature constraint is satisfied the result equals the
         // size of the array
-        final double last = elements.get(size - 1).value();
+        final BigDecimal last = elements.get(size - 1).asBigDecimal();
         if (_fullSignatureConstraint) {
-            if ((elements.get(start).value() - last) <= last) {
+            if (elements.get(start).asBigDecimal().subtract(last).compareTo(last) <= 0) {
                 return size;
              }
         }
@@ -108,18 +109,21 @@ public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFi
         // The initial value for maxDiff depends on whether we ignore the last
         // drop or not. In the latter case, maxDiff is the value of the last
         // drop. In the former case it is zero.
-        double maxDiff;
+        BigDecimal maxDiff;
         if (!_ignoreLastDrop) {
             maxDiff = last;
         } else {
-            maxDiff = 0f;
+            maxDiff = BigDecimal.ZERO;
         }
         
         int maxIndex = elements.size();
         
         for (int iIndex = start; iIndex < size - 1; iIndex++) {
-            double diff = elements.get(iIndex).value() - elements.get(iIndex + 1).value();
-            if (diff > maxDiff) {
+            BigDecimal diff = elements
+            		.get(iIndex)
+            		.asBigDecimal()
+            		.subtract(elements.get(iIndex + 1).asBigDecimal());
+            if (diff.compareTo(maxDiff) > 0) {
                 maxIndex = iIndex + 1;
                 maxDiff = diff;
             }

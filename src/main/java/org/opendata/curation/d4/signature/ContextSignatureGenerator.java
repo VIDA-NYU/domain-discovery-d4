@@ -17,9 +17,12 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.similarity.JaccardIndex;
+import org.opendata.curation.d4.signature.similarity.ColumnSetJaccard;
+import org.opendata.curation.d4.signature.similarity.NodeSimilarityFunction;
 import org.opendata.db.eq.Node;
 
 
@@ -30,13 +33,39 @@ import org.opendata.db.eq.Node;
  */
 public class ContextSignatureGenerator {
 
+	private final boolean _includeSelf;
     private final IdentifiableObjectSet<Node> _nodes;
+    private final NodeSimilarityFunction _simFunc;
     
-    public ContextSignatureGenerator(IdentifiableObjectSet<Node> nodes) {
+    /**
+     * Initialize the list of nodes in the database and the similarity function
+     * that is used to compute signature elements.
+     * 
+     * @param nodes
+     * @param simFunc
+     */
+    public ContextSignatureGenerator(
+    		IdentifiableObjectSet<Node> nodes,
+    		NodeSimilarityFunction simFunc,
+    		boolean includeSelf
+    ) {
 
         _nodes = nodes;
+        _simFunc = simFunc;
+        _includeSelf = includeSelf;
     }
 
+    /**
+     * The default similarity metric for elements in the context signature
+     * is the Jaccard Similarity between column sets.
+     * 
+     * @param nodes
+     */
+    public ContextSignatureGenerator(IdentifiableObjectSet<Node> nodes) {
+    	
+    	this(nodes, new ColumnSetJaccard(), false);
+    }
+    
     /**
      * Compute signature for element with given identifier.
      * 
@@ -47,16 +76,16 @@ public class ContextSignatureGenerator {
         
         Node node = _nodes.get(id);
         
-        ArrayList<SignatureValue> elements = new ArrayList<>();        
+        ArrayList<SignatureValue> elements = new ArrayList<>();
+        if (_includeSelf) {
+        	elements.add(new SignatureValue(id, BigDecimal.ONE));
+        }
         for (Node nodeJ : _nodes) {
             if (node.id() != nodeJ.id()) {
-                int overlap =  node.overlap(nodeJ);
-                if (overlap > 0) {
-                    double sim = JaccardIndex
-                            .ji(node.columnCount(), nodeJ.columnCount(), overlap)
-                            .doubleValue();
-                    elements.add(new SignatureValue(nodeJ.id(), sim));
-                }
+            	BigDecimal sim = _simFunc.eval(node, nodeJ);
+            	if (sim.compareTo(BigDecimal.ZERO) > 0) {
+            		elements.add(new SignatureValue(nodeJ.id(), sim));
+            	}
             }
         }
         

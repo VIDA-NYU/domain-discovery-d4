@@ -17,8 +17,10 @@
  */
 package org.opendata.core.prune;
 
+import java.math.BigDecimal;
 import java.util.List;
-import org.opendata.core.object.IdentifiableDouble;
+
+import org.opendata.core.object.IdentifiableDecimal;
 import org.opendata.core.util.Bin;
 import org.opendata.core.util.SimilarityHistogram;
 
@@ -31,7 +33,7 @@ import org.opendata.core.util.SimilarityHistogram;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public class OtsuMethod <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
+public class OtsuMethod <T extends IdentifiableDecimal> extends CandidateSetFinder<T> {
 
     private final int _scale;
     private final SizeFunction _sizeFunc;
@@ -53,15 +55,15 @@ public class OtsuMethod <T extends IdentifiableDouble> extends CandidateSetFinde
         SimilarityHistogram histogram = new SimilarityHistogram(_scale);
         for (int iEl = start; iEl < elements.size(); iEl++) {
             T el = elements.get(iEl);
-            histogram.add(el.value(), _sizeFunc.getSize(el.id()));
+            histogram.add(el.asBigDecimal(), _sizeFunc.getSize(el.id()));
         }
         List<Bin> bins = histogram.bins();
         int t = OtsuMethod.getThreshold(bins, histogram.totalSize());
-        double threshold = bins.get(t).start();
+        BigDecimal threshold = new BigDecimal(bins.get(t).start());
 
         int index = 0;
         for (T el : elements) {
-            if (el.value() >= threshold) {
+            if (el.asBigDecimal().compareTo(threshold) >= 0) {
                 index++;
             } else {
                 break;

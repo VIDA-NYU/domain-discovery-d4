@@ -15,21 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature.similarity;
 
 import java.math.BigDecimal;
 
-import org.opendata.core.metric.Precision;
+import org.opendata.core.metric.JaccardIndex;
+import org.opendata.db.eq.Node;
 
 /**
- *
+ * Compute node similarity as the Jaccard Similarity between the column
+ * sets of two nodes.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ *
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class ColumnSetJaccard implements NodeSimilarityFunction {
 
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
-
-        return new Precision(overlap, blockSize).value();
-    }    
+	private final JaccardIndex _ji = new JaccardIndex();
+	
+	@Override
+	public BigDecimal eval(Node nodeI, Node nodeJ) {
+		
+		int overlap =  nodeI.overlap(nodeJ);
+		if (overlap > 0) {
+			return _ji.sim(nodeI.columnCount(), nodeJ.columnCount(), overlap);
+		} else {
+			return BigDecimal.ZERO;
+		}
+	}
 }

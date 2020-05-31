@@ -22,20 +22,22 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.opendata.core.object.IdentifiableObject;
-import org.opendata.core.sort.DoubleValueDescSort;
 
 /**
- *
+ * Vector of similarity values for an equivalence class. The context
+ * signature maintains similarity values for all other equivalence
+ * classes that the equivalence class occurs with.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ContextSignature implements Comparable<ContextSignature>, IdentifiableObject {
+public class ContextSignature implements IdentifiableObject {
     
     private final SignatureValue[] _elements;
     private final int _id;
     
     public ContextSignature(int id, List<SignatureValue> elements) {
         
-	_id = id;
+    	_id = id;
         _elements = new SignatureValue[elements.size()];
         for (int iElement = 0; iElement < elements.size(); iElement++) {
             _elements[iElement] = elements.get(iElement);
@@ -45,13 +47,7 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
 
     public ContextSignature(int id) {
 
-	this(id, new ArrayList<SignatureValue>());
-    }
-    
-    @Override
-    public int compareTo(ContextSignature vec) {
-
-        return Integer.compare(this.size(), vec.size());
+    	this(id, new ArrayList<SignatureValue>());
     }
     
     public List<SignatureValue> elements() {
@@ -62,7 +58,7 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
     @Override
     public int id() {
 	
-	return _id;
+    	return _id;
     }
     
     public boolean isEmpty() {
@@ -73,7 +69,7 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
     public List<SignatureValue> rankedElements() {
         
         List<SignatureValue> elements = this.elements();
-        Collections.sort(elements, new DoubleValueDescSort<>());
+        Collections.sort(elements, Collections.reverseOrder());
         return elements;
     }
     

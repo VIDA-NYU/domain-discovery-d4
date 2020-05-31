@@ -15,21 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature.hierarchy;
 
-import java.math.BigDecimal;
+import java.io.PrintWriter;
 
-import org.opendata.core.metric.Precision;
+public interface SignatureHierarchyPrinter {
 
-/**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
- */
-public class PrecisionScore implements BlockScoreFunction {
-
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
-
-        return new Precision(overlap, blockSize).value();
-    }    
+	public void print(HierarchicalSignature sig, int maxDepth, PrintWriter out);
 }

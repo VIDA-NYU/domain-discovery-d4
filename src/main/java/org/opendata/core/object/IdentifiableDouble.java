@@ -18,16 +18,17 @@
 package org.opendata.core.object;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- *
+ * Identifiable decimal that uses a double data type internally
+ * to represent the value.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class IdentifiableDouble extends IdentifiableObjectImpl implements Comparable<IdentifiableDouble> {
+public class IdentifiableDouble extends IdentifiableDecimal {
     
-    private double _value;
+    private final double _value;
     
     public IdentifiableDouble(int id, double value) {
         
@@ -41,34 +42,42 @@ public class IdentifiableDouble extends IdentifiableObjectImpl implements Compar
         this(id, value.doubleValue());
     }
     
-    public void add(double val) {
-        
-        _value += val;
-    }
-    
     @Override
-    public int compareTo(IdentifiableDouble obj) {
-
-        return Integer.compare(this.id(), obj.id());
-    }
-    
-    public BigDecimal toBigDecimal() {
+    public BigDecimal asBigDecimal() {
     
         return new BigDecimal(_value);
     }
     
+    @Override
+    public double asDouble() {
+    
+        return _value;
+    }
+    
+    @Override
+    public int compareTo(IdentifiableDecimal value) {
+
+        return Double.compare(_value, value.asDouble());
+    }
+
+	@Override
+	public boolean isZero() {
+
+		return _value == 0;
+	}
+   
     public FormatedBigDecimal toFormatedDecimal() {
     
         return new FormatedBigDecimal(_value);
     }
     
-    public String toPlainString() {
-    
-        return new BigDecimal(_value).setScale(8, RoundingMode.HALF_DOWN).toPlainString();
-    }
-    
+    /**
+     * Get double value (for backward compatibility).
+     * 
+     * @return
+     */
     public double value() {
-        
-        return _value;
+    	
+    	return _value;
     }
 }

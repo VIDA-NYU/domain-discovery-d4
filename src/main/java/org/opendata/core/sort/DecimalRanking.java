@@ -15,21 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.sort;
 
-import java.math.BigDecimal;
+import java.util.Comparator;
 
-import org.opendata.core.metric.Precision;
+import org.opendata.core.object.IdentifiableDecimal;
 
 /**
- *
+ * Sort identifiable decimals in descending order of the decimal value.
+ * Use identifier (in ascending order) as the second sort key.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ *
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class DecimalRanking implements Comparator<IdentifiableDecimal> {
 
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+	@Override
+	public int compare(IdentifiableDecimal val0, IdentifiableDecimal val1) {
 
-        return new Precision(overlap, blockSize).value();
-    }    
+		int comp = val1.compareTo(val0);
+		if (comp == 0) {
+			comp = Integer.compare(val0.id(), val1.id());
+		}
+		return comp;
+	}
 }

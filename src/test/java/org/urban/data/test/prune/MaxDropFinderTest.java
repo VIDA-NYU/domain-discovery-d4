@@ -70,13 +70,13 @@ public class MaxDropFinderTest {
 
         // Ensure that the full signature constraint is triggered
 	assertEquals(elements.size(), dropFinder.getPruneIndex(elements));
-	assertEquals(3, new MaxDropFinder<>(0.5, false, true).getPruneIndex(elements));
+	assertEquals(3, new MaxDropFinder<IdentifiableDouble>(0.5, false, true).getPruneIndex(elements));
         
         // Ensure that the ignore last drop constraint works
-	assertEquals(elements.size(), new MaxDropFinder<>(0.5, false, false).getPruneIndex(elements));
+	assertEquals(elements.size(), new MaxDropFinder<IdentifiableDouble>(0.5, false, false).getPruneIndex(elements));
         
         // Ensure that the empty signature constraint works
-	assertEquals(0, new MaxDropFinder<>(0.8, true, true).getPruneIndex(elements));
+	assertEquals(0, new MaxDropFinder<IdentifiableDouble>(0.8, true, true).getPruneIndex(elements));
         
         elements.add(new IdentifiableDouble(7, 0.35));
         elements.add(new IdentifiableDouble(8, 0.3));
@@ -112,7 +112,7 @@ public class MaxDropFinderTest {
  	assertEquals(elements.size() - 1, dropFinder.getPruneIndex(elements));
        
         // The ignore last drop constraint changes the result
- 	assertEquals(elements.size(), new MaxDropFinder<>(0.5, false, false).getPruneIndex(elements));
+ 	assertEquals(elements.size(), new MaxDropFinder<IdentifiableDouble>(0.5, false, false).getPruneIndex(elements));
    }
 
     @Test
@@ -122,13 +122,13 @@ public class MaxDropFinderTest {
 	elements.add(new IdentifiableDouble(0, 0.75));
         
         // Ensure that the empty signature constraint works
-	assertEquals(0, new MaxDropFinder<>(0.8, true, true).getPruneIndex(elements));
+	assertEquals(0, new MaxDropFinder<IdentifiableDouble>(0.8, true, true).getPruneIndex(elements));
         
         // The result is one if the empty signature constraint is not triggered
-	assertEquals(1, new MaxDropFinder<>(0.6, true, true).getPruneIndex(elements));
-	assertEquals(1, new MaxDropFinder<>(0.6, true, false).getPruneIndex(elements));
-	assertEquals(1, new MaxDropFinder<>(0.6, false, true).getPruneIndex(elements));
-	assertEquals(1, new MaxDropFinder<>(0.6, false, false).getPruneIndex(elements));
+	assertEquals(1, new MaxDropFinder<IdentifiableDouble>(0.6, true, true).getPruneIndex(elements));
+	assertEquals(1, new MaxDropFinder<IdentifiableDouble>(0.6, true, false).getPruneIndex(elements));
+	assertEquals(1, new MaxDropFinder<IdentifiableDouble>(0.6, false, true).getPruneIndex(elements));
+	assertEquals(1, new MaxDropFinder<IdentifiableDouble>(0.6, false, false).getPruneIndex(elements));
     }
 
     @Test

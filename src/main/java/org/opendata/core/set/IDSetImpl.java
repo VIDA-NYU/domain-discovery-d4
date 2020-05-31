@@ -23,7 +23,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import org.opendata.core.similarity.JaccardIndex;
+
+import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.util.StringHelper;
 
 /**
@@ -68,7 +69,8 @@ public abstract class IDSetImpl extends ObjectSetImpl<Integer> implements IDSet 
     @Override
     public BigDecimal ji(IDSet list) {
     
-        return JaccardIndex.ji(this.length(), list.length(), this.overlap(list));
+        return new JaccardIndex()
+        		.sim(this.length(), list.length(), this.overlap(list));
     }
     
     @Override

@@ -15,83 +15,88 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.set.similarity;
+package org.opendata.core.metric;
 
-import java.util.Collection;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import org.opendata.core.metric.ObjectSimilarityConsumer;
-import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.object.Entity;
 
 /**
- * Compute pairwise similarity between identifiable sets.
+ * Compute pairwise similarity between string entities in parallel.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
+public class ParallelStringSimilarityComputer {
     
-    private class SimilarityComputeTask<U extends IdentifiableIDSet> implements Runnable {
+    private class SimilarityComputeTask implements Runnable {
 
         private final ObjectSimilarityConsumer _consumer;
-        private final Collection<U> _elements;
-        private final ConcurrentLinkedQueue<U> _queue;
-        private final SetSimilarityComputer<U> _sim;
+        private final StringSimilarityComputer _func;
+        private final ConcurrentLinkedQueue<Entity> _queue;
+        private final List<Entity> _terms;
         
         public SimilarityComputeTask(
-                Collection<U> elements,
-                ConcurrentLinkedQueue<U> queue,
-                SetSimilarityComputer<U> sim,
+                ConcurrentLinkedQueue<Entity> queue,
+                List<Entity> terms,
+                StringSimilarityComputer func,
                 ObjectSimilarityConsumer consumer
         ) {
-            _elements = elements;
             _queue = queue;
-            _sim = sim;
+            _terms = terms;
+            _func = func;
             _consumer = consumer;
         }
         
         @Override
         public void run() {
 
-            U elementI;
-            while ((elementI = _queue.poll()) != null) {
-                for (U elementJ : _elements) {
-                    if (elementI.id() < elementJ.id()) {
-                        _consumer.consume(
-                                elementI,
-                                elementJ,
-                                _sim.getSimilarity(elementI, elementJ)
-                        );
+            int count = 0;
+            
+            Entity term;
+            while ((term = _queue.poll()) != null) {
+                for (Entity t1 : _terms) {
+                    if (term.id() < t1.id()) {
+                        BigDecimal sim = _func.sim(term.name(), t1.name());
+                        if (sim != null) {
+                            _consumer.consume(term, t1, sim);
+                        }
                     }
+                }
+                count++;
+                if ((count % 1000) == 0) {
+                    System.out.println(count + " @ " + new java.util.Date());
                 }
             }
         }
     }
     
     public void run(
-            Collection<T> elements,
-            SetSimilarityComputer<T> sim,
+            List<Entity> terms,
+            StringSimilarityComputer func,
             int threads,
             ObjectSimilarityConsumer consumer
     ) throws java.lang.InterruptedException {
         
-        ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>(elements);
+        
+        ConcurrentLinkedQueue<Entity> queue;
+        queue = new ConcurrentLinkedQueue<>(terms);
         
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             es.execute(
-                    new SimilarityComputeTask<>(
-                            elements,
+                    new SimilarityComputeTask(
                             queue,
-                            sim,
+                            terms,
+                            func,
                             consumer
                     )
             );
         }
         es.shutdown();
         es.awaitTermination(1, TimeUnit.DAYS);
-    }    
+    }
 }

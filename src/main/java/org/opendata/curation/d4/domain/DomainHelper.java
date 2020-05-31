@@ -19,8 +19,9 @@ package org.opendata.curation.d4.domain;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+
+import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.similarity.JaccardIndex;
 import org.opendata.core.util.ArrayHelper;
 import org.opendata.db.eq.EQIndex;
 
@@ -55,6 +56,6 @@ public class DomainHelper {
         int sizeI = _domainSizes.get(domI.id());
         int sizeJ = _domainSizes.get(domJ.id());
         
-        return JaccardIndex.ji(sizeI, sizeJ, overlap);
+        return new JaccardIndex().sim(sizeI, sizeJ, overlap);
     }
 }

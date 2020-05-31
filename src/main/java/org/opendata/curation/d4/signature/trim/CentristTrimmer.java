@@ -30,7 +30,6 @@ import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.db.eq.EQHelper;
 
 /**
@@ -140,7 +139,7 @@ public class CentristTrimmer extends SignatureTrimmer {
                 elements.add(new IdentifiableDouble(iBlock, 0.0));
             }
         }
-        Collections.sort(elements, new DoubleValueDescSort<IdentifiableDouble>());
+        Collections.sort(elements, Collections.reverseOrder());
         int dropIndex = _dropFinder.getPruneIndex(elements);
         if (dropIndex > 0) {
             if (elements.get(0).value() > 0) {
