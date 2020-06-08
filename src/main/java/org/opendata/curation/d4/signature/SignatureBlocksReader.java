@@ -42,9 +42,13 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     private final static Logger LOGGER = Logger
             .getLogger(SignatureBlocksReader.class.getName());
     
+    private final boolean _verbose;
+    
     public SignatureBlocksReader(File file, boolean verbose) {
         
         super(file, verbose);
+        
+        _verbose = verbose;
     }
 
     public SignatureBlocksReader(File file) {
@@ -52,9 +56,15 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
         this(file, false);
     }
     
-    public SignatureBlocksReader(List<File> files) {
+    public SignatureBlocksReader(List<File> files, boolean verbose) {
         
         super(files, true);
+        
+        _verbose = verbose;
+    }
+    public SignatureBlocksReader(List<File> files) {
+        
+        this(files, false);
     }
     
     public SignatureBlocksIndex read() throws java.io.IOException {
@@ -70,13 +80,15 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
         consumer.open();
 
         for (File file : this) {
-            System.out.println("READING " + file.getName());
+        	if (_verbose) {
+        		System.out.println("READING " + file.getName());
+        	}
             try (BufferedReader in = FileSystem.openReader(file)) {
                 String line;
                 int lineCount = 0;
                 while ((line = in.readLine()) != null) {
                     lineCount++;
-                    if ((lineCount % 10000) == 0) {
+                    if ((_verbose) && ((lineCount % 10000) == 0)) {
                         System.out.println("READ " + lineCount + " @ " + new java.util.Date());
                         new MemUsagePrinter().print();
                     }

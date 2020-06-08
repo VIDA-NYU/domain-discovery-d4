@@ -32,6 +32,7 @@ import org.opendata.core.util.count.IdentifiableCounterSet;
  */
 public class DomainSetStatsPrinter implements DomainConsumer {
 
+	private final DomainConsumer _consumer;
     private IdentifiableCounterSet _columnDomainCount = null;
     private HashIDSet _columnsWithDomains = null;
     private int _domainColumnCount = 0;
@@ -39,9 +40,23 @@ public class DomainSetStatsPrinter implements DomainConsumer {
     private int _domainNodeCount = 0;
     private int _maxDomain = 0;
 
+    public DomainSetStatsPrinter(DomainConsumer consumer) {
+    	
+    	_consumer = consumer;
+    }
+    
+    public DomainSetStatsPrinter() {
+    	
+    	this(null);
+    }
+    
     @Override
     public void close() {
 
+    	if (_consumer != null) {
+    		_consumer.close();
+    		this.print();
+    	}
     }
 
     @Override
@@ -59,6 +74,10 @@ public class DomainSetStatsPrinter implements DomainConsumer {
         for (int columnId : cols) {
             _columnDomainCount.inc(columnId);
         }
+        
+    	if (_consumer != null) {
+    		_consumer.consume(domain);
+    	}
     }
 
     @Override
@@ -70,12 +89,16 @@ public class DomainSetStatsPrinter implements DomainConsumer {
         _domainCount = 0;
         _domainNodeCount = 0;
         _maxDomain = 0;
-    }
+        
+    	if (_consumer != null) {
+    		_consumer.open();
+    	}
+   }
 
     public void print() {
         
-	System.out.println("NUMBER OF DOMAINS      : " + _domainCount);
-	System.out.println("COLUMNS WITH DOMAINS   : " + _columnsWithDomains.length());
+    	System.out.println("NUMBER OF DOMAINS      : " + _domainCount);
+    	System.out.println("COLUMNS WITH DOMAINS   : " + _columnsWithDomains.length());
         if (_domainCount > 0) {
             System.out.println("MAX. DOMAIN SIZE       : " + _maxDomain);
             System.out.println("AVG. DOMAIN SIZE       : " + new FormatedBigDecimal((double)_domainNodeCount/(double)_domainCount));

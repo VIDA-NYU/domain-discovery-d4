@@ -20,7 +20,6 @@ package org.opendata.curation.d4.signature;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -95,35 +94,10 @@ public class SignatureBlocksGenerator {
                 if ((count % 1000) == 0) {
                     System.out.println(count + " @ " + new java.util.Date());
                 }
-                List<SignatureValue> sig;
-                sig = _sigFact.getSignature(nodeId).rankedElements();
-                // No output if the context signautre is empty
-                if (sig.isEmpty()) {
-                    continue;
-                }
-                int start = 0;
-                final int end = sig.size();
-                ArrayList<int[]> blocks = new ArrayList<>();
-                while (start < end) {
-                    int pruneIndex = _candidateFinder.getPruneIndex(sig, start);
-                    if (pruneIndex <= start) {
-                        break;
-                    }
-                    int[] block = new int[pruneIndex - start];
-                    for (int iEl = start; iEl < pruneIndex; iEl++) {
-                        block[iEl - start] = sig.get(iEl).id();
-                    }
-                    Arrays.sort(block);
-                    blocks.add(block);
-                    start = pruneIndex;
-                }
-                _consumer.consume(
-                        new SignatureBlocksImpl(
-                                nodeId,
-                                sig.get(0).asBigDecimal(),
-                                blocks
-                        )
-                );
+                SignatureBlocks sig = _sigFact
+                		.getSignature(nodeId)
+                		.toSignatureBlocks(_candidateFinder);
+                _consumer.consume(sig);
             }
         }
     }
@@ -282,7 +256,7 @@ public class SignatureBlocksGenerator {
     
     public static void main(String[] args) {
         
-	System.out.println(Constants.NAME + " - Signature Blocks Generator - Version (" + Constants.VERSION + ")\n");
+    	System.out.println(Constants.NAME + " - Signature Blocks Generator - Version (" + Constants.VERSION + ")\n");
 
         if (args.length < 2) {
             System.out.println(COMMAND);

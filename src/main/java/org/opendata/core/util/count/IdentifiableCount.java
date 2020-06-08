@@ -36,12 +36,12 @@ public class IdentifiableCount extends IdentifiableObjectImpl implements Compara
     
     public IdentifiableCount(String[] valuePair) {
 	
-	this(Integer.parseInt(valuePair[0]), Integer.parseInt(valuePair[1]));
+    	this(Integer.parseInt(valuePair[0]), Integer.parseInt(valuePair[1]));
     }
     
     public IdentifiableCount(String pairString) {
 	
-	this(pairString.split(":"));
+    	this(pairString.split(":"));
     }
     
     public IdentifiableCount add(int value) {
@@ -62,6 +62,6 @@ public class IdentifiableCount extends IdentifiableObjectImpl implements Compara
     
     public String toPairString() {
 	
-	return this.id() + ":" + _count;
+    	return this.id() + ":" + _count;
     }
 }

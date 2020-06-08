@@ -63,7 +63,7 @@ public class CentristTrimmer extends SignatureTrimmer {
         _func = func;
         _dropFinder = dropFinder;
         
-        _columnSize = EQHelper.setSize(_column, nodeSizes);
+        _columnSize = new EQHelper(nodeSizes).setSize(column);
     }
 
     public CentristTrimmer(

@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.object;
+package org.opendata.core.util.count;
 
 /**
- * Numeric count associated with a unique name.
+ * Counter that is associated with a (unique) name.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class NamedCount implements Comparable<NamedCount>, NamedObject {
-
-    private final int _count;
+public class NamedCount implements Comparable<NamedCount> {
+    
+    private int _count;
     private final String _name;
     
     public NamedCount(String name, int count) {
@@ -32,21 +32,36 @@ public class NamedCount implements Comparable<NamedCount>, NamedObject {
         _name = name;
         _count = count;
     }
-
-    @Override
-    public int compareTo(NamedCount obj) {
-
-        return Integer.compare(_count, obj.count());
+    
+    public NamedCount(String name) {
+	
+    	this(name, 0);
     }
 
+    @Override
+    public int compareTo(NamedCount c) {
+
+        return Integer.compare(this.count(), c.count());
+    }
+    
     public int count() {
         
         return _count;
     }
-    
-    @Override
-    public String name() {
 
-        return _name;
+    public int inc(int value) {
+    	
+    	_count += value;
+    	return _count;
+    }
+    
+    public int inc() {
+    	
+    	return this.inc(1);
+    }
+    
+    public String name() {
+    	
+    	return _name;
     }
 }

@@ -19,6 +19,7 @@ package org.opendata.curation.d4.signature;
 
 import java.math.BigDecimal;
 import org.opendata.core.object.IdentifiableObjectImpl;
+import org.opendata.core.set.HashIDSet;
 
 /**
  * List of blocks for a context signature. Contains the node identifier and the
@@ -49,6 +50,17 @@ public abstract class SignatureBlocks extends IdentifiableObjectImpl {
     public BigDecimal maxSim() {
         
         return _maxSim;
+    }
+    
+    public HashIDSet nodes() {
+    	
+    	HashIDSet nodes = new HashIDSet();
+        for (int iBlock = 0; iBlock < _size; iBlock++) {
+        	for (int nodeId : this.get(iBlock)) {
+        		nodes.add(nodeId);
+        	}
+        }
+        return nodes;
     }
     
     public int nodeCount() {

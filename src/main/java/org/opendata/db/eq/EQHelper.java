@@ -17,9 +17,10 @@
  */
 package org.opendata.db.eq;
 
-import org.opendata.core.set.HashIDSet;
+import java.math.BigDecimal;
+
+import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
 
 /**
  * Collection of common helper method for equivalence classes.
@@ -27,56 +28,47 @@ import org.opendata.core.set.IdentifiableObjectSet;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class EQHelper {
-   
-    public static <T extends EQ> int setSize(
-            IDSet set,
-            IdentifiableObjectSet<T> nodes
-    ) {
-        
-        int size = 0;
-        for (int nodeId : set) {
-            size += nodes.get(nodeId).termCount();
-        }
-        return size;
-    }
 
-    public static <T extends EQ> int setSize(
-            int[] set,
-            int[] nodes
-    ) {
+	private final int[] _nodeSizes;
+	
+	public EQHelper(EQIndex nodes) {
+		
+		this(nodes.nodeSizes());
+	}
+	
+	public EQHelper(int[] nodeSizes) {
+				
+		_nodeSizes = nodeSizes;
+	}
+	
+    public BigDecimal getJI(IDSet block1, IDSet block2) {
         
-        int size = 0;
-        for (int nodeId : set) {
-            size += nodes[nodeId];
+        int overlap = this.getOverlap(block1, block2);
+        if (overlap > 0) {
+        	return new JaccardIndex()
+        			.sim(this.setSize(block1), this.setSize(block2), overlap);
+        } else {
+        	return BigDecimal.ZERO;
         }
-        return size;
     }
-
-    public static <T extends EQ> IDSet setTerms(
-            IDSet set,
-            IdentifiableObjectSet<T> nodes
-    ) {
-        
-        HashIDSet terms = new HashIDSet();
-        for (int nodeId : set) {
-            terms.add(nodes.get(nodeId).terms());
-        }
-        return terms;
-    }
-
-    public static <T extends EQ> int getOverlap(
-            IDSet block1,
-            IDSet block2,
-            IdentifiableObjectSet<T> nodes
-    ) {
+       
+    public int getOverlap(IDSet block1, IDSet block2) {
         
         int overlap = 0;
         for (int nodeId : block2) {
             if (block1.contains(nodeId)) {
-                overlap += nodes.get(nodeId).termCount();
+                overlap +=_nodeSizes[nodeId];
             }
         }
         return overlap;
     }
-    
+       
+    public int setSize(IDSet set) {
+        
+        int size = 0;
+        for (int nodeId : set) {
+            size += _nodeSizes[nodeId];
+        }
+        return size;
+    }
 }

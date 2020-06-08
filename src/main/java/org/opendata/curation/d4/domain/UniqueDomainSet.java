@@ -17,7 +17,10 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
@@ -80,6 +83,50 @@ public class UniqueDomainSet implements DomainStream {
         for (IdentifiableIDSet domain : _domainIndex.values()) {
             IdentifiableIDSet columns = _domainMapping.get(domain.id());
             consumer.consume(new Domain(domain.id(), domain, columns));
+        }
+        
+        consumer.close();
+    }
+
+    public void streamNonContained(DomainConsumer consumer) {
+
+        List<Domain> domains = new ArrayList<>();
+        for (IdentifiableIDSet domain : _domainIndex.values()) {
+            IdentifiableIDSet columns = _domainMapping.get(domain.id());
+            Domain domainI = new Domain(domain.id(), domain, columns);
+            int jDomain = 0;
+            while (jDomain < domains.size()) {
+            	Domain domainJ = domains.get(jDomain);
+            	if (domainJ.contains(domainI)) {
+            		domainJ = new Domain(
+            				domainJ.id(),
+        					domainJ,
+        					domainJ.columns().union(domainI.columns())
+        			);
+            		domains.remove(jDomain);
+            		domains.add(domainJ);
+            		domainI = null;
+            		break;
+            	} else if (domainI.contains(domainJ)) {
+            		domainI = new Domain(
+            				domainI.id(),
+        					domainI,
+        					domainI.columns().union(domainJ.columns())
+        			);
+            		domains.remove(jDomain);
+            	} else {
+            		jDomain++;
+            	}
+            }
+            if (domainI != null) {
+            	domains.add(domainI);
+            }
+        }
+        
+        consumer.open();
+        
+        for (Domain domain : domains) {
+            consumer.consume(domain);
         }
         
         consumer.close();

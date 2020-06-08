@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.object.NamedCount;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.NamedCount;
 import org.opendata.curation.d4.Constants;
 
 /**

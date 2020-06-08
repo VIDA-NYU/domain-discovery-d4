@@ -51,24 +51,39 @@ public class IdentifiableCounterSet implements Iterable<IdentifiableCount> {
     
     public int getMaxId() {
 
-	int maxId = 0;
-	for (int id : _elements.keySet()) {
-	    if (id > maxId) {
-		maxId = id;
-	    }
-	}
-	return maxId;
+		int maxId = 0;
+		for (int id : _elements.keySet()) {
+		    if (id > maxId) {
+			maxId = id;
+		    }
+		}
+		return maxId;
     }
     
     public int getMaxValue() {
-
-	int maxCount = 0;
-	for (Counter c : _elements.values()) {
-	    if (c.value() > maxCount) {
-		maxCount = c.value();
-	    }
-	}
-	return maxCount;
+	
+		int maxCount = 0;
+		for (Counter c : _elements.values()) {
+		    if (c.value() > maxCount) {
+		    	maxCount = c.value();
+		    }
+		}
+		return maxCount;
+    }
+    
+    public int getMinValue() {
+	
+    	if (_elements.isEmpty()) {
+    		return 0;
+    	}
+    	
+		int minCount = Integer.MAX_VALUE;
+		for (Counter c : _elements.values()) {
+		    if (c.value() < minCount) {
+		    	minCount = c.value();
+		    }
+		}
+		return minCount;
     }
     
     public final int inc(int id, int value) {

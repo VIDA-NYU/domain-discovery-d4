@@ -17,11 +17,13 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.opendata.core.object.IdentifiableObject;
+import org.opendata.core.prune.CandidateSetFinder;
 
 /**
  * Vector of similarity values for an equivalence class. The context
@@ -77,4 +79,34 @@ public class ContextSignature implements IdentifiableObject {
         
         return _elements.length;
     }
+    
+    public SignatureBlocks toSignatureBlocks(CandidateSetFinder<SignatureValue> candidateFinder) {
+    	
+        List<SignatureValue> sig = this.rankedElements();
+        // No output if the context signature is empty
+        if (sig.isEmpty()) {
+            return new SignatureBlocksImpl(_id, BigDecimal.ZERO, new int[0][0]);
+        }
+        int start = 0;
+        final int end = sig.size();
+        ArrayList<int[]> blocks = new ArrayList<>();
+        while (start < end) {
+            int pruneIndex = candidateFinder.getPruneIndex(sig, start);
+            if (pruneIndex <= start) {
+                break;
+            }
+            int[] block = new int[pruneIndex - start];
+            for (int iEl = start; iEl < pruneIndex; iEl++) {
+                block[iEl - start] = sig.get(iEl).id();
+            }
+            Arrays.sort(block);
+            blocks.add(block);
+            start = pruneIndex;
+        }
+        return new SignatureBlocksImpl(
+                _id,
+                sig.get(0).value(),
+                blocks
+        );
+   }
 }

@@ -54,6 +54,19 @@ public final class StringHelper {
         }
         return true;
     }
+    
+    public static String joinDoubles(double[] values) {
+        
+        if (values.length == 0) {
+            return "";
+        }
+        
+        StringBuilder buf = new StringBuilder(Double.toString(values[0]));
+        for (int iValue = 1; iValue < values.length; iValue++) {
+            buf.append(",").append(values[iValue]);
+        }
+        return buf.toString();
+    }
 
     public static String joinIntegers(List<Integer> columns) {
         

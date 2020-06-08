@@ -224,6 +224,7 @@ public class NullValueCandidateWriter {
         }
         
         // Identify nodes that are outliers in clean columns.
+        EQHelper helper = new EQHelper(eqIndex);
         IdentifiableCounterSet counts = new IdentifiableCounterSet();
         for (ExpandedColumn column : columnIndex.columns()) {
             if (strongDomNodes.contains(column.id())) {
@@ -232,7 +233,7 @@ public class NullValueCandidateWriter {
                 	if ((_strict) && (locDomNodes.contains(column.id()))) {
                 		outliers = outliers.difference(locDomNodes.get(column.id()));
                 	}
-                	int termCount = EQHelper.setSize(outliers, eqIndex);
+                	int termCount = helper.setSize(outliers);
                 	if (termCount < n) {
 	                    for (int nodeId : outliers) {
 	                        counts.inc(nodeId);
