@@ -75,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.explore.HomogeneousColumnOutlier</mainClass>
+                            <mainClass>org.opendata.db.term.TermIndexTokenizer</mainClass>
                       </manifest>
                    </archive>
                 </configuration>

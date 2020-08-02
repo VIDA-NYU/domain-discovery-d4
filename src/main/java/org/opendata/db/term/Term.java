@@ -18,6 +18,7 @@
 package org.opendata.db.term;
 
 import org.opendata.core.object.Entity;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.ImmutableIDSet;
 import org.opendata.core.profiling.datatype.label.DataType;
@@ -32,9 +33,9 @@ import org.opendata.db.eq.EQ;
  */
 public class Term extends Entity implements EQ {
     
-    private final IDSet _columns;
+    private final HashIDSet _columns;
     
-    public Term(int id, String value, IDSet columns) {
+    public Term(int id, String value, HashIDSet columns) {
         
         super(id, value);
         
@@ -46,8 +47,18 @@ public class Term extends Entity implements EQ {
         this(id, value, null);
     }
 
+    public Term(String value, int columnId) {
+    	
+    	this(-1, value, new HashIDSet(columnId));
+    }
+
+    public Term(String value, HashIDSet columns) {
+    	
+    	this(-1, value, columns);
+    }
+    
     @Override
-    public IDSet columns() {
+    public HashIDSet columns() {
         
         return _columns;
     }

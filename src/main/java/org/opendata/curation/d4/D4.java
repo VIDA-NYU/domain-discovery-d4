@@ -327,10 +327,8 @@ public class D4 {
             int bufferSize = params.getAsInt("membuffer", 10000000);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
-                new TermIndexGenerator().run(
-                        new FileListReader(".txt").listFiles(inputDir),
-                        bufferSize,
-                        outputFile
+                new TermIndexGenerator(outputFile, bufferSize).run(
+                        new FileListReader(".txt").listFiles(inputDir)
                 );
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "TERM INDEX", ex);

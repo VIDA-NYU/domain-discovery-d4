@@ -52,10 +52,8 @@ public class TermIndexGenerator {
         File outputFile = new File(args[2]);
         
         try {
-            new org.opendata.db.term.TermIndexGenerator().run(
-                    new FileListReader(".txt").listFiles(inputDirectory),
-                    bufferSize,
-                    outputFile
+            new org.opendata.db.term.TermIndexGenerator(outputFile, bufferSize).run(
+                    new FileListReader(".txt").listFiles(inputDirectory)
             );
         } catch (java.io.IOException ex) {
             Logger.getGlobal().log(Level.SEVERE, "CREATE TERM INDEX", ex);

@@ -23,9 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,12 +44,12 @@ import org.opendata.db.column.ValueColumnsReaderFactory;
 /**
  * Create a term index file. The output file is tab-delimited and contains three
  * columns: (1) the term identifier, (2) the term, and a comma-separated list of
- * column identifier:count pairs.
+ * column identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class TermIndexGenerator {
-
+public class TermIndexGenerator implements TermConsumer {
+    
     private class IOTerm {
 
         private final IDSet _columns;
@@ -223,19 +221,73 @@ public class TermIndexGenerator {
         }
     }
 
-    public void createIndex(
-            ValueColumnsReaderFactory readers,
-            int bufferSize,
-            File outputFile
-    ) throws java.io.IOException {
+    private final int _bufferSize;
+    private HashMap<String, HashIDSet> _termIndex;
+    private final File _outputFile;
+    private File _tmpFile;
+
+    public TermIndexGenerator(File outputFile, int bufferSize) throws java.io.IOException {
+    	
+    	_outputFile = outputFile;
+    	_bufferSize = bufferSize;
+    	
+    	_tmpFile = File.createTempFile("tmp", ".tix");
+
+    	FileSystem.createParentFolder(_outputFile);
+        if (_outputFile.exists()) {
+        	_outputFile.delete();
+        }
+    }
+    
+    @Override
+    public void close() {
+    	
+        if (!_termIndex.isEmpty()) {
+            this.writeBuffer();
+        }
+        // Add unique term id and term data type information to terms in
+        // current output file.
+        try {
+	        try (
+	                BufferedReader in = FileSystem.openReader(_tmpFile);
+	                PrintWriter out = FileSystem.openPrintWriter(_outputFile)
+	        ) {
+	            String line;
+	            int termId = 0;
+	            while ((line = in.readLine()) != null) {
+	                String[] tokens = line.split("\t");
+	                out.println(termId + "\t" + tokens[0] + "\t" + tokens[1]);
+	                termId++;
+	            }
+	        }
+	        Files.delete(_tmpFile.toPath());
+        } catch (java.io.IOException ex) {
+        	throw new RuntimeException(ex);
+        }
+    }
+
+	@Override
+	public void consume(Term term) {
+
+		if (!_termIndex.containsKey(term.name())) {
+            _termIndex.put(term.name(), term.columns());
+        } else {
+            _termIndex.get(term.name()).add(term.columns());
+        }
+        if (_termIndex.size() > _bufferSize) {
+            this.writeBuffer();
+            _termIndex = new HashMap<>();
+        }
+	}
+   
+    public void createIndex(ValueColumnsReaderFactory readers) throws java.io.IOException {
         
         DefaultValueTransformer transformer = new DefaultValueTransformer();
         
-        HashMap<String, HashIDSet> termIndex = new HashMap<>();
-        int columnCount = 0;
+        this.open();
+        
         while (readers.hasNext()) {
             ColumnReader<ValueCounter> reader = readers.next();
-            columnCount++;
             HashSet<String> columnValues = new HashSet<>();
             while (reader.hasNext()) {
                 ValueCounter colVal = reader.next();
@@ -247,102 +299,60 @@ public class TermIndexGenerator {
                 }
             }
             for (String term : columnValues) {
-                if (!termIndex.containsKey(term)) {
-                    termIndex.put(term, new HashIDSet(reader.columnId()));
-                } else {
-                    termIndex.get(term).add(reader.columnId());
-                }
-                if (termIndex.size() > bufferSize) {
-                    System.out.println("WRITE AT COLUMN " + columnCount);
-                    writeTermIndex(termIndex, outputFile);
-                    termIndex = new HashMap<>();
-                }
+            	this.consume(new Term(term, reader.columnId()));
             }
         }
-        if (!termIndex.isEmpty()) {
-            writeTermIndex(termIndex, outputFile);
-        }
-        // Add unique term id and term data type information to terms in
-        // current output file.
-        File tmpFile = File.createTempFile("tmp", outputFile.getName());
-        try (
-                BufferedReader in = FileSystem.openReader(outputFile);
-                PrintWriter out = FileSystem.openPrintWriter(tmpFile)
-        ) {
-            String line;
-            int termId = 0;
-            while ((line = in.readLine()) != null) {
-                String[] tokens = line.split("\t");
-                out.println(termId + "\t" + tokens[0] + "\t" + tokens[1]);
-                termId++;
-            }
-        }
-        FileSystem.copy(tmpFile, outputFile);
-        Files.delete(tmpFile.toPath());
+        
+        this.close();
     }
     
-    public void run(
-            List<File> files,
-            int bufferSize,
-            int hashLengthThreshold,
-            File outputFile
-    ) throws java.io.IOException {
+    public void run(List<File> files, int hashLengthThreshold) throws java.io.IOException {
         
-        // Create the directory for the output file if it does not exist.
-        FileSystem.createParentFolder(outputFile);
-        if (outputFile.exists()) {
-            outputFile.delete();
-        }
-        
-        this.createIndex(
-                new ValueColumnsReaderFactory(files, hashLengthThreshold),
-                bufferSize,
-                outputFile
-        );
+        this.createIndex(new ValueColumnsReaderFactory(files, hashLengthThreshold));
     }
 
         
-    public void run(
-            List<File> files,
-            int bufferSize,
-            File outputFile
-    ) throws java.io.IOException {
-        this.run(files, bufferSize, -1, outputFile);
+    public void run(List<File> files) throws java.io.IOException {
+    	
+        this.run(files, -1);
     }
     
-    private void writeTermIndex(
-            HashMap<String, HashIDSet> termIndex,
-            File outputFile
-    ) throws java.io.IOException {
+    @Override
+    public void open() {
+    	
+    	_termIndex = new HashMap<>();
+    }
+    
+    private void writeBuffer() {
 
-        ArrayList<String> terms = new ArrayList<>(termIndex.keySet());
+        ArrayList<String> terms = new ArrayList<>(_termIndex.keySet());
         Collections.sort(terms);
 	
-        if (!outputFile.exists()) {
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                for (String term : terms) {
-                    HashIDSet columns = termIndex.get(term);
-                    out.println(
-                            term + "\t" +
-                            columns.toIntString()
-                    );
-                }
-            }
-            System.out.println("INITIAL FILE HAS " + termIndex.size() + " ROWS.");
-        } else {
-            System.out.println("MERGE " + termIndex.size() + " TERMS.");
-            File tmpFile = File.createTempFile("tmp", outputFile.getName());
-            int count = new TermFileMerger().merge(new TermFileReader(outputFile),
-                    new TermSetReader(terms, termIndex),
-                    FileSystem.openOutputFile(tmpFile)
-            );
-            Files.copy(
-                    tmpFile.toPath(),
-                    outputFile.toPath(),
-                    new CopyOption[]{StandardCopyOption.REPLACE_EXISTING}
-            );
-            Files.delete(tmpFile.toPath());
-            System.out.println("MERGED FILE HAS " + count + " ROWS.");
+        try {
+	        if (!_tmpFile.exists()) {
+	            try (PrintWriter out = FileSystem.openPrintWriter(_tmpFile)) {
+	                for (String term : terms) {
+	                    HashIDSet columns = _termIndex.get(term);
+	                    out.println(
+	                            term + "\t" +
+	                            columns.toIntString()
+	                    );
+	                }
+	            }
+	            System.out.println("INITIAL FILE HAS " + _termIndex.size() + " ROWS.");
+	        } else {
+	            System.out.println("MERGE " + _termIndex.size() + " TERMS.");
+	            File tmpFile = File.createTempFile("tmp", ".tix");
+	            int count = new TermFileMerger().merge(new TermFileReader(_tmpFile),
+	                    new TermSetReader(terms, _termIndex),
+	                    FileSystem.openOutputFile(tmpFile)
+	            );
+	            _tmpFile.delete();
+	            _tmpFile = tmpFile;
+	            System.out.println("MERGED FILE HAS " + count + " ROWS.");
+	        }
+        } catch (java.io.IOException ex) {
+        	throw new RuntimeException(ex);
         }
         
         new MemUsagePrinter().print("MEMORY USAGE");
@@ -370,11 +380,9 @@ public class TermIndexGenerator {
         File outputFile = new File(args[3]);
         
         try {
-            new TermIndexGenerator().run(
+            new TermIndexGenerator(outputFile, bufferSize).run(
                     new FileListReader(".txt").listFiles(inputDirectory),
-                    bufferSize,
-                    hashLengthThreshold,
-                    outputFile
+                    hashLengthThreshold
             );
         } catch (java.io.IOException ex) {
             Logger.getGlobal().log(Level.SEVERE, "CREATE TERM INDEX", ex);
