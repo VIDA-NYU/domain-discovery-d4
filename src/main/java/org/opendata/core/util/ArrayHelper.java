@@ -110,6 +110,30 @@ public final class ArrayHelper {
         return false;
     }
 
+    public static int overlap(int[] list1, int[] list2) {
+        
+        final int len1 = list1.length;
+        final int len2 = list2.length;
+        
+        int idx1 = 0;
+        int idx2 = 0;
+        int overlap = 0;
+        
+        while ((idx1 < len1) && (idx2 < len2)) {
+            int comp = Integer.compare(list1[idx1], list2[idx2]);
+            if (comp < 0) {
+                idx1++;
+            } else if (comp > 0) {
+                idx2++;
+            } else {
+                overlap++;
+                idx1++;
+                idx2++;
+            }
+        }
+        return overlap;
+    }
+
     public static int overlap(int[] list1, int[] list2, int[] size) {
         
         final int len1 = list1.length;

@@ -15,56 +15,67 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.set.similarity;
+package org.opendata.db.tools;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.opendata.core.metric.ObjectSimilarityConsumer;
-import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.io.SynchronizedWriter;
+import org.opendata.core.object.IdentifiableArray;
+import org.opendata.core.util.ArrayHelper;
 
 /**
  * Compute pairwise similarity between identifiable sets.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
+public class OverlapComputer {
     
-    private class SimilarityComputeTask<U extends IdentifiableIDSet> implements Runnable {
+    private class SimilarityComputeTask implements Runnable {
 
-        private final ObjectSimilarityConsumer _consumer;
-        private final Collection<U> _elements;
-        private final ConcurrentLinkedQueue<U> _queue;
-        private final SetSimilarityComputer<U> _sim;
+        private final Collection<IdentifiableArray> _elements;
+        private final ConcurrentLinkedQueue<IdentifiableArray> _queue;
+        private final int[] _nodeSizes;
+        private final SynchronizedWriter _out;
         
         public SimilarityComputeTask(
-                Collection<U> elements,
-                ConcurrentLinkedQueue<U> queue,
-                SetSimilarityComputer<U> sim,
-                ObjectSimilarityConsumer consumer
+                Collection<IdentifiableArray> elements,
+                ConcurrentLinkedQueue<IdentifiableArray> queue,
+                int[] nodeSizes,
+                SynchronizedWriter out
         ) {
             _elements = elements;
             _queue = queue;
-            _sim = sim;
-            _consumer = consumer;
+            _nodeSizes = nodeSizes;
+            _out = out;
         }
         
         @Override
         public void run() {
 
-            U elementI;
+        	IdentifiableArray elementI;
             while ((elementI = _queue.poll()) != null) {
-                for (U elementJ : _elements) {
+                for (IdentifiableArray elementJ : _elements) {
                     if (elementI.id() < elementJ.id()) {
-                        _consumer.consume(
-                                elementI,
-                                elementJ,
-                                _sim.getSimilarity(elementI, elementJ)
+                        int overlap = ArrayHelper.overlap(
+                        		elementI.values(),
+                        		elementJ.values(),
+                        		_nodeSizes
                         );
+                        if (overlap > 0) {
+                        	_out.write(
+                        			String.format(
+                        					"%d\t%d\t%d",
+                        					elementI.id(),
+                        					elementJ.id(),
+                        					overlap
+                        				)
+                        		);
+                        }
                     }
                 }
             }
@@ -72,24 +83,17 @@ public class ParallelSetSimilarityComputer <T extends IdentifiableIDSet> {
     }
     
     public void run(
-            Collection<T> elements,
-            SetSimilarityComputer<T> sim,
+            List<IdentifiableArray> elements,
+            int[] nodeSizes,
             int threads,
-            ObjectSimilarityConsumer consumer
+            SynchronizedWriter out
     ) throws java.lang.InterruptedException {
         
-        ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>(elements);
+        ConcurrentLinkedQueue<IdentifiableArray> queue = new ConcurrentLinkedQueue<>(elements);
         
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
-            es.execute(
-                    new SimilarityComputeTask<>(
-                            elements,
-                            queue,
-                            sim,
-                            consumer
-                    )
-            );
+            es.execute(new SimilarityComputeTask(elements, queue, nodeSizes, out));
         }
         es.shutdown();
         es.awaitTermination(1, TimeUnit.DAYS);

@@ -15,18 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.set.similarity;
+package org.opendata.core.object;
 
-import java.math.BigDecimal;
-import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.util.ArrayHelper;
 
 /**
- * Compute similarity between a pair of identifiable identifier sets.
+ * Identifiable array of integers.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
+ * @author Heiko Mueller
+ *
  */
-public interface SetSimilarityComputer <T extends IdentifiableIDSet> {
-   
-    public BigDecimal getSimilarity(T set1, T set2);
+public class IdentifiableArray extends IdentifiableObjectImpl {
+
+	private final int[] _values;
+	
+	public IdentifiableArray(int id, int[] values) {
+
+		super(id);
+		
+		_values = values;
+	}
+
+	public int overlap(IdentifiableArray obj) {
+		
+		return ArrayHelper.overlap(_values, obj.values());
+	}
+	
+	public int[] values() {
+		
+		return _values;
+	}
 }

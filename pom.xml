@@ -75,7 +75,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.db.term.TermIndexTokenizer</mainClass>
+                            <mainClass>org.opendata.curation.d4.experiment.TokenizerExperiment</mainClass>
                       </manifest>
                    </archive>
                 </configuration>
