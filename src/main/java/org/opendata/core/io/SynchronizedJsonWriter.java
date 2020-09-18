@@ -15,48 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.set;
+package org.opendata.core.io;
 
-import java.util.Arrays;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonWriter;
+import java.io.File;
+import java.io.OutputStreamWriter;
 
 /**
- * Implementation for identifiable identifier set that contains a immutable set
- * of identifiers.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ImmutableIdentifiableIDSet extends ImmutableIDSet implements IdentifiableIDSet {
+public class SynchronizedJsonWriter implements AutoCloseable {
     
-    private final int _id;
+    private final JsonWriter _writer;
     
-    public ImmutableIdentifiableIDSet(int id) {
-    
-        super();
+    public SynchronizedJsonWriter(File file) throws java.io.IOException {
         
-       _id = id;
+        _writer = new JsonWriter(new OutputStreamWriter(FileSystem.openOutputFile(file), "UTF-8"));
+        _writer.beginArray();
     }
     
-    public ImmutableIdentifiableIDSet(int id, IDSet values) {
+    public synchronized void write(JsonObject doc) {
         
-        super(values);
-        
-       _id = id;
+        new Gson().toJson(doc, _writer);
     }
-    
-    public ImmutableIdentifiableIDSet(int id, int[] values) {
-        
-        super(new ImmutableIDSet(
-        		Arrays.stream(values)
-					.boxed()
-					.toArray(Integer[]::new),
-				false)
-        );
-        
-       _id = id;
-    }
-    
-    public int id() {
-        
-        return _id;
+
+    @Override
+    public void close() throws java.io.IOException {
+
+        _writer.endArray();
+        _writer.close();
     }
 }

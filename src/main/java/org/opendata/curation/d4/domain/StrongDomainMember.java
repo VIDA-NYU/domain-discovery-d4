@@ -15,16 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.d4.domain;
+
+import java.math.BigDecimal;
+import org.opendata.core.object.IdentifiableObjectImpl;
 
 /**
- * D4 constant declarations.
+ * Member node in a strong domain. Each member has a weight that reflects the
+ * fraction of columns the strong domain occurs in that had a local domain with
+ * this term.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class StrongDomainMember extends IdentifiableObjectImpl {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    private final BigDecimal _weight;
     
-    public static final String VERSION = "0.28.0.dev05";
+    public StrongDomainMember(int nodeId, BigDecimal weight) {
+        
+        super(nodeId);
+        
+        _weight = weight;
+    }
+    
+    public BigDecimal weight() {
+        
+        return _weight;
+    }
 }

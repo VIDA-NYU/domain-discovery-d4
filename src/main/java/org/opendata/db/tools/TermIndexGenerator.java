@@ -20,6 +20,7 @@ package org.opendata.db.tools;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.Constants;
 import org.opendata.core.io.FileListReader;
 
@@ -35,6 +36,7 @@ public class TermIndexGenerator {
     private final static String COMMAND =
 	    "Usage:\n" +
 	    "  <column-file-or-dir>\n" +
+            "  <text-threshold>\n" +
 	    "  <mem-buffer-size>\n" +
 	    "  <output-file>";
     
@@ -42,18 +44,20 @@ public class TermIndexGenerator {
         
 	System.out.println(Constants.NAME + " - Term Index Generator - Version (" + Constants.VERSION + ")\n");
 
-        if (args.length != 3) {
+        if (args.length != 4) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
 
         File inputDirectory = new File(args[0]);
-        int bufferSize = Integer.parseInt(args[1]);
-        File outputFile = new File(args[2]);
+        Threshold textThreshold = Threshold.getConstraint(args[1]);
+        int bufferSize = Integer.parseInt(args[2]);
+        File outputFile = new File(args[3]);
         
         try {
             new org.opendata.db.term.TermIndexGenerator().run(
                     new FileListReader(".txt").listFiles(inputDirectory),
+                    textThreshold,
                     bufferSize,
                     outputFile
             );

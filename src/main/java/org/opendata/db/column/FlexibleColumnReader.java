@@ -20,12 +20,8 @@ package org.opendata.db.column;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.commons.codec.binary.Hex;
 import org.opendata.core.value.IdentifiableValueCounterImpl;
 import org.opendata.core.value.ValueCounter;
 import org.opendata.core.value.ValueCounterImpl;
@@ -41,14 +37,10 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
    
     public static final String DEFAULT_DELIMITER = "\t";
     
-    private static final Logger LOGGER = Logger
-            .getLogger(FlexibleColumnReader.class.getName());
-    
     private final String _delimiter;
     private final File _file;
     private BufferedReader _in;
     private ValueCounter _value = null;
-    private final int _hashLengthThreshold;
     
     /**
      * Initialize the input file and column delimiter for the reader.
@@ -56,20 +48,17 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
      * @param file
      * @param columnId
      * @param delimiter
-     * @param hashLengthThreshold
      */
     public FlexibleColumnReader(
             File file,
             int columnId,
-            String delimiter,
-            int hashLengthThreshold
+            String delimiter
     ) {
         
         super(columnId);
 	
         _file = file;
         _delimiter = delimiter;
-        _hashLengthThreshold = hashLengthThreshold;
         
         this.reset();
     }
@@ -79,21 +68,15 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
      * 
      * @param file
      * @param columnId
-     * @param hashLengthThreshold
      */
-    public FlexibleColumnReader(File file, int columnId, int hashLengthThreshold) {
+    public FlexibleColumnReader(File file, int columnId) {
         
-        this(file, columnId, DEFAULT_DELIMITER, hashLengthThreshold);
-    }
-
-    public FlexibleColumnReader(File file, int hashLengthThreshold) {
-        
-        this(file, ColumnHelper.getColumnId(file), DEFAULT_DELIMITER, hashLengthThreshold);
+        this(file, columnId, DEFAULT_DELIMITER);
     }
 
     public FlexibleColumnReader(File file) {
         
-        this(file, ColumnHelper.getColumnId(file), DEFAULT_DELIMITER, -1);
+        this(file, ColumnHelper.getColumnId(file), DEFAULT_DELIMITER);
     }
 
     @Override
@@ -102,8 +85,7 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
         return new FlexibleColumnReader(
                 _file,
                 this.columnId(),
-                _delimiter,
-                _hashLengthThreshold
+                _delimiter
         );
     }
 
@@ -116,24 +98,6 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
             } catch (java.io.IOException ex) {
             }
             _in = null;
-        }
-    }
-    
-    private String hashValue(String value) {
-    
-        if ((_hashLengthThreshold == -1) || (value.length() < _hashLengthThreshold)) {
-            return value;
-        } else {
-            MessageDigest digest;
-            try {
-                digest = MessageDigest.getInstance("SHA-256");
-                String hash = Hex.encodeHexString(digest.digest(value.getBytes("UTF-8")));
-                System.out.println(hash + "\t" + value);
-                return hash;
-            } catch (java.security.NoSuchAlgorithmException | java.io.UnsupportedEncodingException ex) {
-               LOGGER.log(Level.SEVERE, null, ex);
-               throw new RuntimeException(ex);
-            }
         }
     }
     
@@ -162,18 +126,18 @@ public class FlexibleColumnReader extends ColumnReader<ValueCounter> {
                 String[] tokens = line.split(_delimiter);
                 switch (tokens.length) {
                     case 1:
-                        _value = new ValueCounterImpl(this.hashValue(tokens[0]), 1);
+                        _value = new ValueCounterImpl(tokens[0], 1);
                         break;
                     case 2:
                         _value = new ValueCounterImpl(
-                                this.hashValue(tokens[0]),
+                                tokens[0],
                                 Integer.parseInt(tokens[1])
                         );
                         break;
                     case 3:
                         _value = new IdentifiableValueCounterImpl(
                            Integer.parseInt(tokens[0]),
-                           this.hashValue(tokens[1]),
+                           tokens[1],
                            Integer.parseInt(tokens[2])
                         );
                        break;

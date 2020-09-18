@@ -15,16 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import java.math.BigDecimal;
+import org.opendata.core.object.IdentifiableObject;
 
 /**
- * D4 constant declarations.
+ * Ignore pairs with similarity below given threshold.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class SimilarityThresholdFilter implements ObjectSimilarityConsumer {
+
+    private final ObjectSimilarityConsumer _consumer;
+    private final BigDecimal _threshold;
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    public SimilarityThresholdFilter(
+            ObjectSimilarityConsumer consumer,
+            BigDecimal threshold
+    ) {
+        _consumer = consumer;
+        _threshold = threshold;
+    }
     
-    public static final String VERSION = "0.28.0.dev05";
+    @Override
+    public void consume(IdentifiableObject obj1, IdentifiableObject obj2, BigDecimal sim) {
+
+        if (sim.compareTo(_threshold) >= 0) {
+            _consumer.consume(obj1, obj2, sim);
+        }
+    }
 }

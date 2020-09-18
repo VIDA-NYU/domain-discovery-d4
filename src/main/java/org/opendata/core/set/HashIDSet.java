@@ -126,9 +126,9 @@ public class HashIDSet extends IDSetImpl implements MutableIDSet {
     @Override
     public final void add(IDSet nodes) {
 
-	for (int nodeId : nodes) {
-	    _values.add(nodeId);
-	}
+        for (int nodeId : nodes) {
+            _values.add(nodeId);
+        }
     }
     
     public void clear() {
@@ -222,10 +222,10 @@ public class HashIDSet extends IDSetImpl implements MutableIDSet {
     
     public void write(File file) throws java.io.IOException {
 
-	try (PrintWriter out = FileSystem.openPrintWriter(file)) {
-	    for (int nodeId : this.toSortedList()) {
-		out.println(nodeId);
-	    }
-	}
+        try (PrintWriter out = FileSystem.openPrintWriter(file)) {
+            for (int nodeId : this.toSortedList()) {
+            out.println(nodeId);
+            }
+        }
     }
 }

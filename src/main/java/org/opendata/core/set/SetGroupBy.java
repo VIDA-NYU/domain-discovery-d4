@@ -17,7 +17,7 @@
  */
 package org.opendata.core.set;
 
-import org.opendata.core.graph.components.UndirectedConnectedComponents;
+import org.opendata.core.graph.UndirectedConnectedComponents;
 
 /**
  * Group identifier sets based on equal node sets.

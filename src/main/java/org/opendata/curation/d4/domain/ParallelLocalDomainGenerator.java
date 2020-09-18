@@ -17,33 +17,24 @@
  */
 package org.opendata.curation.d4.domain;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.curation.d4.Arguments;
-import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
-import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksReader;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.curation.d4.signature.trim.TrimmerType;
-import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -61,18 +52,18 @@ public class ParallelLocalDomainGenerator {
 
     private class DomainGeneratorTask implements Runnable {
 
-        private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
+        private final List<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
-        private final SignatureBlocksIndex _signatures;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         
         public DomainGeneratorTask(
                 int id,
                 EQIndex nodes,
-                ConcurrentLinkedQueue<ExpandedColumn> columns,
-                SignatureBlocksIndex signatures,
+                List<ExpandedColumn> columns,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 UniqueDomainSet domains
        ) {
@@ -86,13 +77,11 @@ public class ParallelLocalDomainGenerator {
         
         @Override
         public void run() {
-
-            int count = 0;
             
-            Date start = new Date();
+            SignatureBlocksDispatcher dispatcher;
+            dispatcher = new SignatureBlocksDispatcher();
             
-            ExpandedColumn column;
-            while ((column = _columns.poll()) != null) {
+            for (ExpandedColumn column : _columns) {
                 IDSet col = column.nodes();
                 SignatureBlocksConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
@@ -102,15 +91,22 @@ public class ParallelLocalDomainGenerator {
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
-                _signatures.stream(trimmer, col);
-                count++;
+                dispatcher.add(trimmer);
+            }
+            
+            Date start = new Date();
+
+            try {
+                _signatures.stream(dispatcher);
+            } catch (java.io.IOException ex) {
+                throw new RuntimeException(ex);
             }
             
             Date end = new Date();
             
             long execTime = end.getTime() - start.getTime();
             
-            System.out.println(_id + " DONE WITH " + count + " COLUMNS IN " + execTime + " ms");
+            System.out.println(_id + " DONE WITH " + _columns.size() + " COLUMNS IN " + execTime + " ms");
         }
     }
     
@@ -129,7 +125,7 @@ public class ParallelLocalDomainGenerator {
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
-            SignatureBlocksIndex signatures,
+            SignatureBlocksStream signatures,
             TrimmerType trimmer,
             int threads,
             DomainConsumer consumer
@@ -148,10 +144,12 @@ public class ParallelLocalDomainGenerator {
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
         Collections.reverse(columnList);
-        ConcurrentLinkedQueue<ExpandedColumn> columns;
-        columns = new ConcurrentLinkedQueue(columnList);
         
         for (int iThread = 0; iThread < threads; iThread++) {
+            List<ExpandedColumn> columns = new ArrayList<>();
+            for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
+                columns.add(columnList.get(iCol));
+            }
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
                     nodes,
@@ -176,83 +174,5 @@ public class ParallelLocalDomainGenerator {
         
         long execTime = end.getTime() - start.getTime();
         _telemetry.add(TELEMETRY_ID, execTime);
-    }
-    
-    private static final String ARG_COLUMNS = "columns";
-    private static final String ARG_THREADS = "threads";
-    private static final String ARG_TRIMMER = "trimmer";
-    
-    private static final String[] ARGS = {
-        ARG_COLUMNS,
-        ARG_THREADS,
-        ARG_TRIMMER
-    };
-    
-    private static final String COMMAND =
-            "Usage\n" +
-            "  --" + ARG_COLUMNS + "=<column-list-file> [default: null]\n" +
-            "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
-            "  --" + ARG_TRIMMER + "=<signature-trimmer> [default: " +  
-                    TrimmerType.CENTRIST.toString() +"]\n" +
-            "  <eq-file>\n" +
-            "  <signature-file(s)>\n" +
-            "  <columns-file>\n" +
-            "  <output-file>";
-    
-    private static final Logger LOGGER = Logger
-            .getLogger(ParallelLocalDomainGenerator.class.getName());
-    
-    public static void main(String[] args) {
-        
-	System.out.println(Constants.NAME + " - Local Domain Generator (Undirected) - Version (" + Constants.VERSION + ")\n");
-
-        if (args.length < 3) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        Arguments params = new Arguments(ARGS, args, 4);
-        File eqFile = new File(params.fixedArg(0));
-        File signatureFile = new File(params.fixedArg(1));
-        File columnFile = new File(params.fixedArg(2));
-        File outputFile = new File(params.fixedArg(3));
-
-        TrimmerType trimmer = TrimmerType.valueOf(
-                params.getAsString(ARG_TRIMMER, TrimmerType.CENTRIST.toString())
-        );
-        int threads = params.getAsInt(ARG_THREADS, 6);
-                
-        File columnsFile = null;
-        if (params.has(ARG_COLUMNS)) {
-            columnsFile = new File(params.get(ARG_COLUMNS));
-        }
-        
-        FileSystem.createParentFolder(outputFile);
-        
-        try {
-            // Read the node index and the list of columns
-            EQIndex nodeIndex = new EQIndex(eqFile);
-            // Read the list of column identifier if a columns file was given
-            ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
-            if (columnsFile != null) {
-                 new ExpandedColumnReader(columnFile)
-                         .stream(columnIndex, new HashIDSet(columnsFile));
-            } else {
-                 new ExpandedColumnReader(columnFile).stream(columnIndex);
-            }
-            SignatureBlocksIndex buffer = new SignatureBlocksIndex();
-            new SignatureBlocksReader(signatureFile).stream(buffer);
-            new ParallelLocalDomainGenerator().run(
-                    nodeIndex,
-                    columnIndex,
-                    buffer,
-                    trimmer,
-                    threads,
-                    new DomainWriter(outputFile)
-            );
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
-        }
     }
 }

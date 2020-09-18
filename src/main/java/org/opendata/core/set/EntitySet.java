@@ -18,10 +18,11 @@
 package org.opendata.core.set;
 
 import java.io.File;
-import org.opendata.core.io.EntityConsumer;
+import org.opendata.core.io.EntityBuffer;
 import org.opendata.core.io.EntitySetReader;
 import org.opendata.core.object.Entity;
 import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.db.eq.EQIndex;
 
 /**
  * Set of identifiable entities.
@@ -30,39 +31,26 @@ import org.opendata.core.object.filter.ObjectFilter;
  */
 public class EntitySet extends HashObjectSet<Entity> {
    
-    private class EntityBuffer implements EntityConsumer {
-
-	private final HashObjectSet<Entity> _buffer;
-	
-	public EntityBuffer(HashObjectSet<Entity> buffer) {
-	    
-	    _buffer = buffer;
-	}
-	
-	@Override
-	public void close() {
-	    
-	}
-
-	@Override
-	public void consume(Entity entity) {
-	    
-	    _buffer.add(entity);
-	}
-
-	@Override
-	public void open() {
-	
-	}
+    public EntitySet() {
+        
     }
-    
+
     public EntitySet(File file) throws java.io.IOException {
 	
-	new EntitySetReader(file).read(new EntityBuffer(this));
+        new EntitySetReader(file).read(new EntityBuffer(this));
     }
     
     public EntitySet(File file, ObjectFilter<Integer> filter) throws java.io.IOException {
 	
-	new EntitySetReader(file).read(filter, new EntityBuffer(this));
+        new EntitySetReader(file).read(filter, new EntityBuffer(this));
+    }
+    
+    public EntitySet(File file, EQIndex eqIndex, IDSet nodes) throws java.io.IOException {
+        
+        HashIDSet filter = new HashIDSet();
+        for (int nodeId : nodes) {
+            filter.add(eqIndex.get(nodeId).terms());
+        }
+        new EntitySetReader(file).read(filter, new EntityBuffer(this));
     }
 }

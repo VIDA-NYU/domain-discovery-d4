@@ -15,16 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import java.math.BigDecimal;
+import org.opendata.core.object.IdentifiableObject;
 
 /**
- * D4 constant declarations.
+ * Abstract consumer interface when computing pairwise similarity for
+ * identifiable objects.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface ObjectSimilarityConsumer {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.28.0.dev05";
+    public void consume(IdentifiableObject obj1, IdentifiableObject id2, BigDecimal sim);
 }

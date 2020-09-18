@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -31,14 +32,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.core.io.FileListReader;
+import org.opendata.core.constraint.Threshold;
 import org.opendata.core.value.ValueCounter;
-import org.opendata.core.profiling.datatype.ValueTypeFactory;
+import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
 import org.opendata.core.value.DefaultValueTransformer;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.metric.Support;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.db.column.ColumnReader;
@@ -138,7 +138,6 @@ public class TermIndexGenerator {
     
         private BufferedReader _in = null;
         private IOTerm _term = null;
-        private final ValueTypeFactory _typeFactory = new ValueTypeFactory();
         
         public TermFileReader(InputStream is) throws java.io.IOException {
 
@@ -227,10 +226,12 @@ public class TermIndexGenerator {
 
     public void createIndex(
             ValueColumnsReaderFactory readers,
+            Threshold textThreshold,
             int bufferSize,
             File outputFile
     ) throws java.io.IOException {
         
+        DefaultDataTypeAnnotator annotator = new DefaultDataTypeAnnotator();
         DefaultValueTransformer transformer = new DefaultValueTransformer();
         
         HashMap<String, HashIDSet> termIndex = new HashMap<>();
@@ -247,6 +248,20 @@ public class TermIndexGenerator {
                         columnValues.add(term);
                     }
                 }
+            }
+            if (columnValues.isEmpty()) {
+                continue;
+            }
+            int textCount = 0;
+            for (String term : columnValues) {
+                if (annotator.getType(term).isText()) {
+                    textCount++;
+                }
+            }
+            BigDecimal textFrac;
+            textFrac = new Support(textCount, columnValues.size()).value();
+            if (!textThreshold.isSatisfied(textFrac)) {
+                continue;
             }
             for (String term : columnValues) {
                 if (!termIndex.containsKey(term)) {
@@ -285,8 +300,8 @@ public class TermIndexGenerator {
     
     public void run(
             List<File> files,
+            Threshold textThreshold,
             int bufferSize,
-            int hashLengthThreshold,
             File outputFile
     ) throws java.io.IOException {
         
@@ -297,21 +312,13 @@ public class TermIndexGenerator {
         }
         
         this.createIndex(
-                new ValueColumnsReaderFactory(files, hashLengthThreshold),
+                new ValueColumnsReaderFactory(files),
+                textThreshold,
                 bufferSize,
                 outputFile
         );
     }
 
-        
-    public void run(
-            List<File> files,
-            int bufferSize,
-            File outputFile
-    ) throws java.io.IOException {
-        this.run(files, bufferSize, -1, outputFile);
-    }
-    
     private void writeTermIndex(
             HashMap<String, HashIDSet> termIndex,
             File outputFile
@@ -348,39 +355,5 @@ public class TermIndexGenerator {
         }
         
         new MemUsagePrinter().print("MEMORY USAGE");
-    }
-    
-    private final static String COMMAND =
-	    "Usage:\n" +
-	    "  <column-file-or-dir>\n" +
-	    "  <mem-buffer-size>\n" +
-            "  <hash-length-threshold>\n" +
-	    "  <output-file>";
-    
-    public static void main(String[] args) {
-        
-        System.out.println("Term Index Generator (Version 0.2.2)");
-
-        if (args.length != 4) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-
-        File inputDirectory = new File(args[0]);
-        int bufferSize = Integer.parseInt(args[1]);
-        int hashLengthThreshold = Integer.parseInt(args[2]);
-        File outputFile = new File(args[3]);
-        
-        try {
-            new TermIndexGenerator().run(
-                    new FileListReader(".txt").listFiles(inputDirectory),
-                    bufferSize,
-                    hashLengthThreshold,
-                    outputFile
-            );
-        } catch (java.io.IOException ex) {
-            Logger.getGlobal().log(Level.SEVERE, "CREATE TERM INDEX", ex);
-            System.exit(-1);
-        }
     }
 }

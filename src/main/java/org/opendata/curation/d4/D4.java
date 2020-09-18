@@ -44,13 +44,17 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.curation.d4.export.DomainsExportWriter;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
+import org.opendata.curation.d4.domain.Domain;
+import org.opendata.curation.d4.domain.StrongDomain;
+import org.opendata.curation.d4.domain.StrongDomainReader;
+import org.opendata.curation.d4.domain.StrongDomainWriter;
+import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksIndexFactory;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
+import org.opendata.curation.d4.signature.SignatureBlocksWriterFactory;
 import org.opendata.db.column.Column;
-import org.opendata.db.column.TextColumnFinder;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.TermIndexGenerator;
@@ -66,7 +70,7 @@ public class D4 {
     
     public void expandColumns(
             EQIndex nodeIndex,
-            SignatureBlocksIndex signatures,
+            SignatureBlocksStream signatures,
             TrimmerType trimmer,
             Threshold expandThreshold,
             int numberOfIterations,
@@ -98,10 +102,21 @@ public class D4 {
 
     }
     
+    public void exportStrongDomains(
+            File eqFile,
+            File termFile,
+            File columnFile,
+            File strongDomainFile,
+            File outputDir
+    ) throws java.io.IOException {
+        new ExportStrongDomains()
+                .run(eqFile, termFile, columnFile, strongDomainFile, outputDir);
+    }
+    
     public void localDomains(
             EQIndex nodeIndex,
             File columnsFile,
-            SignatureBlocksIndex signatures,
+            SignatureBlocksStream signatures,
             TrimmerType trimmer,
             int threads,
             TelemetryCollector telemetry,
@@ -138,20 +153,19 @@ public class D4 {
         
         System.out.println("\n-- SIGNATURE BLOCKS\n");
         
-        SignatureBlocksIndexFactory sigBlocksIndex;
-        sigBlocksIndex = new SignatureBlocksIndexFactory();
+        SignatureBlocksWriterFactory sigWriter;
+        sigWriter = new SignatureBlocksWriterFactory(outputFile, false);
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
                 fullSignatureConstraint,
                 ignoreLastDrop,
                 threads,
-                sigBlocksIndex
+                sigWriter
         );
 
-        new SignatureBlocksWriter(outputFile).write(sigBlocksIndex.signatures());
         SignatureBlocksStats sigStats = new SignatureBlocksStats();
-        sigBlocksIndex.signatures().stream(sigStats);
+        new SignatureBlocksReader(outputFile).stream(sigStats);
         sigStats.print();
     }
     
@@ -167,20 +181,32 @@ public class D4 {
         
         System.out.println("\n-- STRONG DOMAINS\n");
 
+        IdentifiableObjectSet<Domain> localDomains;
+        localDomains = new DomainReader(localDomainFile).read();
         new StrongDomainGenerator(telemetry).run(
                 nodeIndex,
-                new DomainReader(localDomainFile).read().toList(),
+                localDomains,
                 domainOverlapConstraint,
                 Threshold.getConstraint("GT0.1"),
                 supportFraction,
                 true,
                 threads,
-                new DomainWriter(outputFile)
+                new StrongDomainWriter(outputFile, localDomains)
         );
 
-        DomainSetStatsPrinter strongStats = new DomainSetStatsPrinter();
-        new DomainReader(outputFile).stream(strongStats);
-        strongStats.print();
+        DomainSetStatsPrinter statsPrinter = new DomainSetStatsPrinter();
+        statsPrinter.open();
+        for (StrongDomain domain : new StrongDomainReader(outputFile).read()) {
+            statsPrinter.consume(
+                    new Domain(
+                            domain.id(),
+                            domain.members().keys(),
+                            domain.columns()
+                    )
+            );
+        }
+        statsPrinter.close();
+        statsPrinter.print();
     }
     
     /**
@@ -188,13 +214,12 @@ public class D4 {
      */
     private static final String STEP_COMPRESS_TERMINDEX = "eqs";
     private static final String STEP_EXPAND_COLUMNS = "expand-columns";
-    private static final String STEP_EXPORT = "export";
+    private static final String STEP_EXPORT_DOMAINS = "export-domains";
     private static final String STEP_GENERATE_COLUMNS = "columns";
     private static final String STEP_LOCAL_DOMAINS = "local-domains";
     private static final String STEP_SIGNATURES = "signatures";
     private static final String STEP_STRONG_DOMAINS = "strong-domains";
     private static final String STEP_TERMINDEX = "term-index";
-    private static final String STEP_TEXTCOLUMNS = "text-columns";
 
     private static final String COMMAND =
             "Usage:\n" +
@@ -202,7 +227,6 @@ public class D4 {
             "      Data preparation\n" +
             "      ----------------\n" +
             "      " + STEP_GENERATE_COLUMNS + "\n" +
-            "      " + STEP_TEXTCOLUMNS + "\n" +
             "      " + STEP_TERMINDEX + "\n" +
             "      " + STEP_COMPRESS_TERMINDEX + "\n\n" +
             "      D4 pipeline\n" +
@@ -213,7 +237,7 @@ public class D4 {
             "      " + STEP_STRONG_DOMAINS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
-            "      " + STEP_EXPORT + "\n\n" +
+            "      " + STEP_EXPORT_DOMAINS + "\n\n" +
             "  ] <args>";
 
     private static final String UNKNOWN = "Use --help to see a list steps in the D4 pipeline";
@@ -260,31 +284,6 @@ public class D4 {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
                 System.exit(-1);
             }
-        } else if (command.equals(STEP_TEXTCOLUMNS)) {
-            // ----------------------------------------------------------------
-            // IDENTIFY TEXT COLUMNS
-            // ----------------------------------------------------------------
-            CLP params = new CLP(
-                    new Parameter[] {
-                        new Parameter("input", "<directory> [default: 'columns']"),
-                        new Parameter("threshold", "<constraint> [default: 'GT0.5']"),
-                        new Parameter("output", "<file> [default: 'text-columns.txt']")
-                    },
-                    args
-            );
-            File inputDir = params.getAsFile("input", "columns");
-            Threshold threshold = params.getAsConstraint("threshold", "GT0.5");
-            File outputFile = params.getAsFile("output", "text-columns.txt");
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                new TextColumnFinder().run(
-                        new FileListReader(".txt").listFiles(inputDir),
-                        threshold,
-                        out
-                );
-            } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "TEXT COLUMNS", ex);
-                System.exit(-1);
-            }
         } else if (command.equals(STEP_TERMINDEX)) {
             // ----------------------------------------------------------------
             // GENERATE TERM INDEX
@@ -293,19 +292,22 @@ public class D4 {
                     new Parameter[] {
                         new Parameter(
                                 "input",
-                                "<directory | file> [default: 'text-columns.txt']"
+                                "<directory | file> [default: 'columns']"
                         ),
+                        new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
                         new Parameter("output", "<file> [default: 'text-columns.txt']")
                     },
                     args
             );
-            File inputDir = params.getAsFile("input", "text-columns.txt");
+            File inputDir = params.getAsFile("input", "columns");
+            Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
                 new TermIndexGenerator().run(
                         new FileListReader(".txt").listFiles(inputDir),
+                        threshold,
                         bufferSize,
                         outputFile
                 );
@@ -405,7 +407,7 @@ public class D4 {
             try {
                 new D4().expandColumns(
                         new EQIndex(eqFile),
-                        new SignatureBlocksReader(signatureFile).read(),
+                        new SignatureBlocksReader(signatureFile),
                         trimmer,
                         expandThreshold,
                         numberOfIterations,
@@ -453,7 +455,7 @@ public class D4 {
                 new D4().localDomains(
                         new EQIndex(eqFile),
                         columnsFile,
-                        new SignatureBlocksReader(signatureFile).read(),
+                        new SignatureBlocksReader(signatureFile),
                         trimmer,
                         threads,
                         new TelemetryPrinter(),
@@ -508,7 +510,7 @@ public class D4 {
                 LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
                 System.exit(-1);
             }
-        } else if (command.equals(STEP_EXPORT)) {
+        } else if (command.equals(STEP_EXPORT_DOMAINS)) {
             // ----------------------------------------------------------------
             // EXPORT
             // ----------------------------------------------------------------
@@ -534,15 +536,15 @@ public class D4 {
             File domainsFile = params.getAsFile("domains", "strong-domains.txt.gz");
             File outputDir = params.getAsFile("output", "domains");
             try {
-                new DomainsExportWriter().run(
-                        new EQIndex(eqFile),
-                        new TermIndexReader(termFile),
-                        new DomainReader(domainsFile).read().toList(),
+                new D4().exportStrongDomains(
+                        eqFile,
+                        termFile,
                         columnsFile,
+                        domainsFile,
                         outputDir
                 );
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
+                LOGGER.log(Level.SEVERE, "EXPORT DOMAINS", ex);
                 System.exit(-1);
             }
         } else {

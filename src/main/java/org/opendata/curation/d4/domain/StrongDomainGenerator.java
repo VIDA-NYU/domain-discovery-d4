@@ -21,7 +21,6 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,7 +32,13 @@ import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.Threshold;
+import org.opendata.core.graph.UndirectedConnectedComponents;
+import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.HashObjectSet;
+import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.count.IdentifiableCounterSet;
 import org.opendata.db.eq.EQIndex;
 
@@ -48,13 +53,13 @@ public class StrongDomainGenerator {
     public static final String TELEMETRY_ID = "STRONG DOMAINS";
 
     /**
-     * Estimate frequency for the semantic type of a local domain based on the
-     * number of columns that contain overlapping local domains for a given
-     * threshold.
+     * Estimate frequency for the semantic type of a local domain. Frequency is
+     * estimated based on the number of columns that contain overlapping local
+     * domains for a given threshold.
      */
     private class DomainFrequencyEstimator implements Runnable {
 
-        private final List<Domain> _domains;
+        private final IdentifiableObjectSet<Domain> _domains;
         private final DomainHelper _helper;
         private final ConcurrentLinkedQueue<Domain> _queue;
         private final Threshold _supportConstraint;
@@ -62,7 +67,7 @@ public class StrongDomainGenerator {
 
         public DomainFrequencyEstimator(
                 ConcurrentLinkedQueue<Domain> queue,
-                List<Domain> domains,
+                IdentifiableObjectSet<Domain> domains,
                 Threshold supportConstraint,
                 DomainHelper helper,
                 HashMap<Integer, HashIDSet> typeColumns
@@ -100,29 +105,56 @@ public class StrongDomainGenerator {
     }
     
     /**
-     * Compute support for a local domain based on overlap with domains in 
-     * columns that where estimated to contain the same semantic type.
+     * Maintain list of supporting local domains.
+     */
+    private class DomainSupport extends IdentifiableObjectImpl {
+        
+        private final IDSet _supportSet;
+        
+        public DomainSupport(int id, IDSet supportSet) {
+            
+            super(id);
+            
+            _supportSet = supportSet;
+        }
+        
+        /**
+         * Get the set of identifier for all local domains that supported this
+         * domain.
+         * 
+         * @return 
+         */
+        public IDSet supportSet() {
+            
+            return _supportSet;
+        }
+    }
+    
+    /**
+     * Compute support for a local domain. Support for a local domain is based
+     * on overlap with domains in columns that where estimated to contain the
+     * same semantic type.
      */
     private class DomainSupportComputer implements Runnable {
 
-        private final DomainConsumer _consumer;
-        private final List<Domain> _domains;
+        private final IdentifiableObjectSet<Domain> _domains;
         private final IdentifiableCounterSet _frequencyEstimate;
         private final DomainHelper _helper;
         private final Threshold _overlapConstraint;
         private final ConcurrentLinkedQueue<Domain> _queue;
+        private final HashObjectSet<DomainSupport> _strongDomains;
         private final BigDecimal _supportFraction;
         private final boolean _verbose;
         
         public DomainSupportComputer(
                 ConcurrentLinkedQueue<Domain> queue,
-                List<Domain> domains,
+                IdentifiableObjectSet<Domain> domains,
                 Threshold overlapConstraint,
                 BigDecimal supportFraction,
                 IdentifiableCounterSet frequencyEstimate,
                 DomainHelper helper,
                 boolean verbose,
-                DomainConsumer consumer
+                HashObjectSet<DomainSupport> strongDomains
         ) {
             _queue = queue;
             _domains = domains;
@@ -131,7 +163,7 @@ public class StrongDomainGenerator {
             _frequencyEstimate = frequencyEstimate;
             _helper = helper;
             _verbose = verbose;
-            _consumer = consumer;
+            _strongDomains = strongDomains;
         }
         
         @Override
@@ -139,38 +171,46 @@ public class StrongDomainGenerator {
 
             Domain domain;
             while ((domain = _queue.poll()) != null) {
+                HashIDSet columns = new HashIDSet(domain.columns());
+                HashIDSet support = new HashIDSet();
+                for (Domain domI : _domains) {
+                    if (domain.id() != domI.id()) {
+                        if (domain.overlaps(domI)) {
+                            BigDecimal ji = _helper.termOverlap(domain, domI);
+                            if (_overlapConstraint.isSatisfied(ji)) {
+                                columns.add(domI.columns());
+                                support.add(domI.id());
+                            }
+                        }
+                    }
+                }
+                // Minimum number of columns the domain needs support from to
+                // be considered a strong domain.
                 int frequency = _frequencyEstimate.get(domain.id()).value();
                 int minColumnCount = ((int)Math.floor(
                         new BigDecimal(frequency)
                             .multiply(_supportFraction)
                             .doubleValue()
                 )) + 1;
-                boolean added = false;
-                if (domain.columns().length() > minColumnCount) {
-                    _consumer.consume(domain);
-                    added = true;
-                } else {
-                    //int edgeCount = domain.columns().length() - 1;
-                    HashIDSet columns = new HashIDSet(domain.columns());
-                    for (Domain domI : _domains) {
-                        if (domain.id() != domI.id()) {
-                            if (domain.overlaps(domI)) {
-                                BigDecimal ji = _helper.termOverlap(domain, domI);
-                                if (_overlapConstraint.isSatisfied(ji)) {
-                                    columns.add(domI.columns());
-                                    int edgeCount = columns.length() - 1;
-                                    if (edgeCount >= minColumnCount) {
-                                        _consumer.consume(domain);
-                                        added = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                int edgeCount = columns.length() - 1;
+                // If the support constraint is satisfied add the domain to the
+                // set of strong domains. Add edges in the support graph with
+                // all local domains that provided support.
+                if (edgeCount >= minColumnCount) {
+                    synchronized(this) {
+                        _strongDomains.add(
+                                new DomainSupport(domain.id(), support)
+                        );
                     }
                 }
                 if (_verbose) {
-                    System.out.println(domain.id() + "\t" + domain.columns().length() + "\t" + frequency + "\t" + minColumnCount + "\t" + added);
+                    System.out.println(
+                            domain.id() + "\t" +
+                            domain.columns().length() + "\t" +
+                            frequency + "\t" +
+                            minColumnCount + "\t" +
+                            edgeCount
+                    );
                 }
             }
         }
@@ -204,18 +244,20 @@ public class StrongDomainGenerator {
      */
     public void run(
             EQIndex nodes,
-            List<Domain> localDomains,
+            IdentifiableObjectSet<Domain> localDomains,
             Threshold domainOverlapConstraint,
             Threshold minSupportConstraint,
             BigDecimal supportFraction,
             boolean verbose,
             int threads,
-            DomainConsumer consumer
+            StrongDomainConsumer consumer
     ) throws java.lang.InterruptedException, java.io.IOException {
         
         Date start = new Date();
         if (verbose) {
-            System.out.println("START WITH " + localDomains.size() + " DOMAINS @ " + start);
+            System.out.println(
+                    "START WITH " + localDomains.length() + " DOMAINS @ " + start
+            );
         }
         
         DomainHelper helper = new DomainHelper(nodes, localDomains);
@@ -225,16 +267,13 @@ public class StrongDomainGenerator {
         // based on the number of columns that contain a local domain that
         // overlaps with the given domain at a low (minSupportConstraint)
         // threshold.
-
-        // For each local domain we compute the set of columns that contain a
-        // local domain that (potentially) is of the same semantic type.
         HashMap<Integer, HashIDSet> typeColumns = new HashMap<>();
         for (Domain domain : localDomains) {
             typeColumns.put(domain.id(), new HashIDSet(domain.columns()));
         }
 
         ConcurrentLinkedQueue<Domain> queue;
-        queue = new ConcurrentLinkedQueue<>(localDomains);
+        queue = new ConcurrentLinkedQueue<>(localDomains.toList());
         
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
@@ -257,13 +296,18 @@ public class StrongDomainGenerator {
         }
         
         if (verbose) {
-            System.out.println("GOT SUPPORT FOR " + localDomains.size() + " DOMAINS @ " + new java.util.Date());
+            System.out.println(
+                    "GOT FREQUENCY FOR " + localDomains.length() +
+                    " DOMAINS @ " + new java.util.Date()
+            );
         }
 
-        queue = new ConcurrentLinkedQueue<>(localDomains);
+        // Compte support for all local domains. Maintain domains that are
+        // identified as strong domains in a domain buffer together with the
+        // local domains that provided support.
+        HashObjectSet<DomainSupport> strongDomains = new HashObjectSet<>();
+        queue = new ConcurrentLinkedQueue<>(localDomains.toList());
 
-        consumer.open();
-        
         es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainSupportComputer command;
@@ -274,15 +318,35 @@ public class StrongDomainGenerator {
                     supportFraction,
                     frequencyEstimate,
                     helper,
-                    false,
-                    consumer
+                    true,
+                    strongDomains
             );
             es.execute(command);
         }
         es.shutdown();
         es.awaitTermination(threads, TimeUnit.DAYS);
         
+        // For each strong domain generate the set of local domains that
+        // provided the support for each other to become a strong domain.
+        UndirectedConnectedComponents supportGraph;
+        supportGraph = new UndirectedConnectedComponents(strongDomains.keys());
+        
+        for (DomainSupport strongDomain : strongDomains) {
+            for (int supportDomId : strongDomain.supportSet()) {
+                if (strongDomains.contains(supportDomId)) {
+                    supportGraph.edge(strongDomain.id(), supportDomId);
+                }
+            }
+        }
+        
+        consumer.open();
+
+        for (IdentifiableIDSet strongDomain : supportGraph.getComponents()) {
+            consumer.consume(strongDomain);
+        }
+        
         consumer.close();
+        
         
         Date end = new Date();
         if (verbose) {
@@ -294,11 +358,13 @@ public class StrongDomainGenerator {
     }
     
     private static final String ARG_DOMAINOVERLAP = "domainOverlap";
+    private static final String ARG_FREQEST = "freqEst";
     private static final String ARG_SUPPORTFRAC = "supportFraction";
     private static final String ARG_THREADS = "threads";
 
     private static final String[] ARGS = {
         ARG_DOMAINOVERLAP,
+        ARG_FREQEST,
         ARG_SUPPORTFRAC,
         ARG_THREADS
     };
@@ -306,6 +372,7 @@ public class StrongDomainGenerator {
     private static final String COMMAND =
             "Usage\n" +
             "  --" + ARG_DOMAINOVERLAP + "=<constraint> [default: GT0.5]\n" +
+            "  --" + ARG_FREQEST + "=<constraint> [default: GT0.1]\n" +
             "  --" + ARG_SUPPORTFRAC + "=<real> [default: 0.25]\n" +
             "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
             "  <eq-file>\n" +
@@ -317,7 +384,7 @@ public class StrongDomainGenerator {
     
     public static void main(String[] args) {
         
-	System.out.println(Constants.NAME + " - Strong Domain Generator - Version (" + Constants.VERSION + ")\n");
+        System.out.println(Constants.NAME + " - Strong Domain Generator - Version (" + Constants.VERSION + ")\n");
 
         if (args.length < 3) {
             System.out.println(COMMAND);
@@ -331,19 +398,24 @@ public class StrongDomainGenerator {
 
         Threshold domainOverlapConstraint = Threshold
                 .getConstraint(params.getAsString(ARG_DOMAINOVERLAP, "GT0.5"));
+        Threshold freqEstConstraint = Threshold
+                .getConstraint(params.getAsString(ARG_FREQEST, "GT0.1"));
         BigDecimal supportFraction = params.getAsBigDecimal(ARG_SUPPORTFRAC, new BigDecimal("0.25"));
         int threads = params.getAsInt(ARG_THREADS, 6);
         
         try {
+            EQIndex eqIndex = new EQIndex(eqFile);
+            IdentifiableObjectSet<Domain> localDomains;
+            localDomains = new DomainReader(domainFile).read();
             new StrongDomainGenerator().run(
-                    new EQIndex(eqFile),
-                    new DomainReader(domainFile).read().toList(),
+                    eqIndex,
+                    localDomains,
                     domainOverlapConstraint,
-                    Threshold.getConstraint("GT0.1"),
+                    freqEstConstraint,
                     supportFraction,
                     true,
                     threads,
-                    new DomainWriter(outputFile)
+                    new StrongDomainWriter(outputFile, localDomains)
             );
         } catch (java.lang.InterruptedException | java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);

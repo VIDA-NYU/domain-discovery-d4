@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import java.math.BigDecimal;
 
 /**
- * D4 constant declarations.
+ * Compute similarity between a given pair of terms.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface StringSimilarityComputer {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.28.0.dev05";
+    public BigDecimal sim(String term1, String term2);
 }

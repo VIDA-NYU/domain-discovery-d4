@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import java.math.BigDecimal;
 
 /**
- * D4 constant declarations.
+ * Similarity function for object overlaps.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface OverlapSimilarityFunction {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.28.0.dev05";
+    public BigDecimal sim(int size1, int size2, int overlap);
 }

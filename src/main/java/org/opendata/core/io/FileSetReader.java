@@ -48,6 +48,18 @@ public class FileSetReader implements Iterable<File>{
         }
     }
 
+    public FileSetReader(List<File> files, boolean verbose) {
+        
+        _files = files;
+        
+        if (verbose) {
+            System.out.println("FILE(S):");
+            for (File sigFile : _files) {
+                System.out.println(sigFile.getAbsolutePath());
+            }
+        }
+    }
+    
     @Override
     public Iterator<File> iterator() {
         

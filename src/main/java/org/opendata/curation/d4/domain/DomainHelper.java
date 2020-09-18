@@ -19,8 +19,9 @@ package org.opendata.curation.d4.domain;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import java.util.List;
-import org.opendata.core.similarity.JaccardIndex;
+
+import org.opendata.core.metric.JaccardIndex;
+import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.ArrayHelper;
 import org.opendata.db.eq.EQIndex;
 
@@ -34,7 +35,7 @@ public class DomainHelper {
     private final HashMap<Integer, Integer> _domainSizes;
     private final int[] _nodeSizes;
     
-    public DomainHelper(EQIndex nodes, List<Domain> domains) {
+    public DomainHelper(EQIndex nodes, IdentifiableObjectSet<Domain> domains) {
         
         _nodeSizes = nodes.nodeSizes();
         
@@ -47,7 +48,7 @@ public class DomainHelper {
             _domainSizes.put(domain.id(), size);
         }
     }
- 
+    
     public BigDecimal termOverlap(Domain domI, Domain domJ) {
         
         int overlap = ArrayHelper.overlap(domI.nodes(), domJ.nodes(), _nodeSizes);
@@ -55,6 +56,6 @@ public class DomainHelper {
         int sizeI = _domainSizes.get(domI.id());
         int sizeJ = _domainSizes.get(domJ.id());
         
-        return JaccardIndex.ji(sizeI, sizeJ, overlap);
+        return new JaccardIndex().sim(sizeI, sizeJ, overlap);
     }
 }

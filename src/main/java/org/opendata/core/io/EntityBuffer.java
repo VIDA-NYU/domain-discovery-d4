@@ -15,16 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.io;
+
+import org.opendata.core.object.Entity;
+import org.opendata.core.set.HashObjectSet;
 
 /**
- * D4 constant declarations.
- * 
+ *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class EntityBuffer implements EntityConsumer {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.28.0.dev05";
+    private final HashObjectSet<Entity> _buffer;
+
+    public EntityBuffer(HashObjectSet<Entity> buffer) {
+
+        _buffer = buffer;
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public void consume(Entity entity) {
+
+        _buffer.add(entity);
+    }
+
+    @Override
+    public void open() {
+
+    }
 }

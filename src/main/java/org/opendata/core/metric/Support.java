@@ -15,16 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import java.math.BigDecimal;
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- * D4 constant declarations.
+ * BigDecimal for support for an object from a set of objects.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class Support extends FormatedBigDecimal implements Comparable<Support> {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    public Support(int support, int setSize, int scale) {
+        
+        super(new BigDecimal((double)support/(double)setSize), scale);
+    }
     
-    public static final String VERSION = "0.28.0.dev05";
+    public Support(int support, int setSize) {
+        
+        super(new BigDecimal((double)support/(double)setSize));
+    }
+    
+    public Support() {
+        
+        super(BigDecimal.ZERO);
+    }
+
+    @Override
+    public int compareTo(Support r) {
+
+        return this.value().compareTo(r.value());
+    }
 }

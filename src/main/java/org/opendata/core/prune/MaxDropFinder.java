@@ -100,23 +100,13 @@ public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFi
         // size of the array
         final double last = elements.get(size - 1).value();
         if (_fullSignatureConstraint) {
-            if ((elements.get(start).value() - last) <= last) {
+            if ((elements.get(start).value() - last) < last) {
                 return size;
              }
         }
         
-        // The initial value for maxDiff depends on whether we ignore the last
-        // drop or not. In the latter case, maxDiff is the value of the last
-        // drop. In the former case it is zero.
-        double maxDiff;
-        if (!_ignoreLastDrop) {
-            maxDiff = last;
-        } else {
-            maxDiff = 0f;
-        }
-        
-        int maxIndex = elements.size();
-        
+        double maxDiff = 0f;
+        int maxIndex = size;        
         for (int iIndex = start; iIndex < size - 1; iIndex++) {
             double diff = elements.get(iIndex).value() - elements.get(iIndex + 1).value();
             if (diff > maxDiff) {
@@ -125,6 +115,11 @@ public class MaxDropFinder <T extends IdentifiableDouble> extends CandidateSetFi
             }
         }
         
+        // If we do not ignore the last drop we need to check if that drop is
+        // greater than the largest drop that was found.
+        if ((!_ignoreLastDrop) && (last > maxDiff)) {
+            maxIndex = size;
+        }
         return maxIndex;
     }
 }

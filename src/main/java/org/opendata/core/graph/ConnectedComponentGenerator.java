@@ -15,16 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.graph;
+
+import java.util.List;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
 
 /**
- * D4 constant declarations.
+ * Generate connected components for a set of nodes. Starts with a single
+ * component for each node. Merges components to find connected components.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public interface ConnectedComponentGenerator {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    /**
+     * Add adjacent edges for a given node.
+     * 
+     * @param nodeId
+     * @param edges 
+     */
+    public void add(int nodeId, List<Integer> edges);
     
-    public static final String VERSION = "0.28.0.dev05";
+    /**
+     * Connected component result.
+     * 
+     * @return 
+     */
+    public IdentifiableObjectSet<IdentifiableIDSet> getComponents();
 }

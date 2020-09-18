@@ -17,10 +17,10 @@
  */
 package org.opendata.core.graph;
 
-import org.opendata.core.object.IdentifiableObject;
-import org.opendata.core.set.HashObjectSet;
+import java.util.HashMap;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.MutableIdentifiableIDSet;
+import org.opendata.core.util.count.IdentifiableCounterSet;
 
 /**
  * Implementation of adjacency graph that allows to add edges.
@@ -31,64 +31,57 @@ import org.opendata.core.set.MutableIdentifiableIDSet;
  */
 public class DynamicGraph extends AdjacencyGraph {
 
-    private final HashObjectSet<MutableIdentifiableIDSet> _edges;
+    private final HashMap<Integer, int[]> _edges;
     
     public DynamicGraph(IDSet nodes) {
         
         super(nodes);
         
-        _edges = new HashObjectSet<>();
-        for (int nodeId : nodes) {
-            _edges.add(new MutableIdentifiableIDSet(nodeId));
+        _edges = new HashMap<>();
+    }
+    
+    public void add(int nodeId, int[] edges) {
+
+        _edges.put(nodeId, edges);
+    }
+    
+    @Override
+    public Iterable<Integer> adjacent(int nodeId) {
+
+        if (_edges.containsKey(nodeId)) {
+            return new HashIDSet(_edges.get(nodeId));
+        } else {
+            return new HashIDSet();
         }
-    }
-    
-    /**
-     * Add a directed edge from the source node to the target node.
-     * 
-     * @param source
-     * @param target 
-     */
-    public void add(int source, int target) {
-
-        _edges.get(source).add(target);
-    }
-
-    /**
-     * Add a directed edge from the node representing the source object to the
-     * node representing the target object.
-     * 
-     * @param source
-     * @param target 
-     */
-    public void add(IdentifiableObject source, IdentifiableObject target) {
-        
-        this.add(source.id(), target.id());
-    }
-    
-    @Override
-    public IDSet adjacent(int nodeId) {
-
-        return _edges.get(nodeId);
-    }
-
-    @Override
-    public boolean hasEdge(int sourceId, int targetId) {
-
-        return _edges.get(sourceId).contains(targetId);
     }
 
     @Override
     public AdjacencyGraph reverse() {
 
-        DynamicGraph g = new DynamicGraph(this.nodes());
-        
+        IdentifiableCounterSet edgeCounts = new IdentifiableCounterSet();
         for (int target : this.nodes()) {
             for (int source : this.adjacent(target)) {
-                g.add(source, target);
+                edgeCounts.inc(source);
             }
         }
         
+        HashMap<Integer, int[]> edges = new HashMap<>();
+        for (int nodeId : edgeCounts.keys()) {
+            edges.put(nodeId, new int[edgeCounts.get(nodeId).value()]);
+        }
+        
+        IdentifiableCounterSet edgeIndex = new IdentifiableCounterSet();
+        for (int target : this.nodes()) {
+            for (int source : this.adjacent(target)) {
+                edges.get(source)[edgeIndex.get(source).value()] = target;
+                edgeIndex.inc(source);
+            }
+        }
+        
+        DynamicGraph g = new DynamicGraph(this.nodes());
+        for (int nodeId : edges.keySet()) {
+            g.add(nodeId, edges.get(nodeId));
+        }
         return g;
     }
 }

@@ -15,16 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.core.metric;
+
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
- * D4 constant declarations.
+ * Formated Jaccard Index value.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class JaccardSimilarity extends FormatedBigDecimal {
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    public JaccardSimilarity(int setSize1, int setSize2, int overlap, int scale) {
+        
+        super(new JaccardIndex().sim(setSize1, setSize2, overlap), scale);
+    }
     
-    public static final String VERSION = "0.28.0.dev05";
+    public JaccardSimilarity(int setSize1, int setSize2, int overlap) {
+        
+        super(new JaccardIndex().sim(setSize1, setSize2, overlap));
+    }
 }
