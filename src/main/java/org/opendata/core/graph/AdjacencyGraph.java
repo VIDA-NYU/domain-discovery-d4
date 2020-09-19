@@ -99,7 +99,7 @@ public abstract class AdjacencyGraph implements ObjectFilter<Integer>, Iterable<
         }
     }
 
-    public abstract boolean hasEdge(int sourceId, int targetId);
+    //public abstractabstract boolean hasEdge(int sourceId, int targetId);
     
     @Override
     public Iterator<Integer> iterator() {
@@ -114,7 +114,7 @@ public abstract class AdjacencyGraph implements ObjectFilter<Integer>, Iterable<
      */
     public IDSet nodes() {
 	
-	return _nodes;
+        return _nodes;
     }
 
     /**

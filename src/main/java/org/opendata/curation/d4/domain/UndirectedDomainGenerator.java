@@ -20,7 +20,7 @@ package org.opendata.curation.d4.domain;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.graph.components.UndirectedConnectedComponents;
+import org.opendata.core.graph.UndirectedConnectedComponents;
 import org.opendata.core.set.IdentifiableIDSet;
 
 /**
@@ -69,10 +69,12 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
 
         final int sigId = sig.id();
         
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            for (int nodeId : sig.get(iBlock)) {
-                if (this.contains(nodeId)) {
-                    this.edge(sigId, nodeId);
+        if (_column.contains(sigId)) {
+            for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+                for (int nodeId : sig.get(iBlock)) {
+                    if (_column.contains(nodeId)) {
+                        this.edge(sigId, nodeId);
+                    }
                 }
             }
         }

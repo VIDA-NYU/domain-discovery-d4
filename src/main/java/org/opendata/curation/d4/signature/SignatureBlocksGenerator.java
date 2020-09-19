@@ -17,7 +17,6 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,10 +26,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.curation.d4.Arguments;
-import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.GreaterThanConstraint;
@@ -38,7 +33,6 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.prune.ThresholdFinder;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -143,17 +137,26 @@ public class SignatureBlocksGenerator {
             ConcurrentLinkedQueue<Integer> queue,
             CandidateSetFinder<SignatureValue> candidateFinder,
             int threads,
+            boolean verbose,
             SignatureBlocksConsumerFactory consumerFactory
     ) throws java.lang.InterruptedException, java.io.IOException {
 
-        System.out.println(
-                "WRITE CONTEXT SIGNATURE BLOCKS FOR " + queue.size() +
-                " EQUIVALENCE CLASSES USING " + threads + " THREADS."
-        );
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
+                            "  --threads=%d",
+                            queue.size(),
+                            threads
+                    )
+            );
+        }
         
         Date start = new Date();
-        System.out.println("START @ " + start);
-            
+        if (verbose) {
+            System.out.println("START @ " + start);
+        }
+        
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             es.execute(
@@ -173,49 +176,15 @@ public class SignatureBlocksGenerator {
         }
         
         Date end = new Date();
-        System.out.println("END @ " + end);
+        if (verbose) {
+            System.out.println("END @ " + end);
+        }
         
-        long execTime = end.getTime() - start.getTime();
-        _telemetry.add(TELEMETRY_ID, execTime);
+        if (verbose) {
+            long execTime = end.getTime() - start.getTime();
+            _telemetry.add(TELEMETRY_ID, execTime);
+        }
     }
-
-    /**
-     * Generate signature blocks using consecutive steepest drops. Returns an
-     * index of all generated signatures.
-     * 
-     * @param eqIndex
-     * @param threads
-     * @return 
-     * @throws java.lang.InterruptedException
-     * @throws java.io.IOException 
-     */
-    public SignatureBlocksIndex getIndex(
-            EQIndex eqIndex,
-            int threads
-    ) throws java.lang.InterruptedException, java.io.IOException {
-
-        MaxDropFinder<SignatureValue> candidateFinder;
-        candidateFinder = new MaxDropFinder<>(
-                new GreaterThanConstraint(BigDecimal.ZERO),
-                false,
-                true
-        );
-
-        SignatureBlocksIndexFactory consumerFactory;
-        consumerFactory = new SignatureBlocksIndexFactory();
-
-        this.compute(
-                eqIndex,
-                new ContextSignatureGenerator(eqIndex.nodes()),
-                new ConcurrentLinkedQueue<>(eqIndex.keys().toList()),
-                candidateFinder,
-                threads,
-                consumerFactory
-        );
-        
-        return consumerFactory.signatures();
-    }
-
     /**
      * Generate signature blocks using a fixed threshold constraint.
      * 
@@ -223,6 +192,7 @@ public class SignatureBlocksGenerator {
      * @param queue
      * @param threshold
      * @param threads
+     * @param verbose
      * @param consumerFactory
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
@@ -232,6 +202,7 @@ public class SignatureBlocksGenerator {
             ConcurrentLinkedQueue<Integer> queue,
             Threshold threshold,
             int threads,
+            boolean verbose,
             SignatureBlocksConsumerFactory consumerFactory
     ) throws java.lang.InterruptedException, java.io.IOException {
         
@@ -244,6 +215,7 @@ public class SignatureBlocksGenerator {
                 queue,
                 candidateFinder,
                 threads,
+                verbose,
                 consumerFactory
         );
     }
@@ -256,6 +228,7 @@ public class SignatureBlocksGenerator {
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
      * @param threads
+     * @param verbose
      * @param consumerFactory
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
@@ -266,6 +239,7 @@ public class SignatureBlocksGenerator {
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             int threads,
+            boolean verbose,
             SignatureBlocksConsumerFactory consumerFactory
     ) throws java.lang.InterruptedException, java.io.IOException {
 
@@ -282,106 +256,8 @@ public class SignatureBlocksGenerator {
                 queue,
                 candidateFinder,
                 threads,
+                verbose,
                 consumerFactory
         );
-    }
-    
-    private static final String ARG_FULLSIG = "fullSigConstraint";
-    private static final String ARG_LASTDROP = "ignoreLastDrop";
-    private static final String ARG_NODES = "nodes";
-    private static final String ARG_OUTDIR = "outputToDir";
-    private static final String ARG_THREADS = "threads";
-    private static final String ARG_THRESHOLD = "threshold";
-    
-    private static final String[] ARGS = {
-        ARG_FULLSIG,
-        ARG_LASTDROP,
-        ARG_NODES,
-        ARG_OUTDIR,
-        ARG_THREADS,
-        ARG_THRESHOLD
-    };
-    
-    private static final String COMMAND =
-            "Usage\n" +
-            "  --" + ARG_FULLSIG + "=[true | false] [default: false]\n" +
-            "  --" + ARG_LASTDROP + "=[true | false] [default: true]\n" +
-            "  --" + ARG_NODES + "=<node-list-file> [default: null]\n" +
-            "  --" + ARG_OUTDIR + "=[true | false] [default: false]\n" +
-            "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
-            "  --" + ARG_THRESHOLD + "=<constraint> [default: null]\n" +
-            "  <eq-file>\n" +
-            "  <output-file-or-directory>";
-    
-    private static final Logger LOGGER = Logger
-            .getLogger(SignatureBlocksGenerator.class.getName());
-    
-    public static void main(String[] args) {
-        
-	System.out.println(Constants.NAME + " - Signature Blocks Writer - Version (" + Constants.VERSION + ")\n");
-
-        if (args.length < 2) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        Arguments params = new Arguments(ARGS, args, 2);
-        File eqFile = new File(params.fixedArg(0));
-        File output = new File(params.fixedArg(1));
-
-        int threads = params.getAsInt(ARG_THREADS, 6);
-        
-        boolean fullSignatureConstraint = params.getAsBool(ARG_FULLSIG, false);
-        boolean ignoreLastDrop = params.getAsBool(ARG_LASTDROP, true);
-        boolean outputToDir = params.getAsBool(ARG_OUTDIR, false);
-        
-        Threshold threshold = null;
-        if (params.has("threshold")) {
-            if ((params.has("fullSigConstraint")) || (params.has("ignoreLastDrop"))) {
-                throw new IllegalArgumentException("Illegal argument combination");
-            }
-            threshold = Threshold.getConstraint(params.get(ARG_THRESHOLD));
-        }
-        
-        File nodesFile = null;
-        if (params.has(ARG_NODES)) {
-            nodesFile = new File(params.get(ARG_NODES));
-        }
-        
-        try {
-            // Read the node index
-            EQIndex nodeIndex = new EQIndex(eqFile);
-            // Read the list of node identifier if a nodes file was given
-            List<Integer> nodeFilter;
-            if (nodesFile != null) {
-                nodeFilter = new HashIDSet(nodesFile).toList();
-            } else {
-                nodeFilter = nodeIndex.keys().toList();
-            }
-            // Depending on whether the threshold constraint is given or not
-            // we call the respective run method of the signature blocks
-            // generator.
-            if (threshold != null) {
-                new SignatureBlocksGenerator().runWithThreshold(
-                        nodeIndex,
-                        new ConcurrentLinkedQueue<>(nodeFilter),
-                        threshold,
-                        threads,
-                        new SignatureBlocksWriterFactory(output, outputToDir)
-                );
-            } else {
-                new SignatureBlocksGenerator().runWithMaxDrop(
-                        nodeIndex,
-                        new ConcurrentLinkedQueue<>(nodeFilter),
-                        fullSignatureConstraint,
-                        ignoreLastDrop,
-                        threads,
-                        new SignatureBlocksWriterFactory(output, outputToDir)
-                );
-            }
-        } catch (java.lang.InterruptedException | java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
-        }
     }
 }

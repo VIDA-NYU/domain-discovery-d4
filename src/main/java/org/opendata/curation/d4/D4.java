@@ -38,19 +38,21 @@ import org.opendata.curation.d4.domain.ParallelLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.curation.d4.export.DomainsExportWriter;
-import org.opendata.curation.d4.signature.SignatureBlocksIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksIndexFactory;
+import org.opendata.curation.d4.domain.Domain;
+import org.opendata.curation.d4.domain.StrongDomain;
+import org.opendata.curation.d4.domain.StrongDomainReader;
+import org.opendata.curation.d4.domain.StrongDomainWriter;
+import org.opendata.curation.d4.export.ExportStrongDomains;
+import org.opendata.curation.d4.export.PrimaryDomainWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
-import org.opendata.curation.d4.signature.SignatureBlocksWriter;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
+import org.opendata.curation.d4.signature.SignatureBlocksWriterFactory;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.db.column.Column;
-import org.opendata.db.column.TextColumnFinder;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.TermIndexGenerator;
@@ -66,50 +68,69 @@ public class D4 {
     
     public void expandColumns(
             EQIndex nodeIndex,
-            SignatureBlocksIndex signatures,
-            TrimmerType trimmer,
+            SignatureBlocksStream signatures,
+            String trimmer,
             Threshold expandThreshold,
             int numberOfIterations,
             BigDecimal decreaseFactor,
             int threads,
+            boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.io.IOException {
-        
-        System.out.println("\n-- COLUMN EXPANSION\n");
         
         IdentifiableObjectSet<Column> db = nodeIndex.columns();
         new ParallelColumnExpander(telemetry).run(
                 nodeIndex,
                 signatures,
-                new SignatureTrimmerFactory(nodeIndex, trimmer),
+                trimmer,
                 db,
                 db.keys(),
                 expandThreshold,
                 decreaseFactor,
                 numberOfIterations,
                 threads,
+                verbose,
                 new ExpandedColumnWriterFactory(outputFile, false)
         );
 
-        ExpandedColumnStats colStats = new ExpandedColumnStats();
-        new ExpandedColumnReader(outputFile).stream(colStats);
-        colStats.print();
+        if (verbose) {
+            ExpandedColumnStats colStats = new ExpandedColumnStats();
+            new ExpandedColumnReader(outputFile).stream(colStats);
+            colStats.print();
+        }
+    }
+    
+    public void exportStrongDomains(
+            File eqFile,
+            File termFile,
+            File columnFile,
+            File strongDomainFile,
+            int sampleSize,
+            File outputDir
+    ) throws java.io.IOException {
 
+        new ExportStrongDomains().run(
+                eqFile,
+                termFile,
+                columnFile,
+                strongDomainFile,
+                sampleSize,
+                outputDir
+        );
     }
     
     public void localDomains(
             EQIndex nodeIndex,
             File columnsFile,
-            SignatureBlocksIndex signatures,
-            TrimmerType trimmer,
+            SignatureBlocksStream signatures,
+            String trimmer,
             int threads,
+            boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.io.IOException {
         
-        System.out.println("\n-- LOCAL DOMAINS\n");
-
         ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
         new ExpandedColumnReader(columnsFile).stream(columnIndex);
         new ParallelLocalDomainGenerator(telemetry).run(
@@ -118,13 +139,15 @@ public class D4 {
                 signatures,
                 trimmer,
                 threads,
+                verbose,
                 new DomainWriter(outputFile)
         );
 
-        DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
-        new DomainReader(outputFile).stream(localStats);
-        localStats.print();
-    
+        if (verbose) {
+            DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
+            new DomainReader(outputFile).stream(localStats);
+            localStats.print();
+        }
     }
     
     public void signatures(
@@ -132,27 +155,28 @@ public class D4 {
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             int threads,
+            boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        System.out.println("\n-- SIGNATURE BLOCKS\n");
-        
-        SignatureBlocksIndexFactory sigBlocksIndex;
-        sigBlocksIndex = new SignatureBlocksIndexFactory();
+        SignatureBlocksWriterFactory sigWriter;
+        sigWriter = new SignatureBlocksWriterFactory(outputFile, false);
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
                 fullSignatureConstraint,
                 ignoreLastDrop,
                 threads,
-                sigBlocksIndex
+                verbose,
+                sigWriter
         );
 
-        new SignatureBlocksWriter(outputFile).write(sigBlocksIndex.signatures());
-        SignatureBlocksStats sigStats = new SignatureBlocksStats();
-        sigBlocksIndex.signatures().stream(sigStats);
-        sigStats.print();
+        if (verbose) {
+            SignatureBlocksStats sigStats = new SignatureBlocksStats();
+            new SignatureBlocksReader(outputFile).stream(sigStats);
+            sigStats.print();
+        }
     }
     
     public void strongDomains(
@@ -161,26 +185,39 @@ public class D4 {
             Threshold domainOverlapConstraint,
             BigDecimal supportFraction,
             int threads,
+            boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        System.out.println("\n-- STRONG DOMAINS\n");
-
+        IdentifiableObjectSet<Domain> localDomains;
+        localDomains = new DomainReader(localDomainFile).read();
         new StrongDomainGenerator(telemetry).run(
                 nodeIndex,
-                new DomainReader(localDomainFile).read().toList(),
+                localDomains,
                 domainOverlapConstraint,
                 Threshold.getConstraint("GT0.1"),
                 supportFraction,
-                true,
+                verbose,
                 threads,
-                new DomainWriter(outputFile)
+                new StrongDomainWriter(outputFile, localDomains)
         );
 
-        DomainSetStatsPrinter strongStats = new DomainSetStatsPrinter();
-        new DomainReader(outputFile).stream(strongStats);
-        strongStats.print();
+        if (verbose) {
+            DomainSetStatsPrinter statsPrinter = new DomainSetStatsPrinter();
+            statsPrinter.open();
+            for (StrongDomain domain : new StrongDomainReader(outputFile).read()) {
+                statsPrinter.consume(
+                        new Domain(
+                                domain.id(),
+                                domain.members().keys(),
+                                domain.columns()
+                        )
+                );
+            }
+            statsPrinter.close();
+            statsPrinter.print();
+        }
     }
     
     /**
@@ -188,13 +225,12 @@ public class D4 {
      */
     private static final String STEP_COMPRESS_TERMINDEX = "eqs";
     private static final String STEP_EXPAND_COLUMNS = "expand-columns";
-    private static final String STEP_EXPORT = "export";
+    private static final String STEP_EXPORT_DOMAINS = "export";
     private static final String STEP_GENERATE_COLUMNS = "columns";
     private static final String STEP_LOCAL_DOMAINS = "local-domains";
     private static final String STEP_SIGNATURES = "signatures";
     private static final String STEP_STRONG_DOMAINS = "strong-domains";
     private static final String STEP_TERMINDEX = "term-index";
-    private static final String STEP_TEXTCOLUMNS = "text-columns";
 
     private static final String COMMAND =
             "Usage:\n" +
@@ -202,7 +238,6 @@ public class D4 {
             "      Data preparation\n" +
             "      ----------------\n" +
             "      " + STEP_GENERATE_COLUMNS + "\n" +
-            "      " + STEP_TEXTCOLUMNS + "\n" +
             "      " + STEP_TERMINDEX + "\n" +
             "      " + STEP_COMPRESS_TERMINDEX + "\n\n" +
             "      D4 pipeline\n" +
@@ -213,7 +248,7 @@ public class D4 {
             "      " + STEP_STRONG_DOMAINS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
-            "      " + STEP_EXPORT + "\n\n" +
+            "      " + STEP_EXPORT_DOMAINS + "\n\n" +
             "  ] <args>";
 
     private static final String UNKNOWN = "Use --help to see a list steps in the D4 pipeline";
@@ -244,6 +279,7 @@ public class D4 {
                         new Parameter("input", "<directory> [default: 'tsv']"),
                         new Parameter("metadata", "<file> [default: 'columns.tsv']"),
                         new Parameter("toupper", "<boolean> [default: true]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("output", "<directory> [default: 'columns']")
                     },
                     args
@@ -251,38 +287,15 @@ public class D4 {
             File inputDir = params.getAsFile("input", "tsv");
             File outputFile = params.getAsFile("metadata", "columns.tsv");
             boolean toUpper = params.getAsBool("toupper", true);
+            boolean verbose = params.getAsBool("verbose", true);
             File outputDir = params.getAsFile("output", "columns");
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
                 List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
                         .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, toUpper).run(files);
+                new Dataset2ColumnsConverter(outputDir, out, toUpper, verbose)
+                        .run(files);
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
-                System.exit(-1);
-            }
-        } else if (command.equals(STEP_TEXTCOLUMNS)) {
-            // ----------------------------------------------------------------
-            // IDENTIFY TEXT COLUMNS
-            // ----------------------------------------------------------------
-            CLP params = new CLP(
-                    new Parameter[] {
-                        new Parameter("input", "<directory> [default: 'columns']"),
-                        new Parameter("threshold", "<constraint> [default: 'GT0.5']"),
-                        new Parameter("output", "<file> [default: 'text-columns.txt']")
-                    },
-                    args
-            );
-            File inputDir = params.getAsFile("input", "columns");
-            Threshold threshold = params.getAsConstraint("threshold", "GT0.5");
-            File outputFile = params.getAsFile("output", "text-columns.txt");
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                new TextColumnFinder().run(
-                        new FileListReader(".txt").listFiles(inputDir),
-                        threshold,
-                        out
-                );
-            } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "TEXT COLUMNS", ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_TERMINDEX)) {
@@ -293,20 +306,26 @@ public class D4 {
                     new Parameter[] {
                         new Parameter(
                                 "input",
-                                "<directory | file> [default: 'text-columns.txt']"
+                                "<directory | file> [default: 'columns']"
                         ),
+                        new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("output", "<file> [default: 'text-columns.txt']")
                     },
                     args
             );
-            File inputDir = params.getAsFile("input", "text-columns.txt");
+            File inputDir = params.getAsFile("input", "columns");
+            Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
+            boolean verbose = params.getAsBool("verbose", true);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
                 new TermIndexGenerator().run(
                         new FileListReader(".txt").listFiles(inputDir),
+                        threshold,
                         bufferSize,
+                        verbose,
                         outputFile
                 );
             } catch (java.io.IOException ex) {
@@ -320,6 +339,7 @@ public class D4 {
             CLP params = new CLP(
                     new Parameter[] {
                         new Parameter("input", "<file> [default: 'term-index.txt.gz']"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter(
                                 "output",
                                 "<file> [default: 'compressed-term-index.txt.gz']"
@@ -328,10 +348,11 @@ public class D4 {
                     args
             );
             File inputFile = params.getAsFile("input", "term-index.txt.gz");
+            boolean verbose = params.getAsBool("verbose", true);
             File outputFile = params.getAsFile("output", "compressed-term-index.txt.gz");     
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
                 new TermIndexReader(inputFile)
-                        .read(new CompressedTermIndexGenerator(out));
+                        .read(new CompressedTermIndexGenerator(out, verbose));
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "EQUIVALENCE CLASSES", ex);
                 System.exit(-1);
@@ -347,12 +368,14 @@ public class D4 {
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
                         new Parameter("threads", "<int> [default: 6]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']")
                     },
                     args
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             int threads = params.getAsInt("threads", 6);
+            boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             boolean fullSignatureConstraint = false;
             boolean ignoreLastDrop = true;
@@ -362,6 +385,7 @@ public class D4 {
                         fullSignatureConstraint,
                         ignoreLastDrop,
                         threads,
+                        verbose,
                         new TelemetryPrinter(),
                         signatureFile
                 );
@@ -382,35 +406,37 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + TrimmerType.CENTRIST.toString() + "]"
+                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
                         new Parameter("expandThreshold", "<constraint> [default: 'GT0.25']"),
                         new Parameter("decrease", "<double> [default: 0.05]"),
                         new Parameter("iterations", "<int> [default: 5]"),
                         new Parameter("threads", "<int> [default: 6]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("columns", "<file> [default: 'expanded-columns.txt.gz']")
                     },
                     args
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            TrimmerType trimmer = TrimmerType
-                .valueOf(params.getAsString("trimmer", TrimmerType.CENTRIST.toString()));
+            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             Threshold expandThreshold = params.getAsConstraint("expandThreshold", "GT0.25");
             BigDecimal decreaseFactor = params
                     .getAsBigDecimal("decrease", new BigDecimal("0.05"));
             int numberOfIterations = params.getAsInt("iterations", 5);
             int threads = params.getAsInt("threads", 6);
+            boolean verbose = params.getAsBool("verbose", true);
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             try {
                 new D4().expandColumns(
                         new EQIndex(eqFile),
-                        new SignatureBlocksReader(signatureFile).read(),
+                        new SignatureBlocksReader(signatureFile),
                         trimmer,
                         expandThreshold,
                         numberOfIterations,
                         decreaseFactor,
                         threads,
+                        verbose,
                         new TelemetryPrinter(),
                         columnsFile
                 );
@@ -432,9 +458,10 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + TrimmerType.CENTRIST.toString() + "]"
+                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
                         new Parameter("threads", "<int> [default: 6]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter(
                                 "localdomains",
                                 "<file> [default: 'local-domains.txt.gz']"
@@ -445,17 +472,18 @@ public class D4 {
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            TrimmerType trimmer = TrimmerType
-                .valueOf(params.getAsString("trimmer", TrimmerType.CENTRIST.toString()));
+            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             int threads = params.getAsInt("threads", 6);
+            boolean verbose = params.getAsBool("verbose", true);
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
             try {
                 new D4().localDomains(
                         new EQIndex(eqFile),
                         columnsFile,
-                        new SignatureBlocksReader(signatureFile).read(),
+                        new SignatureBlocksReader(signatureFile),
                         trimmer,
                         threads,
+                        verbose,
                         new TelemetryPrinter(),
                         localDomainFile
                 );
@@ -480,6 +508,7 @@ public class D4 {
                         new Parameter("domainOverlap",  "<constraint> [default: 'GT0.5']"),
                         new Parameter("supportFraction",  "<double> [default: 0.25]"),
                         new Parameter("threads", "<int> [default: 6]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter(
                                 "strongdomains",
                                 "<file> [default: 'strong-domains.txt.gz']"
@@ -493,6 +522,7 @@ public class D4 {
             BigDecimal supportFraction = params
                     .getAsBigDecimal("supportFraction", new BigDecimal("0.25"));
             int threads = params.getAsInt("threads", 6);
+            boolean verbose = params.getAsBool("verbose", true);
             File strongDomainFile = params.getAsFile("strongdomains", "strong-domains.txt.gz");
             try {
                 new D4().strongDomains(
@@ -501,6 +531,7 @@ public class D4 {
                         domainOverlapConstraint,
                         supportFraction,
                         threads,
+                        verbose,
                         new TelemetryPrinter(),
                         strongDomainFile
                 );
@@ -508,7 +539,7 @@ public class D4 {
                 LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
                 System.exit(-1);
             }
-        } else if (command.equals(STEP_EXPORT)) {
+        } else if (command.equals(STEP_EXPORT_DOMAINS)) {
             // ----------------------------------------------------------------
             // EXPORT
             // ----------------------------------------------------------------
@@ -524,6 +555,8 @@ public class D4 {
                                 "domains",
                                 "<file> [default: 'strong-domains.txt.gz']"
                         ),
+                        new Parameter("sampleSize", "<int> [default: 100]"),
+                        new Parameter("writePrimary", "<boolean> [default: false]"),
                         new Parameter("output", "<direcory> [default: 'domains']"),
                     },
                     args
@@ -532,17 +565,23 @@ public class D4 {
             File termFile = params.getAsFile("terms", "term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "columns.tsv");
             File domainsFile = params.getAsFile("domains", "strong-domains.txt.gz");
+            int samleSize = params.getAsInt("sampleSize", 100);
+            boolean writePrimary = params.getAsBool("writePrimary", false);
             File outputDir = params.getAsFile("output", "domains");
             try {
-                new DomainsExportWriter().run(
-                        new EQIndex(eqFile),
-                        new TermIndexReader(termFile),
-                        new DomainReader(domainsFile).read().toList(),
+                new D4().exportStrongDomains(
+                        eqFile,
+                        termFile,
                         columnsFile,
+                        domainsFile,
+                        samleSize,
                         outputDir
                 );
+                if (writePrimary) {
+                    new PrimaryDomainWriter().run(outputDir, outputDir);
+                }
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
+                LOGGER.log(Level.SEVERE, "EXPORT DOMAINS", ex);
                 System.exit(-1);
             }
         } else {

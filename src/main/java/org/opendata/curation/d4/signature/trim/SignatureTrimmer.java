@@ -31,6 +31,13 @@ import org.opendata.core.object.filter.ObjectFilter;
  */
 public abstract class SignatureTrimmer implements SignatureBlocksConsumer {
     
+    /**
+     * Global variables for trimmer types
+     */
+    public final static String CENTRIST = "CENTRIST";
+    public final static String CONSERVATIVE = "CONSERVATIVE";
+    public final static String LIBERAL = "LIBERAL";
+    
     private final SignatureBlocksConsumer _consumer;
     private final ObjectFilter<Integer> _filter;
     private final Threshold _nonEmptyConstraint;

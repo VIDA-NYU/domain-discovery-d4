@@ -17,6 +17,8 @@
  */
 package org.opendata.core.set;
 
+import java.util.Arrays;
+
 /**
  * Implementation for identifiable identifier set that contains a immutable set
  * of identifiers.
@@ -37,6 +39,18 @@ public class ImmutableIdentifiableIDSet extends ImmutableIDSet implements Identi
     public ImmutableIdentifiableIDSet(int id, IDSet values) {
         
         super(values);
+        
+       _id = id;
+    }
+    
+    public ImmutableIdentifiableIDSet(int id, int[] values) {
+        
+        super(new ImmutableIDSet(
+        		Arrays.stream(values)
+					.boxed()
+					.toArray(Integer[]::new),
+				false)
+        );
         
        _id = id;
     }

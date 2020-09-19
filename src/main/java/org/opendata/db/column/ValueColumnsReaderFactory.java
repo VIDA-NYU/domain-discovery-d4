@@ -32,12 +32,10 @@ import org.opendata.core.value.ValueCounter;
 public class ValueColumnsReaderFactory implements ColumnReaderFactory {
 
     private final LinkedList<File> _files;
-    private final int _hashLengthThreshold;
     
     public ValueColumnsReaderFactory(
             File directory,
-            ObjectFilter<Integer> filter,
-            int hashLengthThreshold
+            ObjectFilter<Integer> filter
     ) {
         if (!directory.exists()) {
             throw new IllegalArgumentException("Directory " + directory.getAbsolutePath() + " does not exist");
@@ -45,8 +43,6 @@ public class ValueColumnsReaderFactory implements ColumnReaderFactory {
             throw new IllegalArgumentException(directory.getAbsolutePath() + " not a directory");
         }
         
-        _hashLengthThreshold = hashLengthThreshold;
-
         _files = new LinkedList<>();
 
         for (File file : directory.listFiles()) {
@@ -59,15 +55,14 @@ public class ValueColumnsReaderFactory implements ColumnReaderFactory {
         }
     }
     
-    public ValueColumnsReaderFactory(File directory, int hashLengthThreshold) {
+    public ValueColumnsReaderFactory(File directory) {
 	
-        this(directory, new AnyObjectFilter<Integer>(), hashLengthThreshold);
+        this(directory, new AnyObjectFilter<Integer>());
     }
     
-    public ValueColumnsReaderFactory(List<File> files, int hashLengthThreshold) {
+    public ValueColumnsReaderFactory(List<File> files) {
         
         _files = new LinkedList<>(files);
-        _hashLengthThreshold = hashLengthThreshold;
     }
     
     @Override
@@ -81,6 +76,6 @@ public class ValueColumnsReaderFactory implements ColumnReaderFactory {
 
         File file = _files.pop();
         int columnId = ColumnHelper.getColumnId(file);
-        return new FlexibleColumnReader(file, columnId, _hashLengthThreshold);
+        return new FlexibleColumnReader(file, columnId);
     }
 }

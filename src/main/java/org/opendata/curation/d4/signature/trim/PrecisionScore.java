@@ -18,7 +18,7 @@
 package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
-import org.opendata.core.similarity.Precision;
+import org.opendata.core.metric.Precision;
 
 /**
  *

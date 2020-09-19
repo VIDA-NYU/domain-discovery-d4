@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.core.set.IDSet;
 import org.opendata.db.eq.EQIndex;
@@ -29,12 +30,12 @@ import org.opendata.db.eq.EQIndex;
 public class SignatureTrimmerFactory {
     
     private final EQIndex _nodes;
-    private final TrimmerType _trimmerType;
+    private final String _trimmerSpec;
     
-    public SignatureTrimmerFactory(EQIndex nodes, TrimmerType trimmerType) {
+    public SignatureTrimmerFactory(EQIndex nodes, String trimmerSpec) {
         
         _nodes = nodes;
-        _trimmerType = trimmerType;
+        _trimmerSpec = trimmerSpec;
     }
     
     /**
@@ -47,13 +48,23 @@ public class SignatureTrimmerFactory {
      */
     public SignatureTrimmer getTrimmer(IDSet column, SignatureBlocksConsumer consumer) {
         
-        switch (_trimmerType) {
-            case CONSERVATIVE:
-                return new ConservativeTrimmer(column, consumer);
-            case CENTRIST:
-                return new CentristTrimmer(column, _nodes.nodeSizes(), consumer);
-            default:
-                return new NonTrimmer(column, consumer);
+        if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
+            return new ConservativeTrimmer(column, consumer);
+        } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
+            return new CentristTrimmer(column, _nodes.nodeSizes(), consumer);
+        } else if (_trimmerSpec.startsWith(SignatureTrimmer.CENTRIST)) {
+            int pos = _trimmerSpec.indexOf(":");
+            if (pos != -1) {
+                return new CentristTrimmer(
+                        column,
+                        _nodes.nodeSizes(),
+                        Threshold.getConstraint(_trimmerSpec.substring(pos + 1)),
+                        consumer
+                );                
+            }
+        } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {
+            return new NonTrimmer(column, consumer);
         }
+        throw new IllegalArgumentException(String.format("Invalid trimmer: %s", _trimmerSpec));
     }
 }
