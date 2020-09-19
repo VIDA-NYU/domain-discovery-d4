@@ -127,6 +127,7 @@ public class ExportStrongDomains {
             File termFile,
             File columnFile,
             File strongDomainFile,
+            int sampleSize,
             File outputDir
     ) throws java.io.IOException {
         
@@ -140,17 +141,26 @@ public class ExportStrongDomains {
         // Read column names. Expects a tab-delimited file with column id,
         // dataset-id and column name.
         HashMap<Integer, String[]> columnNames = new HashMap<>();
-        try (BufferedReader in = FileSystem.openReader(columnFile)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                String[] tokens = line.split("\t");
-                int columnId = Integer.parseInt(tokens[0]);
-                String columnName = tokens[1];
-                String dataset = tokens[2];
-                columnNames.put(columnId, new String[]{columnName, dataset});
+        if (columnFile.exists()) {
+            try (BufferedReader in = FileSystem.openReader(columnFile)) {
+                String line;
+                while ((line = in.readLine()) != null) {
+                    String[] tokens = line.split("\t");
+                    int columnId = Integer.parseInt(tokens[0]);
+                    String columnName = tokens[1];
+                    String dataset = tokens[2];
+                    columnNames.put(columnId, new String[]{columnName, dataset});
+                }
             }
+        } else {
+            LOGGER.log(
+                    Level.WARNING,
+                    String.format(
+                            "File %s does not exist",
+                            columnFile.getAbsolutePath()
+                    )
+            );
         }
-        
         // Read the strong domains
         IdentifiableObjectSet<StrongDomain> strongDomains;
         strongDomains = new StrongDomainReader(strongDomainFile).read();
@@ -162,7 +172,7 @@ public class ExportStrongDomains {
         HashIDSet termFilter = new HashIDSet();
         for (StrongDomain domain : strongDomains) {
             for (StrongDomainMember node : domain.members()) {
-                termFilter.add(eqIndex.get(node.id()).terms());
+                termFilter.add(eqIndex.get(node.id()).terms().sample(sampleSize));
             }
         }
         
@@ -179,7 +189,12 @@ public class ExportStrongDomains {
                 List<String> names = new ArrayList<>();
                 JsonArray arrColumns = new JsonArray();
                 for (int columnId : domain.columns()) {
-                    String[] columnInfo = columnNames.get(columnId);
+                    String[] columnInfo;
+                    if (columnNames.containsKey(columnId)) {
+                        columnInfo = columnNames.get(columnId);
+                    } else {
+                        columnInfo = new String[]{"unknown", "unknown"};
+                    }
                     JsonObject objCol = new JsonObject();
                     objCol.add("id", new JsonPrimitive(columnId));
                     objCol.add("name", new JsonPrimitive(columnInfo[0]));
@@ -201,12 +216,14 @@ public class ExportStrongDomains {
                 for (List<IdentifiableDouble> block : blocks) {
                     JsonArray arrBlock = new JsonArray();
                     for (IdentifiableDouble item : block) {
-                        Term term = terms.get(item.id());
-                        JsonObject objTerm = new JsonObject();
-                        objTerm.add("id", new JsonPrimitive(term.id()));
-                        objTerm.add("name", new JsonPrimitive(term.name()));
-                        objTerm.add("weight", new JsonPrimitive(item.toPlainString()));
-                        arrBlock.add(objTerm);
+                        if (terms.contains(item.id())) {
+                            Term term = terms.get(item.id());
+                            JsonObject objTerm = new JsonObject();
+                            objTerm.add("id", new JsonPrimitive(term.id()));
+                            objTerm.add("name", new JsonPrimitive(term.name()));
+                            objTerm.add("weight", new JsonPrimitive(item.toPlainString()));
+                            arrBlock.add(objTerm);
+                        }
                     }
                     arrTerms.add(arrBlock);
                 }
@@ -225,6 +242,7 @@ public class ExportStrongDomains {
             "  <term-file>\n" +
             "  <column-file>\n" +
             "  <strong-domain-file>\n" +
+            "  <sample-size>\n" +
             "  <output-dir>";
     
     private final static Logger LOGGER = Logger
@@ -243,7 +261,8 @@ public class ExportStrongDomains {
         File termFile = new File(args[1]);
         File columnFile = new File(args[2]);
         File strongDomainFile = new File(args[3]);
-        File outputDir = new File(args[4]);
+        int sampleSize = Integer.parseInt(args[4]);
+        File outputDir = new File(args[5]);
 
         try {
             new ExportStrongDomains()
@@ -252,6 +271,7 @@ public class ExportStrongDomains {
                             termFile,
                             columnFile,
                             strongDomainFile,
+                            sampleSize,
                             outputDir
                     );
         } catch (java.io.IOException ex) {

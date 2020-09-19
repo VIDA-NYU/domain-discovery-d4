@@ -39,7 +39,7 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     }
     
     @Override
-    public void close() {
+    public synchronized void close() {
 
         _openCount--;
         if (_openCount == 0) {
@@ -61,7 +61,7 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void open() {
+    public synchronized void open() {
         
         if (_out == null) {
             try {

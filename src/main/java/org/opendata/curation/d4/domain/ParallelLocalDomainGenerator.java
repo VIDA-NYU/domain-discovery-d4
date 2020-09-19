@@ -32,7 +32,6 @@ import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.eq.EQIndex;
@@ -126,7 +125,7 @@ public class ParallelLocalDomainGenerator {
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
-            TrimmerType trimmer,
+            String trimmer,
             int threads,
             DomainConsumer consumer
     ) throws java.io.IOException {
@@ -145,6 +144,17 @@ public class ParallelLocalDomainGenerator {
         );
         Collections.reverse(columnList);
         
+        System.out.println(
+                String.format(
+                        "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
+                        "  --trimmer=%s\n" +
+                        "  --threads=%d",
+                        columnList.size(),
+                        trimmer,
+                        threads
+                )
+        );
+
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {

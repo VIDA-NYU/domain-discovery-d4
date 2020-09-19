@@ -256,7 +256,16 @@ public class StrongDomainGenerator {
         Date start = new Date();
         if (verbose) {
             System.out.println(
-                    "START WITH " + localDomains.length() + " DOMAINS @ " + start
+                    String.format(
+                            "STRING DOMAINS FOR %d LOCAL DOMAINS USING:\n" +
+                            "  --domainOverlap=%s\n" +
+                            "  --supportFraction=%s\n" +
+                            "  --threads=%d",
+                            localDomains.length(),
+                            domainOverlapConstraint.toPlainString(),
+                            supportFraction.toPlainString(),
+                            threads
+                    )
             );
         }
         

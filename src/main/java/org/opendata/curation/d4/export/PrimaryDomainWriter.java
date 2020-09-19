@@ -37,6 +37,8 @@ public class PrimaryDomainWriter {
     
     public void run(File inputDir, File outputDir) throws java.io.IOException {
         
+        FileSystem.createFolder(outputDir);
+        
         for (File file : inputDir.listFiles()) {
             if (file.getName().endsWith(".json")) {
                 String domainId = file

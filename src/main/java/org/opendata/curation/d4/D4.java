@@ -38,8 +38,6 @@ import org.opendata.curation.d4.domain.ParallelLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.curation.d4.signature.trim.TrimmerType;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
@@ -49,11 +47,10 @@ import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.domain.StrongDomainWriter;
 import org.opendata.curation.d4.export.ExportStrongDomains;
-import org.opendata.curation.d4.signature.SignatureBlocksIndexFactory;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
-import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksWriterFactory;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQIndex;
@@ -71,7 +68,7 @@ public class D4 {
     public void expandColumns(
             EQIndex nodeIndex,
             SignatureBlocksStream signatures,
-            TrimmerType trimmer,
+            String trimmer,
             Threshold expandThreshold,
             int numberOfIterations,
             BigDecimal decreaseFactor,
@@ -86,7 +83,7 @@ public class D4 {
         new ParallelColumnExpander(telemetry).run(
                 nodeIndex,
                 signatures,
-                new SignatureTrimmerFactory(nodeIndex, trimmer),
+                trimmer,
                 db,
                 db.keys(),
                 expandThreshold,
@@ -107,17 +104,25 @@ public class D4 {
             File termFile,
             File columnFile,
             File strongDomainFile,
+            int sampleSize,
             File outputDir
     ) throws java.io.IOException {
-        new ExportStrongDomains()
-                .run(eqFile, termFile, columnFile, strongDomainFile, outputDir);
+
+        new ExportStrongDomains().run(
+                eqFile,
+                termFile,
+                columnFile,
+                strongDomainFile,
+                sampleSize,
+                outputDir
+        );
     }
     
     public void localDomains(
             EQIndex nodeIndex,
             File columnsFile,
             SignatureBlocksStream signatures,
-            TrimmerType trimmer,
+            String trimmer,
             int threads,
             TelemetryCollector telemetry,
             File outputFile
@@ -384,7 +389,7 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + TrimmerType.CENTRIST.toString() + "]"
+                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
                         new Parameter("expandThreshold", "<constraint> [default: 'GT0.25']"),
                         new Parameter("decrease", "<double> [default: 0.05]"),
@@ -396,8 +401,7 @@ public class D4 {
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            TrimmerType trimmer = TrimmerType
-                .valueOf(params.getAsString("trimmer", TrimmerType.CENTRIST.toString()));
+            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             Threshold expandThreshold = params.getAsConstraint("expandThreshold", "GT0.25");
             BigDecimal decreaseFactor = params
                     .getAsBigDecimal("decrease", new BigDecimal("0.05"));
@@ -434,7 +438,7 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + TrimmerType.CENTRIST.toString() + "]"
+                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter(
@@ -447,8 +451,7 @@ public class D4 {
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            TrimmerType trimmer = TrimmerType
-                .valueOf(params.getAsString("trimmer", TrimmerType.CENTRIST.toString()));
+            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             int threads = params.getAsInt("threads", 6);
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
             try {
@@ -526,6 +529,7 @@ public class D4 {
                                 "domains",
                                 "<file> [default: 'strong-domains.txt.gz']"
                         ),
+                        new Parameter("sampleSize", "<int> [default: 100]"),
                         new Parameter("output", "<direcory> [default: 'domains']"),
                     },
                     args
@@ -534,6 +538,7 @@ public class D4 {
             File termFile = params.getAsFile("terms", "term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "columns.tsv");
             File domainsFile = params.getAsFile("domains", "strong-domains.txt.gz");
+            int samleSize = params.getAsInt("sampleSize", 100);
             File outputDir = params.getAsFile("output", "domains");
             try {
                 new D4().exportStrongDomains(
@@ -541,6 +546,7 @@ public class D4 {
                         termFile,
                         columnsFile,
                         domainsFile,
+                        samleSize,
                         outputDir
                 );
             } catch (java.io.IOException ex) {
