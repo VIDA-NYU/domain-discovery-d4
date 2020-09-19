@@ -57,6 +57,7 @@ public class ParallelLocalDomainGenerator {
         private final EQIndex _nodes;
         private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
+        private final boolean _verbose;
         
         public DomainGeneratorTask(
                 int id,
@@ -64,7 +65,8 @@ public class ParallelLocalDomainGenerator {
                 List<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                UniqueDomainSet domains
+                UniqueDomainSet domains,
+                boolean verbose
        ) {
             _id = id;
             _nodes = nodes;
@@ -72,6 +74,7 @@ public class ParallelLocalDomainGenerator {
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
             _domains = domains;
+            _verbose = verbose;
         }
         
         @Override
@@ -105,7 +108,9 @@ public class ParallelLocalDomainGenerator {
             
             long execTime = end.getTime() - start.getTime();
             
-            System.out.println(_id + " DONE WITH " + _columns.size() + " COLUMNS IN " + execTime + " ms");
+            if (_verbose) {
+                System.out.println(_id + " DONE WITH " + _columns.size() + " COLUMNS IN " + execTime + " ms");
+            }
         }
     }
     
@@ -127,14 +132,17 @@ public class ParallelLocalDomainGenerator {
             SignatureBlocksStream signatures,
             String trimmer,
             int threads,
+            boolean verbose,
             DomainConsumer consumer
     ) throws java.io.IOException {
 
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
         Date start = new Date();
-        System.out.println("START @ " + start);
-
+        if (verbose) {
+            System.out.println("START @ " + start);
+        }
+        
         ExecutorService es = Executors.newCachedThreadPool();
         
         // Sort column in decreasing number of nodes
@@ -144,17 +152,19 @@ public class ParallelLocalDomainGenerator {
         );
         Collections.reverse(columnList);
         
-        System.out.println(
-                String.format(
-                        "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
-                        "  --trimmer=%s\n" +
-                        "  --threads=%d",
-                        columnList.size(),
-                        trimmer,
-                        threads
-                )
-        );
-
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
+                            "  --trimmer=%s\n" +
+                            "  --threads=%d",
+                            columnList.size(),
+                            trimmer,
+                            threads
+                    )
+            );
+        }
+        
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
@@ -166,7 +176,8 @@ public class ParallelLocalDomainGenerator {
                     columns,
                     signatures,
                     new SignatureTrimmerFactory(nodes, trimmer),
-                    domains
+                    domains,
+                    verbose
             );
             es.execute(task);
         }
@@ -180,9 +191,10 @@ public class ParallelLocalDomainGenerator {
         domains.stream(consumer);
         
         Date end = new Date();
-        System.out.println("END @ " + end);
-        
-        long execTime = end.getTime() - start.getTime();
-        _telemetry.add(TELEMETRY_ID, execTime);
+        if (verbose) {
+            System.out.println("END @ " + end);
+            long execTime = end.getTime() - start.getTime();
+            _telemetry.add(TELEMETRY_ID, execTime);
+        }
     }
 }

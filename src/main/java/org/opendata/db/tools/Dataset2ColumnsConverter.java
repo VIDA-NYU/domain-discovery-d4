@@ -22,13 +22,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.opendata.curation.d4.Constants;
-import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 
 /**
@@ -45,13 +41,16 @@ import org.opendata.core.io.FileSystem;
 public class Dataset2ColumnsConverter {
     
     private final ColumnFactory _columnFactory;
+    private final boolean _verbose;
     
     public Dataset2ColumnsConverter(
             File outputDir,
             PrintWriter out,
-            boolean toUpper
+            boolean toUpper,
+            boolean verbose
     ) {
         _columnFactory = new ColumnFactory(outputDir, out, toUpper);
+        _verbose = verbose;
     }
     
     /**
@@ -63,6 +62,10 @@ public class Dataset2ColumnsConverter {
      */
     public void run(List<File> files) throws java.lang.InterruptedException, java.io.IOException {
 
+        if (_verbose) {
+            System.out.println(String.format("CONVERT %d DATASETS", files.size()));
+        }
+        
         int count = 0;
         for (File file : files) {
             String dataset;
@@ -73,7 +76,16 @@ public class Dataset2ColumnsConverter {
             } else {
                 return;
             }
-            System.out.println((++count) + " of " + files.size() + ": " + file.getName());
+            if (_verbose) {
+                System.out.println(
+                        String.format(
+                                "%d of %d: %s",
+                                (++count),
+                                files.size(),
+                                file.getName()
+                        )
+                );
+            }
             try (CSVParser in = this.tsvParser(file)) {
                 List<ColumnHandler> columns = new ArrayList<>();
                 for (String colName : in.getHeaderNames()) {
@@ -103,36 +115,5 @@ public class Dataset2ColumnsConverter {
                         .withIgnoreHeaderCase()
                         .withIgnoreSurroundingSpaces(false)
         );
-    }
-
-    private final static String COMMAND =
-            "Usage:\n" +
-            "  <input-dir>\n" +
-            "  <columns-file>\n" +
-            "  <to-upper>\n" +
-            "  <output-dir>";
-    
-    public static void main(String[] args) {
-        
-	System.out.println(Constants.NAME + " - Dataset to Columns Converter - Version (" + Constants.VERSION + ")\n");
-
-        if (args.length != 4) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        File inputFile = new File(args[0]);
-        File columnFile = new File(args[1]);
-        boolean toUpper = Boolean.parseBoolean(args[2]);
-        File outputDir = new File(args[3]);
-        
-        try (PrintWriter out = FileSystem.openPrintWriter(columnFile)) {
-            List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
-                    .listFiles(inputFile);
-            new Dataset2ColumnsConverter(outputDir, out, toUpper).run(files);
-        } catch (java.lang.InterruptedException | java.io.IOException ex) {
-            Logger.getGlobal().log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
-        }
     }
 }

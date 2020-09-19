@@ -59,6 +59,7 @@ public class TermIndexGenerator {
                     new FileListReader(".txt").listFiles(inputDirectory),
                     textThreshold,
                     bufferSize,
+                    true,
                     outputFile
             );
         } catch (java.io.IOException ex) {

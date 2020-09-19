@@ -17,7 +17,6 @@
  */
 package org.opendata.curation.d4.domain;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,10 +24,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.curation.d4.Arguments;
-import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.Threshold;
@@ -327,7 +322,7 @@ public class StrongDomainGenerator {
                     supportFraction,
                     frequencyEstimate,
                     helper,
-                    true,
+                    verbose,
                     strongDomains
             );
             es.execute(command);
@@ -360,75 +355,8 @@ public class StrongDomainGenerator {
         Date end = new Date();
         if (verbose) {
             System.out.println("DONE @ " + end);
-        }
-        
-        long execTime = end.getTime() - start.getTime();
-        _telemetry.add(TELEMETRY_ID, execTime);
-    }
-    
-    private static final String ARG_DOMAINOVERLAP = "domainOverlap";
-    private static final String ARG_FREQEST = "freqEst";
-    private static final String ARG_SUPPORTFRAC = "supportFraction";
-    private static final String ARG_THREADS = "threads";
-
-    private static final String[] ARGS = {
-        ARG_DOMAINOVERLAP,
-        ARG_FREQEST,
-        ARG_SUPPORTFRAC,
-        ARG_THREADS
-    };
-    
-    private static final String COMMAND =
-            "Usage\n" +
-            "  --" + ARG_DOMAINOVERLAP + "=<constraint> [default: GT0.5]\n" +
-            "  --" + ARG_FREQEST + "=<constraint> [default: GT0.1]\n" +
-            "  --" + ARG_SUPPORTFRAC + "=<real> [default: 0.25]\n" +
-            "  --" + ARG_THREADS + "=<int> [default: 6]\n" +
-            "  <eq-file>\n" +
-            "  <local-domain-file>\n" +
-            "  <ouput-file>";
-    
-    private static final Logger LOGGER = Logger
-            .getLogger(StrongDomainGenerator.class.getName());
-    
-    public static void main(String[] args) {
-        
-        System.out.println(Constants.NAME + " - Strong Domain Generator - Version (" + Constants.VERSION + ")\n");
-
-        if (args.length < 3) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        Arguments params = new Arguments(ARGS, args, 3);
-        File eqFile = new File(params.fixedArg(0));
-        File domainFile = new File(params.fixedArg(1));
-        File outputFile = new File(params.fixedArg(2));
-
-        Threshold domainOverlapConstraint = Threshold
-                .getConstraint(params.getAsString(ARG_DOMAINOVERLAP, "GT0.5"));
-        Threshold freqEstConstraint = Threshold
-                .getConstraint(params.getAsString(ARG_FREQEST, "GT0.1"));
-        BigDecimal supportFraction = params.getAsBigDecimal(ARG_SUPPORTFRAC, new BigDecimal("0.25"));
-        int threads = params.getAsInt(ARG_THREADS, 6);
-        
-        try {
-            EQIndex eqIndex = new EQIndex(eqFile);
-            IdentifiableObjectSet<Domain> localDomains;
-            localDomains = new DomainReader(domainFile).read();
-            new StrongDomainGenerator().run(
-                    eqIndex,
-                    localDomains,
-                    domainOverlapConstraint,
-                    freqEstConstraint,
-                    supportFraction,
-                    true,
-                    threads,
-                    new StrongDomainWriter(outputFile, localDomains)
-            );
-        } catch (java.lang.InterruptedException | java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
+            long execTime = end.getTime() - start.getTime();
+            _telemetry.add(TELEMETRY_ID, execTime);
         }
     }
 }

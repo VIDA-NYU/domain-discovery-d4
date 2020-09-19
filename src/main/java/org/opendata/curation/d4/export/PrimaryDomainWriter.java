@@ -45,7 +45,6 @@ public class PrimaryDomainWriter {
                         .getName()
                         .substring(0, file.getName().indexOf("."));
                 String domainName = null;
-                int columnCount = 0;
                 List<String> terms = new ArrayList<>();
                 try (JsonReader reader = new JsonReader(new FileReader(file))) {
                     reader.beginObject();
@@ -56,14 +55,6 @@ public class PrimaryDomainWriter {
                                 domainName = reader
                                         .nextString()
                                         .replaceAll(" ", "_");
-                                break;
-                            case "columns":
-                                reader.beginArray();
-                                while (reader.hasNext()) {
-                                    columnCount++;
-                                    reader.skipValue();
-                                }
-                                reader.endArray();
                                 break;
                             case "terms":
                                 reader.beginArray();
@@ -93,12 +84,7 @@ public class PrimaryDomainWriter {
                     reader.endObject();
                 }
                 Collections.sort(terms);
-                String filename = String.format(
-                        "%s-%d-%s.txt",
-                        domainId,
-                        columnCount,
-                        domainName
-                );
+                String filename = String.format("%s.%s.txt", domainId, domainName);
                 File outFile = FileSystem.joinPath(outputDir, filename);
                 try (PrintWriter out = FileSystem.openPrintWriter(outFile)) {
                     for (String term : terms) {

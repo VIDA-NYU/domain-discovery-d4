@@ -67,7 +67,8 @@ public class ParallelColumnExpander {
         private final SignatureBlocksStream _signatures;
         private final Threshold _threshold;
         private final SignatureTrimmerFactory _trimmerFactory;
-
+        private final boolean _verbose;
+        
         public ExpanderTask(
                 int id,
                 EQIndex nodes,
@@ -77,6 +78,7 @@ public class ParallelColumnExpander {
                 Threshold threshold,
                 BigDecimal decreaseFactor,
                 int numberOfIterations,
+                boolean verbose,
                 ExpandedColumnConsumer consumer
         ) {
             _id = id;
@@ -87,6 +89,7 @@ public class ParallelColumnExpander {
             _threshold = threshold;
             _decreaseFactor = decreaseFactor;
             _numberOfIterations = numberOfIterations;
+            _verbose = verbose;
             _consumer = consumer;
         }
         
@@ -121,15 +124,17 @@ public class ParallelColumnExpander {
                     dispatcher.add(trimmer);
                 }
                 round++;
-                LOGGER.log(
-                        Level.INFO,
-                        String.format(
-                                "%d ROUND %d WITH %d columns",
-                                _id,
-                                round,
-                                columns.size()
-                        )
-                );   
+                if (_verbose) {
+                    LOGGER.log(
+                            Level.INFO,
+                            String.format(
+                                    "%d ROUND %d WITH %d columns",
+                                    _id,
+                                    round,
+                                    columns.size()
+                            )
+                    );
+                }
                 try {
                     _signatures.stream(dispatcher);
                 } catch (java.io.IOException ex) {
@@ -152,15 +157,17 @@ public class ParallelColumnExpander {
 
             long execTime = end.getTime() - start.getTime();
             
-            LOGGER.log(
-                    Level.INFO,
-                    String.format(
-                            "%d DONE WITH %d COLUMNS IN %d ms",
-                            _id,
-                            _columns.size(),
-                            execTime
-                    )
-            );
+            if (_verbose) {
+                LOGGER.log(
+                        Level.INFO,
+                        String.format(
+                                "%d DONE WITH %d COLUMNS IN %d ms",
+                                _id,
+                                _columns.size(),
+                                execTime
+                        )
+                );
+            }
         }
     }
     
@@ -186,6 +193,7 @@ public class ParallelColumnExpander {
             BigDecimal decreaseFactor,
             int numberOfIterations,
             int threads,
+            boolean verbose,
             ExpandedColumnConsumerFactory consumerFactory
     ) {
         HashMap<String, ExpandedColumn> columnIndex = new HashMap<>();
@@ -217,29 +225,29 @@ public class ParallelColumnExpander {
         );
         Collections.reverse(columnList);
         
-        System.out.println(
-                String.format(
-                        "EXPAND %d COLUMNS IN %d GROUPS USING:\n" +
-                        "  --trimmer=%s\n" +
-                        "  --expandThreshold=%s\n" +
-                        "  --decrease=%s\n" +
-                        "  --iterations=%d\n" +
-                        "  --threads=%d",
-                        db.length(),
-                        columnList.size(),
-                        trimmer,
-                        threshold.toPlainString(),
-                        decreaseFactor.toPlainString(),
-                        numberOfIterations,
-                        threads
-                )
-        );
-        
         Date start = new Date();
-        LOGGER.log(Level.INFO, String.format("START @ %s", start));
-        
-        new MemUsagePrinter().print();
-        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "EXPAND %d COLUMNS IN %d GROUPS USING:\n" +
+                            "  --trimmer=%s\n" +
+                            "  --expandThreshold=%s\n" +
+                            "  --decrease=%s\n" +
+                            "  --iterations=%d\n" +
+                            "  --threads=%d",
+                            db.length(),
+                            columnList.size(),
+                            trimmer,
+                            threshold.toPlainString(),
+                            decreaseFactor.toPlainString(),
+                            numberOfIterations,
+                            threads
+                    )
+            );
+            LOGGER.log(Level.INFO, String.format("START @ %s", start));
+            new MemUsagePrinter().print();
+        }
+                
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
@@ -255,6 +263,7 @@ public class ParallelColumnExpander {
                     threshold,
                     decreaseFactor,
                     numberOfIterations,
+                    verbose,
                     consumerFactory.getConsumer(groups)
             );
             es.execute(expander);
@@ -267,11 +276,12 @@ public class ParallelColumnExpander {
         }
         
         Date end = new Date();
-        long execTime = end.getTime() - start.getTime();
-        _telemetry.add(TELEMETRY_ID, execTime);
         
-        LOGGER.log(Level.INFO, String.format("END @ %s", end));
-        
-        new MemUsagePrinter().print();
+        if (verbose) {
+            long execTime = end.getTime() - start.getTime();
+            _telemetry.add(TELEMETRY_ID, execTime);
+            LOGGER.log(Level.INFO, String.format("END @ %s", end));
+            new MemUsagePrinter().print();
+        }
     }
 }

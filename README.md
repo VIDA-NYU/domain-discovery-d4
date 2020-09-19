@@ -8,7 +8,7 @@ Data-Driven Domain Discovery (D4)
 
 D4 implements a data-driven domain discovery approach for collections of related tabular (structured) datasets. Given collection of datasets, D4 outputs  a set of domains discovered from the collection in a holistic fashion, by taking all the data into account.
 
-Similar to word embedding methods such as Word2Vec, D4 gathers contextual information for terms. But unlike these methods which aim to build context for terms in unstructured text, we aim to capture context for terms within columns in a set of tables. The intuition is that terms from the same domain frequently occur together in columns or at least with similar sets of terms. 
+Similar to word embedding methods such as Word2Vec, D4 gathers contextual information for terms. But unlike these methods which aim to build context for terms in unstructured text, we aim to capture context for terms within columns in a set of tables. The intuition is that terms from the same domain frequently occur together in columns or at least with similar sets of terms.
 
 Note: This repository merges the relevant parts of previously separated repositories [urban-data-core](https://github.com/VIDA-NYU/urban-data-core) and [urban-data-db](https://github.com/VIDA-NYU/urban-data-db).
 
@@ -37,7 +37,6 @@ Usage:
       Data preparation
       ----------------
       columns
-      text-columns
       term-index
       eqs
 
@@ -63,36 +62,27 @@ The first four commands are required for transforming the input datasets into th
 
 ```
 $> java -jar  /home/user/lib/D4.jar columns --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 columns
   --input=<directory> [default: 'tsv']
   --metadata=<file> [default: 'columns.tsv']
   --toupper=<boolean> [default: true]
+  --verbose=<boolean> [default: true]
   --output=<directory> [default: 'columns']
 ```
 
-**Identify Text Columns:** Domain discovery often focuses of textual values only. The text column identification step allows to identify those columns in the data collections that have (large) fraction of text values. The `threshold` parameter allows to control the fraction of text values a column has to have in order to be considered as a text column. By default, any columns with more than half of the distinct values being classified as text is considered a text column (GT0.5 = greater than 0.5).
-
-```
-$> java -jar  /home/user/lib/D4.jar text-columns --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
-
-text-columns
-  --input=<directory> [default: 'columns']
-  --threshold=<constraint> [default: 'GT0.5']
-  --output=<file> [default: 'text-columns.txt']
-```
-
-**Create Index of Unique Terms in the Data Collection:** The term index contains a list of unique terms across all columns in the collection. In this step the user has the option to consider only a subset of all columns in the collection (e.g., only those columns that were classified as text columns). If you want to consider all columns in the data collection you can skip the previous step and let the command line parameter `input` point the the directory that contains the column files that were generated in the first step.
+**Create Index of Unique Terms in the Data Collection:** The term index contains a list of unique terms across all columns in the collection. In this step the user has the option to consider only a subset of all columns in the collection (e.g., only those columns that were classified as text columns). The `--textThreshold` parameter specifies the fraction of distinct terms in a column that have to be classified as *text* for the column to be included in the term index..
 
 ```
 $> java -jar /home/user/lib/D4.jar term-index --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 term-index
   --input=<directory | file> [default: 'text-columns.txt']
+  --textThreshold=<constraint> [default: 'GT0.5']
   --membuffer=<int> [default: 10000000]
+  --verbose=<boolean> [default: true]
   --output=<file> [default: 'text-columns.txt']
 ```
 
@@ -100,10 +90,11 @@ term-index
 
 ```
 $> java -jar /home/user/lib/D4.jar eqs --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 eqs
   --input=<file> [default: 'term-index.txt.gz']
+  --verbose=<boolean> [default: true]
   --output=<file> [default: 'compressed-term-index.txt.gz']
 ```
 
@@ -115,11 +106,12 @@ D4 has three main steps: signature generation, column expansion, and domain disc
 
 ```
 $> java -jar /home/user/lib/D4.jar signatures --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 signatures
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
   --threads=<int> [default: 6]
+  --verbose=<boolean> [default: true]
   --signatures=<file> [default: 'signatures.txt.gz']
 ```
 
@@ -127,7 +119,7 @@ signatures
 
 ```
 $> java -jar /home/user/lib/D4.jar expand-columns --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 expand-columns
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
@@ -137,14 +129,23 @@ expand-columns
   --decrease=<double> [default: 0.05]
   --iterations=<int> [default: 5]
   --threads=<int> [default: 6]
+  --verbose=<boolean> [default: true]
   --columns=<file> [default: 'expanded-columns.txt.gz']
 ```
+
+Valid values for the `--trimmer`parameter are:
+
+- CONSERVATIVE
+- CENTRIST{:GT0.X | GEQ0.X}
+- LIBERAL
+
+The centrist trimmer accepts an optional threshold constraint to prune signature blocks with low significance. Some equivalence classes can have very large signature blocks. These block may overlap very small overlap with a column during the trimming process. When expanding with low expand threshold these large signature blocks can lead to thousands of terms being added to an expanded column. To avoid these cases use **CENTRIST:GT0.01**, for example. 
 
 **Local Domains:** This step derives from each column a set of domain candidates, called *local domains*. Local domains are clusters of terms in an (expanded) column that are likely to belong to the same type.
 
 ```
 $> java -jar /home/user/lib/D4.jar local-domains --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 local-domains
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
@@ -152,14 +153,15 @@ local-domains
   --signatures=<file> [default: 'signatures.txt.gz']
   --trimmer=<string> [default: CENTRIST]
   --threads=<int> [default: 6]
+  --verbose=<boolean> [default: true]
   --localdomains=<file> [default: 'local-domains.txt.gz']
 ```
 
-**Strong Domains:** In this step, D4 applies a data-driven approach to narrow down the set of local domains and create a smaller set of *strong domains* to be presented to the user.
+**Strong Domains:** In this step, D4 applies a data-driven approach to narrow down the set of local domains and create a smaller set of *strong domains* to be presented to the user. Strong domain are sets of local domains that provide support for each other based on overlap.
 
 ```
 $> java -jar /home/user/lib/D4.jar strong-domains --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 strong-domains
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
@@ -167,25 +169,82 @@ strong-domains
   --domainOverlap=<constraint> [default: 'GT0.5']
   --supportFraction=<double> [default: 0.25]
   --threads=<int> [default: 6]
+  --verbose=<boolean> [default: true]
   --strongdomains=<file> [default: 'strong-domains.txt.gz']
 ```
 
 
 ### Explore Results
 
-**Export Domains:** The discovered domains can be exported as JSON files for exploration. This step can be applied to either the local domains or strong domains (or any subset or combination of the domains in both steps). For each domain a separate file will be created in the output directory, containing the list of terms as well as the list of columns that the domain was assigned to.
+**Export Domains:** The discovered strong domains can be exported as JSON files for exploration. For each domain a separate file will be created in the output directory. The `--sampleSize` parameter controls the maximum number of terms that are included in the result for each equivalence class.
 
 ```
 $> java -jar /home/user/lib/D4.jar export --help
-D4 - Data-Driven Domain Discovery - Version (0.27.0)
+D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
-export
+export-domains
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
   --terms=<file> [default: 'term-index.txt.gz']
   --columns=<file> [default: 'columns.tsv']
   --domains=<file> [default: 'strong-domains.txt.gz']
+  --sampleSize=<int> [default: 100]
+  --writePrimary=<boolean> [default: true]
   --output=<direcory> [default: 'domains']
 ```
+
+Each output file contains (i) a domain name (derived from frequent tokens in the domain columns), (ii) the list of columns to which the strong domain is assigned, and (iii) the list of terms in the local domains that for the strong domain. Each term in the strong domain is assigned a weight which is computed based on the number of local domain that contain the term. Terms in the strong domain are grouped into blocks based on their weights. An example output file is shown below:
+
+```
+{
+  "name": "source",
+  "columns": [
+    {
+      "id": 2852,
+      "name": "source",
+      "dataset": "sftu-nd43"
+    },
+    {
+      "id": 3985,
+      "name": "source",
+      "dataset": "9dsr-3f97"
+    }
+  ],
+  "terms": [
+    [
+      {
+        "id": 41923498,
+        "name": "WEB PAGE",
+        "weight": "1.00000000"
+      },
+      {
+        "id": 33736409,
+        "name": "DBI",
+        "weight": "1.00000000"
+      },
+      {
+        "id": 33385994,
+        "name": "BSMPERMITS",
+        "weight": "1.00000000"
+      },
+      {
+        "id": 39231762,
+        "name": "STREETSPACEREQUEST",
+        "weight": "1.00000000"
+      }
+    ],
+    [
+      {
+        "id": 41923373,
+        "name": "WEB",
+        "weight": "0.50000000"
+      }
+    ]
+  ]
+}
+```
+
+ If the `--writePrimary` is set true `true` a second text file is created for each strong domain containing the terms in the first block of each strong domain.
+
 
 ## Evaluation Datasets
 

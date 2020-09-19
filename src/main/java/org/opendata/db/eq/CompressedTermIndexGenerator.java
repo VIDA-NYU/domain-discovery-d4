@@ -39,13 +39,15 @@ public class CompressedTermIndexGenerator implements TermConsumer {
     private final Counter _counter;
     private HashMap<String, MutableEQ> _eqIndex = null;
     private final PrintWriter _out;
+    private final boolean _verbose;
 
-    public CompressedTermIndexGenerator(PrintWriter out) {
+    public CompressedTermIndexGenerator(PrintWriter out, boolean verbose) {
 
         _out = out;
 
         _eqIndex = new HashMap<>();
         _counter = new Counter(0);
+        _verbose = verbose;
     }
 
     @Override
@@ -55,7 +57,9 @@ public class CompressedTermIndexGenerator implements TermConsumer {
             eq.write(_out);
         }
 
-        System.out.println("NUMBER OF EQUIVALENCE CLASSES IS " + _eqIndex.size());
+        if (_verbose) {
+            System.out.println("NUMBER OF EQUIVALENCE CLASSES IS " + _eqIndex.size());
+        }
     }
 
     @Override

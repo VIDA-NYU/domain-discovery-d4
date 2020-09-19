@@ -55,7 +55,7 @@ public class EQFileGenerator {
         
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
             new TermIndexReader(inputFile)
-                    .read(new CompressedTermIndexGenerator(out));
+                    .read(new CompressedTermIndexGenerator(out, true));
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, outputFile.getName(), ex);
             System.exit(-1);

@@ -90,7 +90,11 @@ public class TermIndexGenerator {
 
     private class TermFileMerger {
     
-        public int merge(TermSetIterator reader1, TermSetIterator reader2, OutputStream os) throws java.io.IOException {
+        public int merge(
+                TermSetIterator reader1,
+                TermSetIterator reader2,
+                OutputStream os
+        ) throws java.io.IOException {
 
             int lineCount = 0;
             
@@ -228,6 +232,7 @@ public class TermIndexGenerator {
             ValueColumnsReaderFactory readers,
             Threshold textThreshold,
             int bufferSize,
+            boolean verbose,
             File outputFile
     ) throws java.io.IOException {
         
@@ -263,6 +268,9 @@ public class TermIndexGenerator {
             if (!textThreshold.isSatisfied(textFrac)) {
                 continue;
             }
+            if (verbose) {
+                System.out.println(String.format("Include column %d", reader.columnId()));
+            }
             for (String term : columnValues) {
                 if (!termIndex.containsKey(term)) {
                     termIndex.put(term, new HashIDSet(reader.columnId()));
@@ -270,14 +278,16 @@ public class TermIndexGenerator {
                     termIndex.get(term).add(reader.columnId());
                 }
                 if (termIndex.size() > bufferSize) {
-                    System.out.println("WRITE AT COLUMN " + columnCount);
-                    writeTermIndex(termIndex, outputFile);
+                    if (verbose) {
+                        System.out.println("WRITE AT COLUMN " + columnCount);
+                    }
+                    writeTermIndex(termIndex, verbose, outputFile);
                     termIndex = new HashMap<>();
                 }
             }
         }
         if (!termIndex.isEmpty()) {
-            writeTermIndex(termIndex, outputFile);
+            writeTermIndex(termIndex, verbose, outputFile);
         }
         // Add unique term id and term data type information to terms in
         // current output file.
@@ -302,6 +312,7 @@ public class TermIndexGenerator {
             List<File> files,
             Threshold textThreshold,
             int bufferSize,
+            boolean verbose,
             File outputFile
     ) throws java.io.IOException {
         
@@ -315,12 +326,14 @@ public class TermIndexGenerator {
                 new ValueColumnsReaderFactory(files),
                 textThreshold,
                 bufferSize,
+                verbose,
                 outputFile
         );
     }
 
     private void writeTermIndex(
             HashMap<String, HashIDSet> termIndex,
+            boolean verbose,
             File outputFile
     ) throws java.io.IOException {
 
@@ -337,9 +350,13 @@ public class TermIndexGenerator {
                     );
                 }
             }
-            System.out.println("INITIAL FILE HAS " + termIndex.size() + " ROWS.");
+            if (verbose) {
+                System.out.println("INITIAL FILE HAS " + termIndex.size() + " ROWS.");
+            }
         } else {
-            System.out.println("MERGE " + termIndex.size() + " TERMS.");
+            if (verbose) {
+                System.out.println("MERGE " + termIndex.size() + " TERMS.");
+            }
             File tmpFile = File.createTempFile("tmp", outputFile.getName());
             int count = new TermFileMerger().merge(new TermFileReader(outputFile),
                     new TermSetReader(terms, termIndex),
@@ -351,9 +368,13 @@ public class TermIndexGenerator {
                     new CopyOption[]{StandardCopyOption.REPLACE_EXISTING}
             );
             Files.delete(tmpFile.toPath());
-            System.out.println("MERGED FILE HAS " + count + " ROWS.");
+            if (verbose) {
+                System.out.println("MERGED FILE HAS " + count + " ROWS.");
+            }
         }
         
-        new MemUsagePrinter().print("MEMORY USAGE");
+        if (verbose) {
+            new MemUsagePrinter().print("MEMORY USAGE");
+        }
     }
 }
