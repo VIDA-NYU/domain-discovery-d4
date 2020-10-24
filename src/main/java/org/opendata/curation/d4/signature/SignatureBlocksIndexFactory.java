@@ -28,6 +28,11 @@ public class SignatureBlocksIndexFactory implements SignatureBlocksConsumerFacto
 
     private SignatureBlocksConsumer _consumer = null;
     private SignatureBlocksIndex _signatures = null;
+
+    @Override
+    public void close() {
+
+    }
     
     @Override
     public SignatureBlocksConsumer getConsumer(int[] nodeSizes) {

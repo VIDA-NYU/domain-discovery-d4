@@ -80,8 +80,6 @@ public class SignatureBlocksGenerator {
         @Override
         public void run() {
 
-            _consumer.open();
-            
             Integer nodeId;
             while ((nodeId = _queue.poll()) != null) {
                 List<SignatureValue> sig;
@@ -114,8 +112,6 @@ public class SignatureBlocksGenerator {
                         )
                 );
             }
-            
-            _consumer.close();
         }
     }
 
@@ -174,6 +170,8 @@ public class SignatureBlocksGenerator {
         } catch (java.lang.InterruptedException ex) {
             throw new RuntimeException(ex);
         }
+        
+        consumerFactory.close();
         
         Date end = new Date();
         if (verbose) {

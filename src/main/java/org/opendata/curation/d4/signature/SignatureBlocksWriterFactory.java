@@ -18,11 +18,16 @@
 package org.opendata.curation.d4.signature;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
 import org.opendata.core.io.FileSystem;
 
 /**
- * Signature blocks writer factory.
+ * Signature blocks writer factory. Returns consumer that are open. Since this
+ * factory returns the same consumer multiple times if writing to a single file
+ * the calling method should not close the consumer but call the close method
+ * of this class instead at the end of processing.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
@@ -32,17 +37,30 @@ public class SignatureBlocksWriterFactory implements SignatureBlocksConsumerFact
     private final File _file;
     private SignatureBlocksConsumer _globalConsumer = null;
     private final boolean _outputToDir;
+    private List<SignatureBlocksConsumer> _openConsumer = null;
     
     public SignatureBlocksWriterFactory(File file, boolean outputToDir) {
         
         _file = file;
         _outputToDir = outputToDir;
         
+        _openConsumer = new ArrayList<>();
+        
         if (outputToDir) {
              FileSystem.createFolder(file);
         } else {
             FileSystem.createParentFolder(file);
         }        
+    }
+
+    @Override
+    public void close() {
+        
+        for (SignatureBlocksConsumer consumer : _openConsumer) {
+            consumer.close();
+        }
+        _globalConsumer = null;
+        _openConsumer = null;
     }
     
     @Override
@@ -51,16 +69,21 @@ public class SignatureBlocksWriterFactory implements SignatureBlocksConsumerFact
         if (_outputToDir) {
             String filename = "signature-blocks." + (_count++) + ".txt.gz";
             File outputFile = FileSystem.joinPath(_file, filename);
-            return new LiberalTrimmer(
-                        nodeSizes,
-                        new SignatureBlocksWriter(outputFile)
-                );
+            SignatureBlocksConsumer trimmer = new LiberalTrimmer(
+                    nodeSizes,
+                    new SignatureBlocksWriter(outputFile)
+            );
+            trimmer.open();
+            _openConsumer.add(trimmer);
+            return trimmer;
         } else {
             if (_globalConsumer == null) {
                 _globalConsumer = new LiberalTrimmer(
                     nodeSizes,
                     new SignatureBlocksWriter(_file)
                 );
+                _globalConsumer.open();
+                _openConsumer.add(_globalConsumer);
             }
             return _globalConsumer;
         }
