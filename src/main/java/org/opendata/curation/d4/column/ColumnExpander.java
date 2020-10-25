@@ -26,6 +26,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
+import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -87,7 +88,13 @@ public class ColumnExpander implements Runnable {
             if (!columnExpander.isDone()) {
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory
-                        .getTrimmer(column.originalNodes(), columnExpander);
+                        .getTrimmer(
+                                new MutableIdentifiableIDSet(
+                                        column.id(),
+                                        column.originalNodes()
+                                ),
+                                columnExpander
+                        );
                 dispatcher.add(trimmer);
                 expanders.add(columnExpander);
             } else {
@@ -124,7 +131,13 @@ public class ColumnExpander implements Runnable {
                     active.add(expander);
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(expander.column().nodes(), expander);
+                            .getTrimmer(
+                                    new MutableIdentifiableIDSet(
+                                            expander.column().id(),
+                                            expander.column().nodes()
+                                    ),
+                                    expander
+                            );
                     dispatcher.add(trimmer);
                 }
             }

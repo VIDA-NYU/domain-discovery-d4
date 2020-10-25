@@ -128,7 +128,6 @@ public class SignatureBlocksGenerator {
     }
     
     private void compute(
-            EQIndex nodeIndex,
             ContextSignatureGenerator sigFact,
             ConcurrentLinkedQueue<Integer> queue,
             CandidateSetFinder<SignatureValue> candidateFinder,
@@ -160,7 +159,7 @@ public class SignatureBlocksGenerator {
                             queue,
                             sigFact,
                             candidateFinder,
-                            consumerFactory.getConsumer(nodeIndex.nodeSizes())
+                            consumerFactory.getConsumer()
                     )
             );
         }
@@ -208,7 +207,6 @@ public class SignatureBlocksGenerator {
         candidateFinder = new ThresholdFinder<>(threshold);
 
         this.compute(
-                eqIndex,
                 new ContextSignatureGenerator(eqIndex.nodes()),
                 queue,
                 candidateFinder,
@@ -249,7 +247,6 @@ public class SignatureBlocksGenerator {
         );
 
         this.compute(
-                eqIndex,
                 new ContextSignatureGenerator(eqIndex.nodes()),
                 queue,
                 candidateFinder,

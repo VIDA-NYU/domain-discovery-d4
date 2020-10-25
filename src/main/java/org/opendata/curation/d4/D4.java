@@ -52,6 +52,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.SignatureBlocksWriterFactory;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQIndex;
@@ -152,6 +153,7 @@ public class D4 {
     
     public void signatures(
             EQIndex nodeIndex,
+            String trimmerSpec,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             int threads,
@@ -161,7 +163,11 @@ public class D4 {
     ) throws java.lang.InterruptedException, java.io.IOException {
         
         SignatureBlocksWriterFactory sigWriter;
-        sigWriter = new SignatureBlocksWriterFactory(outputFile, false);
+        sigWriter = new SignatureBlocksWriterFactory(
+                outputFile,
+                new SignatureTrimmerFactory(nodeIndex, nodeIndex.columns(), trimmerSpec),
+                false
+        );
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
@@ -367,6 +373,7 @@ public class D4 {
                                 "eqs",
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
+                        new Parameter("trimmer", "<string> [default: LIBERAL]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']")
@@ -374,6 +381,7 @@ public class D4 {
                     args
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            String trimmerSpec = params.getAsString("trimmer", SignatureTrimmer.LIBERAL);
             int threads = params.getAsInt("threads", 6);
             boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
@@ -382,6 +390,7 @@ public class D4 {
             try {
                 new D4().signatures(
                         new EQIndex(eqFile),
+                        trimmerSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,
                         threads,

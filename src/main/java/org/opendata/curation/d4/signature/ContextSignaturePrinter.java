@@ -102,6 +102,8 @@ public class ContextSignaturePrinter {
             }
             scores = new ArrayList<>();
         }
+        
+        PrecisionScore scoreFunc = new PrecisionScore(eqIndex);
         int start = 0;
         final int end = sig.size();
         int blockCount = 0;
@@ -123,15 +125,8 @@ public class ContextSignaturePrinter {
             blocks.add(block);
             Arrays.sort(block);
             if (column != null ) {
-                scores.add(
-                        this.score(
-                                blockCount,
-                                block,
-                                columnNodes,
-                                columnSize,
-                                nodeSizes
-                        )
-                );
+                BigDecimal score = scoreFunc.score(block, column.id());
+                scores.add(new IdentifiableDouble(blockCount, score));
             }
             String headline = "\n-- BLOCK " + blockCount + " (" + nodeCount + " NODES, " + termCount + " TERMS)";
             if (column != null) {
@@ -160,7 +155,7 @@ public class ContextSignaturePrinter {
             RobustSignatureIndex buffer = new RobustSignatureIndex();
             new LiberalTrimmer(
                     nodeSizes,
-                    new CentristTrimmer(column, nodeSizes, buffer)
+                    new CentristTrimmer(eqIndex, eqIndex.columns(), column, buffer)
             ).consume(new SignatureBlocksImpl(nodeId, BigDecimal.ONE, blocks));
             System.out.println("\nSIGNATURE BLOCKS FOR COLUMN " + column.id() + "\n");
             SignatureBlocks sigBlocks = buffer.get(nodeId);
@@ -181,46 +176,6 @@ public class ContextSignaturePrinter {
                 }
                 System.out.println();
             }
-        }
-    }
-
-    private IdentifiableDouble score(
-            int blockId,
-            int[] block,
-            int[] column,
-            int columnSize,
-            int[] nodeSizes
-    ) {
-        final int len1 = block.length;
-        final int len2 = column.length;
-        int idx1 = 0;
-        int idx2 = 0;
-        int blSize = 0;
-        int overlap = 0;
-        while ((idx1 < len1) && (idx2 < len2)) {
-            final int nodeId = block[idx1];
-            int comp = Integer.compare(nodeId, column[idx2]);
-            if (comp < 0) {
-                blSize += nodeSizes[nodeId];
-                idx1++;
-            } else if (comp > 0) {
-                idx2++;
-            } else {
-                int nodeSize = nodeSizes[nodeId];
-                blSize += nodeSize;
-                overlap += nodeSize;
-                idx1++;
-                idx2++;
-            }
-        }
-        while (idx1 < len1) {
-            blSize += nodeSizes[block[idx1++]];
-        }
-        if (overlap > 0) {
-            BigDecimal val = new PrecisionScore().relevance(columnSize, blSize, overlap);
-            return new IdentifiableDouble(blockId, val.doubleValue());
-        } else {
-            return new IdentifiableDouble(blockId, 0.0);
         }
     }
     

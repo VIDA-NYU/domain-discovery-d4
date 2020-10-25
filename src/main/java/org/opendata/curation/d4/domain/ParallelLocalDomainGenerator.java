@@ -33,6 +33,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.eq.EQIndex;
 
@@ -84,7 +85,8 @@ public class ParallelLocalDomainGenerator {
             dispatcher = new SignatureBlocksDispatcher();
             
             for (ExpandedColumn column : _columns) {
-                IDSet col = column.nodes();
+                MutableIdentifiableIDSet col;
+                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 SignatureBlocksConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
@@ -175,7 +177,7 @@ public class ParallelLocalDomainGenerator {
                     nodes,
                     columns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, trimmer),
+                    new SignatureTrimmerFactory(nodes, columnIndex.toColumns(), trimmer),
                     domains,
                     verbose
             );

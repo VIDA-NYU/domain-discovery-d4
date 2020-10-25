@@ -25,7 +25,7 @@ package org.opendata.curation.d4.signature;
 public interface SignatureBlocksConsumerFactory {
     
     public void close();
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes);
+    public SignatureBlocksConsumer getConsumer();
     public SignatureBlocksIndex signatures() throws java.io.IOException;
 
 }

@@ -20,8 +20,8 @@ package org.opendata.curation.d4.signature;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
 import org.opendata.core.io.FileSystem;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 
 /**
  * Signature blocks writer factory. Returns consumer that are open. Since this
@@ -36,12 +36,18 @@ public class SignatureBlocksWriterFactory implements SignatureBlocksConsumerFact
     private int _count = 0;
     private final File _file;
     private SignatureBlocksConsumer _globalConsumer = null;
+    private final SignatureTrimmerFactory _trimmerFactory;
     private final boolean _outputToDir;
     private List<SignatureBlocksConsumer> _openConsumer = null;
     
-    public SignatureBlocksWriterFactory(File file, boolean outputToDir) {
+    public SignatureBlocksWriterFactory(
+            File file,
+            SignatureTrimmerFactory trimmerFactory,
+            boolean outputToDir
+    ) {
         
         _file = file;
+        _trimmerFactory = trimmerFactory;
         _outputToDir = outputToDir;
         
         _openConsumer = new ArrayList<>();
@@ -64,13 +70,12 @@ public class SignatureBlocksWriterFactory implements SignatureBlocksConsumerFact
     }
     
     @Override
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes) {
+    public SignatureBlocksConsumer getConsumer() {
 
         if (_outputToDir) {
             String filename = "signature-blocks." + (_count++) + ".txt.gz";
             File outputFile = FileSystem.joinPath(_file, filename);
-            SignatureBlocksConsumer trimmer = new LiberalTrimmer(
-                    nodeSizes,
+            SignatureBlocksConsumer trimmer = _trimmerFactory.getTrimmer(
                     new SignatureBlocksWriter(outputFile)
             );
             trimmer.open();
@@ -78,8 +83,7 @@ public class SignatureBlocksWriterFactory implements SignatureBlocksConsumerFact
             return trimmer;
         } else {
             if (_globalConsumer == null) {
-                _globalConsumer = new LiberalTrimmer(
-                    nodeSizes,
+                _globalConsumer = _trimmerFactory.getTrimmer(
                     new SignatureBlocksWriter(_file)
                 );
                 _globalConsumer.open();

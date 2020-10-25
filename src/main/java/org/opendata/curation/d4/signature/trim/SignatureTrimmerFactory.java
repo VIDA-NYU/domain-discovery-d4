@@ -19,7 +19,9 @@ package org.opendata.curation.d4.signature.trim;
 
 import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -29,13 +31,34 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
+    private final IdentifiableObjectSet<Column> _columns;
     private final EQIndex _nodes;
     private final String _trimmerSpec;
     
-    public SignatureTrimmerFactory(EQIndex nodes, String trimmerSpec) {
-        
+    public SignatureTrimmerFactory(
+            EQIndex nodes,
+            IdentifiableObjectSet<Column> columns,
+            String trimmerSpec
+    ) {
         _nodes = nodes;
+        _columns = columns;
         _trimmerSpec = trimmerSpec;
+    }
+    
+    /**
+     * Create an instance for a signature trimmer that is column independent.
+     * 
+     * @param consumer
+     * @return 
+     */
+    public SignatureTrimmer getTrimmer(SignatureBlocksConsumer consumer) {
+        
+        if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
+            return new CentristBlockRelevanceFilter(_nodes, _columns, consumer);
+        } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {
+            return new LiberalTrimmer(_nodes.nodeSizes(), consumer);
+        }
+        throw new IllegalArgumentException(String.format("Invalid trimmer: %s", _trimmerSpec));
     }
     
     /**
@@ -46,18 +69,19 @@ public class SignatureTrimmerFactory {
      * @param consumer
      * @return 
      */
-    public SignatureTrimmer getTrimmer(IDSet column, SignatureBlocksConsumer consumer) {
+    public SignatureTrimmer getTrimmer(IdentifiableIDSet column, SignatureBlocksConsumer consumer) {
         
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
             return new ConservativeTrimmer(column, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
-            return new CentristTrimmer(column, _nodes.nodeSizes(), consumer);
+            return new CentristTrimmer(_nodes, _columns, column, consumer);
         } else if (_trimmerSpec.startsWith(SignatureTrimmer.CENTRIST)) {
             int pos = _trimmerSpec.indexOf(":");
             if (pos != -1) {
                 return new CentristTrimmer(
+                        _nodes,
+                        _columns,
                         column,
-                        _nodes.nodeSizes(),
                         Threshold.getConstraint(_trimmerSpec.substring(pos + 1)),
                         consumer
                 );                

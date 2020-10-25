@@ -27,19 +27,25 @@ import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
 public class SignatureBlocksIndexFactory implements SignatureBlocksConsumerFactory {
 
     private SignatureBlocksConsumer _consumer = null;
+    private final int[] _nodeSizes;
     private SignatureBlocksIndex _signatures = null;
 
+    public SignatureBlocksIndexFactory(int[] nodeSizes) {
+        
+        _nodeSizes = nodeSizes;
+    }
+    
     @Override
     public void close() {
 
     }
     
     @Override
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes) {
+    public SignatureBlocksConsumer getConsumer() {
 
         if (_consumer == null) {
             _signatures = new SignatureBlocksIndex();
-            _consumer = new LiberalTrimmer(nodeSizes, _signatures);
+            _consumer = new LiberalTrimmer(_nodeSizes, _signatures);
         }
         return _consumer;
     }

@@ -37,6 +37,7 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.column.Column;
@@ -120,7 +121,13 @@ public class ParallelColumnExpander {
                 for (SingleColumnExpander expander : columns) {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(expander.column().nodes(), expander);
+                            .getTrimmer(
+                                    new MutableIdentifiableIDSet(
+                                            expander.column().id(),
+                                            expander.column().nodes()
+                                    ),
+                                    expander
+                            );
                     dispatcher.add(trimmer);
                 }
                 round++;
@@ -259,7 +266,7 @@ public class ParallelColumnExpander {
                     nodes,
                     columns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, trimmer),
+                    new SignatureTrimmerFactory(nodes, nodes.columns(), trimmer),
                     threshold,
                     decreaseFactor,
                     numberOfIterations,

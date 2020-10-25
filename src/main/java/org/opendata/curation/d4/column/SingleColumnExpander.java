@@ -97,7 +97,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     private boolean _done = false;
     private int _expansionSize;
     private int _iteration;
-    private final int _maxNodeId;
     private final int[] _nodeSizes;
     private final int _numberOfIterations;
     private HashMap<Integer, SupportCounter> _support;
@@ -116,8 +115,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         _numberOfIterations = numberOfIterations;
         _decreaseFactor = decreaseFactor;
         _threshold = threshold;
-        
-        _maxNodeId = nodes.getMaxId();
         
         _done = (_numberOfIterations <= 0);
         _iteration = 0;
@@ -174,7 +171,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         
         for (int nodeId : _support.keySet()) {
             SupportCounter sup = _support.get(nodeId);
-            boolean added = false;
             BigDecimal orgSup = null;
             try {
                 orgSup = sup.originalSupport(_columnSize);
@@ -201,7 +197,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
                 if (_threshold.isSatisfied(overallSup)) {
                     expansionNodes.add(nodeId);
                     expansionSize += _nodeSizes[nodeId];
-                    added = true;
                 }
             }
         }
