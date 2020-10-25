@@ -29,6 +29,8 @@ import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
+import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.sort.DoubleValueDescSort;
@@ -100,6 +102,24 @@ public class CentristTrimmer extends SignatureTrimmer {
         );
     }
 
+    public CentristTrimmer(
+            IdentifiableIDSet column,
+            BlockScoreFunction scoreFunc
+    ) {
+    
+        this(
+                column,
+                scoreFunc,
+                new MaxDropFinder<>(
+                    new GreaterThanConstraint(BigDecimal.ZERO),
+                    false,
+                    false
+                ),
+                new ZeroThreshold(),
+                null
+        );
+    }
+
     @Override
     public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
 
@@ -116,5 +136,23 @@ public class CentristTrimmer extends SignatureTrimmer {
                 consumer.consume(new CentristSignature(sig, elements, dropIndex));
             }
         }
+    }
+
+    public IDSet trimmedBlocks(SignatureBlocks sig) {
+
+        List<IdentifiableDouble> elements = new ArrayList<>();
+        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+            final int[] block = sig.get(iBlock);
+            BigDecimal score = _scoreFunc.score(block, _columnId);
+            elements.add(new IdentifiableDouble(iBlock, score));
+        }
+        Collections.sort(elements, new DoubleValueDescSort());
+        int dropIndex = _dropFinder.getPruneIndex(elements);
+        
+        HashIDSet result = new HashIDSet();
+        for (int iEl = 0; iEl < dropIndex; iEl++) {
+            result.add(elements.get(iEl).id());
+        }
+        return result;
     }
 }
