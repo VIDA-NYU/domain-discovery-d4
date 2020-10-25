@@ -20,9 +20,10 @@ package org.opendata.curation.d4.signature;
 import java.io.BufferedReader;
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import org.opendata.core.io.FileSetReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.ArrayHelper;
 
 /**
  * Reader for a signature blocks file. Generates a stream of signature blocks
@@ -40,6 +41,27 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     public SignatureBlocksReader(File file) {
         
         this(file, false);
+    }
+    
+    public SignatureBlocksReader(List<File> files) {
+        
+        super(files, false);
+    }
+    
+    public static int[] getBlockNodes(String text) {
+        
+        String[] tokens = text.split(",");
+        int[] nodes = new int[tokens.length];
+        for (int iToken = 0; iToken < tokens.length; iToken++) {
+            String val = tokens[iToken];
+            int pos = val.indexOf(":");
+            if (pos != -1) {
+                val = val.substring(0, pos);
+            }
+            nodes[iToken] = Integer.parseInt(val);
+        }
+        Arrays.sort(nodes);
+        return nodes;
     }
     
     public SignatureBlocksIndex read() throws java.io.IOException {
@@ -61,7 +83,7 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
                     String[] tokens = line.split("\t");
                     int[][] blocks = new int[tokens.length - 2][];
                     for (int iToken = 2; iToken < tokens.length; iToken++) {
-                        blocks[iToken - 2] = ArrayHelper.arrayFromString(tokens[iToken]);
+                        blocks[iToken - 2] = this.getBlockNodes(tokens[iToken]);
                     }
                     SignatureBlocks sig = new SignatureBlocksImpl(
                             Integer.parseInt(tokens[0]),

@@ -142,7 +142,7 @@ public class CentristBlockUsageWriter {
     
     public static void main(String[] args) {
 
-        System.out.println("Centrist Overlap Writer - Version (" + Constants.VERSION + ")\n");
+        System.out.println("Centrist Block Usage Writer - Version (" + Constants.VERSION + ")\n");
         
         if (args.length != 4) {
             System.out.println(COMMAND);

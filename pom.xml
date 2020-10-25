@@ -74,7 +74,7 @@
                             <!--mainClass>org.opendata.db.tools.Dataset2ColumnsConverter</mainClass-->
                             <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
-                            <mainClass>org.opendata.curation.d4.explore.BlockColSim</mainClass>
+                            <mainClass>org.opendata.curation.d4.prov.CentristBlockUsageWriter</mainClass>
                       </manifest>
                    </archive>
                 </configuration>
