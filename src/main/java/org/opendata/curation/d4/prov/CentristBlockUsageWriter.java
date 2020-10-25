@@ -19,7 +19,6 @@ package org.opendata.curation.d4.prov;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,21 +27,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.HashObjectSet;
-import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.Constants;
-import org.opendata.curation.d4.column.ExpandedColumn;
-import org.opendata.curation.d4.column.ExpandedColumnIndex;
-import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.signature.ConcurrentSignatureBlocksStream;
 import org.opendata.curation.d4.signature.SignatureBlocks;
 import org.opendata.curation.d4.signature.trim.CentristTrimmer;
 import org.opendata.curation.d4.signature.trim.PrecisionScore;
-import org.opendata.db.Database;
 import org.opendata.db.column.Column;
-import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQIndex;
-import org.opendata.db.eq.Node;
 
 /**
  * For each signature count the blocks (and their size) for those blocks that
