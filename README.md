@@ -10,6 +10,13 @@ D4 implements a data-driven domain discovery approach for collections of related
 
 Similar to word embedding methods such as Word2Vec, D4 gathers contextual information for terms. But unlike these methods which aim to build context for terms in unstructured text, we aim to capture context for terms within columns in a set of tables. The intuition is that terms from the same domain frequently occur together in columns or at least with similar sets of terms.
 
+For more information about D4, please have a look at our paper [Data-Driven Domain Discovery for Structured Datasets](http://www.vldb.org/pvldb/vol13/p953-ota.pdf) at VLDB 2020:
+
+*Masayo Ota, Heiko Müller, Juliana Freire, and Divesh Srivastava*.
+**Data-driven domain discovery for structured datasets.**
+Proc. VLDB Endow. 13, 7 (March 2020), 953–967.
+DOI:https://doi.org/10.14778/3384345.3384346
+
 Note: This repository merges the relevant parts of previously separated repositories [urban-data-core](https://github.com/VIDA-NYU/urban-data-core) and [urban-data-db](https://github.com/VIDA-NYU/urban-data-db).
 
 
