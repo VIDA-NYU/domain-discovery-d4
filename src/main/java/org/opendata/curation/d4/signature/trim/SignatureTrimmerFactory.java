@@ -53,8 +53,8 @@ public class SignatureTrimmerFactory {
      */
     public SignatureTrimmer getTrimmer(SignatureBlocksConsumer consumer) {
         
-        if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
-            return new CentristBlockRelevanceFilter(_nodes, _columns, consumer);
+        if (_trimmerSpec.equals(SignatureTrimmer.COLSUPP)) {
+            return new ColumnSupportBlockFilter(_nodes,consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {
             return new LiberalTrimmer(_nodes.nodeSizes(), consumer);
         }
@@ -69,7 +69,10 @@ public class SignatureTrimmerFactory {
      * @param consumer
      * @return 
      */
-    public SignatureTrimmer getTrimmer(IdentifiableIDSet column, SignatureBlocksConsumer consumer) {
+    public SignatureTrimmer getTrimmer(
+            IdentifiableIDSet column,
+            SignatureBlocksConsumer consumer
+    ) {
         
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
             return new ConservativeTrimmer(column, consumer);

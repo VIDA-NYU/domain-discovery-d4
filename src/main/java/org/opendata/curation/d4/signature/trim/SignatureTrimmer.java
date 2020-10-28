@@ -35,6 +35,7 @@ public abstract class SignatureTrimmer implements SignatureBlocksConsumer {
      * Global variables for trimmer types
      */
     public final static String CENTRIST = "CENTRIST";
+    public final static String COLSUPP = "COLSUPP";
     public final static String CONSERVATIVE = "CONSERVATIVE";
     public final static String LIBERAL = "LIBERAL";
     
