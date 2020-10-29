@@ -33,6 +33,7 @@ public class SignatureTrimmerFactory {
     
     private final IdentifiableObjectSet<Column> _columns;
     private final EQIndex _nodes;
+    private PrecisionScore _scoreFunc = null;
     private final String _trimmerSpec;
     
     public SignatureTrimmerFactory(
@@ -77,14 +78,19 @@ public class SignatureTrimmerFactory {
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
             return new ConservativeTrimmer(column, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
-            return new CentristTrimmer(_nodes, _columns, column, consumer);
+            if (_scoreFunc == null) {
+                _scoreFunc = new PrecisionScore(_nodes, _columns);
+            }
+            return new CentristTrimmer(column, _scoreFunc, consumer);
         } else if (_trimmerSpec.startsWith(SignatureTrimmer.CENTRIST)) {
             int pos = _trimmerSpec.indexOf(":");
             if (pos != -1) {
+                if (_scoreFunc == null) {
+                    _scoreFunc = new PrecisionScore(_nodes, _columns);
+                }
                 return new CentristTrimmer(
-                        _nodes,
-                        _columns,
                         column,
+                        _scoreFunc,
                         Threshold.getConstraint(_trimmerSpec.substring(pos + 1)),
                         consumer
                 );                

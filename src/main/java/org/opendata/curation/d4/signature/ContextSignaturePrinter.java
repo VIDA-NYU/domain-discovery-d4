@@ -155,7 +155,7 @@ public class ContextSignaturePrinter {
             RobustSignatureIndex buffer = new RobustSignatureIndex();
             new LiberalTrimmer(
                     nodeSizes,
-                    new CentristTrimmer(eqIndex, eqIndex.columns(), column, buffer)
+                    new CentristTrimmer(column, new PrecisionScore(eqIndex, eqIndex.columns()), buffer)
             ).consume(new SignatureBlocksImpl(nodeId, BigDecimal.ONE, blocks));
             System.out.println("\nSIGNATURE BLOCKS FOR COLUMN " + column.id() + "\n");
             SignatureBlocks sigBlocks = buffer.get(nodeId);

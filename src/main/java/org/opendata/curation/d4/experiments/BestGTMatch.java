@@ -19,7 +19,6 @@ package org.opendata.curation.d4.experiments;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +27,7 @@ import org.opendata.core.metric.Precision;
 import org.opendata.core.metric.Recall;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
+import org.opendata.core.util.FormatedBigDecimal;
 
 /**
  *
@@ -54,26 +54,35 @@ public class BestGTMatch {
         File domainDir = new File(args[1]);
         boolean firstBlockOnly = Boolean.parseBoolean(args[2]);
         
+        System.out.println("DOMAIN\tPRECISION\tRECALL\tF1");
+
         try {
             List<MutableIdentifiableIDSet> domains;
             domains = new StrongDomainJsonReader().readAll(domainDir, firstBlockOnly);
             for (File file : gtDir.listFiles()) {
                 String name = file.getName().substring(0, file.getName().indexOf("."));
                 IDSet gt = new GTReader().read(file);
-                BigDecimal maxF1 = BigDecimal.ZERO;
+                BigDecimal[] bestMatch = new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
                 for (MutableIdentifiableIDSet domain : domains) {
                     int ovp = domain.overlap(gt);
                     if (ovp > 0) {
-                        BigDecimal f1 = new F1(
-                                new Precision(ovp, domain.length()),
-                                new Recall(ovp, gt.length())
-                        ).value();
-                        if (maxF1.compareTo(f1) < 0) {
-                            maxF1 = f1;
+                        Precision precision = new Precision(ovp, domain.length());
+                        Recall recall = new Recall(ovp, gt.length());
+                        BigDecimal f1 = new F1(precision, recall).value();
+                        if (bestMatch[2].compareTo(f1) < 0) {
+                            bestMatch = new BigDecimal[]{precision.value(), recall.value(), f1};
                         }
                     }
                 }
-                System.out.println(String.format("%s\t%s", name, maxF1.setScale(6, RoundingMode.HALF_DOWN).toPlainString()));
+                System.out.println(
+                        String.format(
+                                "%s\t%s\t%s\t%s",
+                                name,
+                                new FormatedBigDecimal(bestMatch[0]),
+                                new FormatedBigDecimal(bestMatch[1]),
+                                new FormatedBigDecimal(bestMatch[2])
+                        )
+                );
             }
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);

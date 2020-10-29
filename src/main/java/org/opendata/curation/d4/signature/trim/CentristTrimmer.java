@@ -32,10 +32,7 @@ import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.sort.DoubleValueDescSort;
-import org.opendata.db.column.Column;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Centrist signature blocks trimmer. The centrist trimmer uses a scoring
@@ -66,16 +63,15 @@ public class CentristTrimmer extends SignatureTrimmer {
     }
 
     public CentristTrimmer(
-            EQIndex eqIndex,
-            IdentifiableObjectSet<Column> columns,
             IdentifiableIDSet column,
+            BlockScoreFunction scoreFunc,
             Threshold nonEmptyConstraint,
             SignatureBlocksConsumer consumer
     ) {
     
         this(
                 column,
-                new PrecisionScore(eqIndex, columns),
+                scoreFunc,
                 new MaxDropFinder<>(
                     new GreaterThanConstraint(BigDecimal.ZERO),
                     false,
@@ -87,16 +83,14 @@ public class CentristTrimmer extends SignatureTrimmer {
     }
 
     public CentristTrimmer(
-            EQIndex eqIndex,
-            IdentifiableObjectSet<Column> columns,
             IdentifiableIDSet column,
+            BlockScoreFunction scoreFunc,
             SignatureBlocksConsumer consumer
     ) {
     
         this(
-                eqIndex,
-                columns,
                 column,
+                scoreFunc,
                 new ZeroThreshold(),
                 consumer
         );
@@ -110,12 +104,6 @@ public class CentristTrimmer extends SignatureTrimmer {
         this(
                 column,
                 scoreFunc,
-                new MaxDropFinder<>(
-                    new GreaterThanConstraint(BigDecimal.ZERO),
-                    false,
-                    false
-                ),
-                new ZeroThreshold(),
                 null
         );
     }

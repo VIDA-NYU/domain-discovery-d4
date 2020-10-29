@@ -252,7 +252,7 @@ public class ExportStrongDomains {
         
         System.out.println(Constants.NAME + " - Export Strong Domains - Version (" + Constants.VERSION + ")\n");
         
-        if (args.length != 5) {
+        if (args.length != 6) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
