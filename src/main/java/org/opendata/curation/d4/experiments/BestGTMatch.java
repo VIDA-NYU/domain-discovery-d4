@@ -54,7 +54,7 @@ public class BestGTMatch {
         File domainDir = new File(args[1]);
         boolean firstBlockOnly = Boolean.parseBoolean(args[2]);
         
-        System.out.println("DOMAIN\tPRECISION\tRECALL\tF1");
+        System.out.println("DOMAIN\tID\tPRECISION\tRECALL\tF1");
 
         try {
             List<MutableIdentifiableIDSet> domains;
@@ -62,7 +62,12 @@ public class BestGTMatch {
             for (File file : gtDir.listFiles()) {
                 String name = file.getName().substring(0, file.getName().indexOf("."));
                 IDSet gt = new GTReader().read(file);
-                BigDecimal[] bestMatch = new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+                BigDecimal[] bestMatch = new BigDecimal[]{
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO
+                };
+                int bestMatchID = -1;
                 for (MutableIdentifiableIDSet domain : domains) {
                     int ovp = domain.overlap(gt);
                     if (ovp > 0) {
@@ -70,14 +75,20 @@ public class BestGTMatch {
                         Recall recall = new Recall(ovp, gt.length());
                         BigDecimal f1 = new F1(precision, recall).value();
                         if (bestMatch[2].compareTo(f1) < 0) {
-                            bestMatch = new BigDecimal[]{precision.value(), recall.value(), f1};
+                            bestMatch = new BigDecimal[]{
+                                precision.value(),
+                                recall.value(),
+                                f1
+                            };
+                            bestMatchID = domain.id();
                         }
                     }
                 }
                 System.out.println(
                         String.format(
-                                "%s\t%s\t%s\t%s",
+                                "%s\t%d\t%s\t%s\t%s",
                                 name,
+                                bestMatchID,
                                 new FormatedBigDecimal(bestMatch[0]),
                                 new FormatedBigDecimal(bestMatch[1]),
                                 new FormatedBigDecimal(bestMatch[2])

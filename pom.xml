@@ -74,7 +74,8 @@
                             <!--mainClass>org.opendata.db.tools.Dataset2ColumnsConverter</mainClass-->
                             <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
-                            <mainClass>org.opendata.curation.d4.experiments.BestGTMatch</mainClass>
+                            <mainClass>org.opendata.curation.d4.experiments.BestGTLocalMatch</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.explore.ColumnLocalDomainPrinter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
                       </manifest>
                    </archive>
