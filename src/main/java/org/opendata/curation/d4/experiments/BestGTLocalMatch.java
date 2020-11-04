@@ -18,19 +18,17 @@
 package org.opendata.curation.d4.experiments;
 
 import java.io.File;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opendata.core.metric.F1;
 import org.opendata.core.metric.Precision;
 import org.opendata.core.metric.Recall;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.util.FormatedBigDecimal;
+import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.DomainReader;
 import org.opendata.db.eq.EQIndex;
@@ -42,17 +40,88 @@ import org.opendata.db.eq.EQIndex;
  */
 public class BestGTLocalMatch {
     
+    public void run(
+            EQIndex eqIndex,
+            HashMap<String, IDSet> groundTruths,
+            IdentifiableObjectSet<Domain> domains,
+            int k
+    ) {
+        
+        HashMap<String, BestMatch[]> bestMatches = new HashMap<>();
+        for (String key : groundTruths.keySet()) {
+            bestMatches.put(key, new BestMatch[k]);
+        }
+        
+        for (Domain domain : domains) {
+            HashIDSet terms = new HashIDSet();
+            for (int nodeId : domain) {
+                terms.add(eqIndex.get(nodeId).terms());
+                if (terms.length() > 100000) {
+                    break;
+                }
+            }
+            if (terms.length() > 100000) {
+                continue;
+            }
+            for (String key : groundTruths.keySet()) {
+                IDSet gt = groundTruths.get(key);
+                int ovp = terms.overlap(gt);
+                if (ovp > 0) {
+                    Precision precision = new Precision(ovp, terms.length());
+                    Recall recall = new Recall(ovp, gt.length());
+                    BestMatch match = new BestMatch(domain.id(), precision, recall);
+                    BestMatch[] gtMatches = bestMatches.get(key);
+                    for (int iMatch = 0; iMatch < gtMatches.length; iMatch++) {
+                        if (gtMatches[iMatch] == null) {
+                            gtMatches[iMatch] = match;
+                            break;
+                        } else if (gtMatches[iMatch].f1().compareTo(match.f1()) < 0) {
+                            for (int jMatch = gtMatches.length - 2; jMatch >= iMatch; jMatch--) {
+                                gtMatches[jMatch + 1] = gtMatches[jMatch];
+                            }
+                            gtMatches[iMatch] = match;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        List<String> names = new ArrayList<>(groundTruths.keySet());
+        Collections.sort(names);
+        for (String name : names) {
+            BestMatch[] gtMatches = bestMatches.get(name);
+            for (BestMatch match : gtMatches) {
+                if (match == null) {
+                    break;
+                }
+                System.out.println(
+                        String.format(
+                                "%s\t%d\t%s\t%s\t%s",
+                                name,
+                                match.domainId(),
+                                match.precision().toString(),
+                                match.recall().toString(),
+                                match.f1().toString()
+                        )
+                );
+            }
+        }
+    }
+
     private static final String COMMAND =
             "Usage:\n" +
             "  <eq-file>\n" +
             "  <gt-dir>\n" +
-            "  <local-domain-file>";
+            "  <local-domain-file>\n" +
+            "  <k>";
     
-    private static final Logger LOGGER = Logger.getLogger(BestGTLocalMatch.class.getName());
+    private static final Logger LOGGER = Logger
+            .getLogger(BestGTLocalMatch.class.getName());
     
     public static void main(String[] args) {
         
-        if (args.length != 3) {
+        if (args.length != 4) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
@@ -60,8 +129,9 @@ public class BestGTLocalMatch {
         File eqFile = new File(args[0]);
         File gtDir = new File(args[1]);
         File localDomainFile = new File(args[2]);
+        int k = Integer.parseInt(args[3]);
         
-        System.out.println("DOMAIN\tPRECISION\tRECALL\tF1");
+        System.out.println("GT\tID\tPRECISION\tRECALL\tF1");
 
         HashMap<String, IDSet> groundTruths = new HashMap<>();
         try {
@@ -75,63 +145,16 @@ public class BestGTLocalMatch {
             System.exit(-1);
         }
 
-        HashMap<String, BigDecimal[]> bestMatches = new HashMap<>();
-        for (String key : groundTruths.keySet()) {
-            BigDecimal[] matchInfo = new BigDecimal[]{
-                BigDecimal.ZERO,
-                BigDecimal.ZERO,
-                BigDecimal.ZERO
-            };
-            bestMatches.put(key, matchInfo);
-        }
-        
         try {
-            EQIndex eqIndex = new EQIndex(eqFile);
-            for (Domain domain : new DomainReader(localDomainFile).read()) {
-                HashIDSet terms = new HashIDSet();
-                for (int nodeId : domain) {
-                    terms.add(eqIndex.get(nodeId).terms());
-                    if (terms.length() > 100000) {
-                        break;
-                    }
-                }
-                if (terms.length() > 100000) {
-                    continue;
-                }
-                for (String key : groundTruths.keySet()) {
-                    IDSet gt = groundTruths.get(key);
-                    int ovp = terms.overlap(gt);
-                    if (ovp > 0) {
-                        Precision precision = new Precision(ovp, terms.length());
-                        Recall recall = new Recall(ovp, gt.length());
-                        BigDecimal f1 = new F1(precision, recall).value();
-                        BigDecimal[] bestMatch = bestMatches.get(key);
-                        if (bestMatch[2].compareTo(f1) < 0) {
-                            bestMatch[0] = precision.value();
-                            bestMatch[1] = recall.value();
-                            bestMatch[2] = f1;
-                        }
-                    }
-                }
-            }
+            new BestGTLocalMatch().run(
+                    new EQIndex(eqFile),
+                    groundTruths,
+                    new DomainReader(localDomainFile).read(),
+                    k
+            );
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);
-        }
-
-        List<String> names = new ArrayList<>(groundTruths.keySet());
-        Collections.sort(names);
-        for (String name : names) {
-            BigDecimal[] bestMatch = bestMatches.get(name);
-            System.out.println(
-                    String.format(
-                            "%s\t%s\t%s\t%s",
-                            name,
-                            new FormatedBigDecimal(bestMatch[0]),
-                            new FormatedBigDecimal(bestMatch[1]),
-                            new FormatedBigDecimal(bestMatch[2])
-                    )
-            );
         }
     }
 }
