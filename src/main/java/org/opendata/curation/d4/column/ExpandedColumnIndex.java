@@ -23,8 +23,9 @@ import java.util.List;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableIDSetWrapper;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
 
 /**
  * Create an unique index of expanded columns. Two expanded columns are
@@ -86,14 +87,19 @@ public class ExpandedColumnIndex implements ExpandedColumnConsumer {
         _columnMapping = new HashMap<>();
     }
     
-    public IdentifiableObjectSet<Column> toColumns() {
+    public IdentifiableObjectSet<IdentifiableIDSet> toColumns(boolean originalOnly) {
         
-        HashObjectSet<Column> result = new HashObjectSet<>();
+        HashObjectSet<IdentifiableIDSet> result = new HashObjectSet<>();
         
         for (ExpandedColumn column : _columnList) {
-            IDSet nodes = column.nodes();
+            IDSet nodes;
+            if (originalOnly) {
+                nodes = column.originalNodes();
+            } else {
+                nodes = column.nodes();
+            }
             for (int columnId : this.columns(column.id())) {
-                result.add(new Column(columnId, nodes));
+                result.add(new IdentifiableIDSetWrapper(columnId, nodes));
             }
         }
         

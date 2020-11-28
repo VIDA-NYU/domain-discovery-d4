@@ -19,7 +19,7 @@ package org.opendata.curation.d4.domain;
 
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.SimpleIdentifiableIDSet;
+import org.opendata.core.set.IdentifiableIDSetWrapper;
 
 /**
  * A domain is an identifiable object that has a list of column identifier and
@@ -29,7 +29,7 @@ import org.opendata.core.set.SimpleIdentifiableIDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class Domain extends SimpleIdentifiableIDSet implements IdentifiableIDSet {
+public class Domain extends IdentifiableIDSetWrapper implements IdentifiableIDSet {
     
     private final IDSet _columns;
     private int[] _nodes;

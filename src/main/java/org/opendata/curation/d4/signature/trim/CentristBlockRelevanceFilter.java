@@ -32,9 +32,9 @@ import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.sort.DoubleValueDescSort;
-import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -95,7 +95,7 @@ public class CentristBlockRelevanceFilter extends SignatureTrimmer {
 
     public CentristBlockRelevanceFilter(
             EQIndex eqIndex,
-            IdentifiableObjectSet<Column> columns,
+            IdentifiableObjectSet<IdentifiableIDSet> columns,
             SignatureBlocksConsumer consumer
     ) {
         

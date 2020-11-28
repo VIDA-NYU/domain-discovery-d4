@@ -19,8 +19,8 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -31,7 +31,7 @@ import org.opendata.db.eq.EQIndex;
  */
 public class MinJIScore extends BlockScoreFunction {
 
-    public MinJIScore(EQIndex eqIndex, IdentifiableObjectSet<Column> columns) {
+    public MinJIScore(EQIndex eqIndex, IdentifiableObjectSet<IdentifiableIDSet> columns) {
         
         super(eqIndex, columns);
     }

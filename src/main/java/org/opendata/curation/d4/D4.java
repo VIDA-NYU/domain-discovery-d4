@@ -54,6 +54,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.db.Database;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQIndex;
@@ -81,7 +82,7 @@ public class D4 {
             File outputFile
     ) throws java.io.IOException {
         
-        IdentifiableObjectSet<Column> db = nodeIndex.columns();
+        IdentifiableObjectSet<Column> db = new Database(nodeIndex).columns();
         new ParallelColumnExpander(telemetry).run(
                 nodeIndex,
                 signatures,
@@ -127,6 +128,7 @@ public class D4 {
             File columnsFile,
             SignatureBlocksReader signatures,
             String trimmer,
+            boolean originalOnly,
             int threads,
             boolean singleScan,
             boolean verbose,
@@ -142,6 +144,7 @@ public class D4 {
                     columnIndex,
                     signatures,
                     trimmer,
+                    originalOnly,
                     threads,
                     verbose,
                     new DomainWriter(outputFile)
@@ -152,6 +155,7 @@ public class D4 {
                 columnIndex,
                 signatures.read(),
                 trimmer,
+                originalOnly,
                 threads,
                 verbose,
                 new DomainWriter(outputFile)
@@ -479,6 +483,7 @@ public class D4 {
                                 "trimmer",
                                 "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
+                        new Parameter("originalonly", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("singlescan", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
@@ -493,6 +498,7 @@ public class D4 {
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
+            boolean originalOnly = params.getAsBool("originalonly", false);
             int threads = params.getAsInt("threads", 6);
             boolean singleScan = params.getAsBool("singlescan", false);
             boolean verbose = params.getAsBool("verbose", true);
@@ -503,6 +509,7 @@ public class D4 {
                         columnsFile,
                         new SignatureBlocksReader(signatureFile),
                         trimmer,
+                        originalOnly,
                         threads,
                         singleScan,
                         verbose,

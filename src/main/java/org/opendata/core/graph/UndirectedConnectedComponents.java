@@ -76,33 +76,10 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         }
     }
     
-    /**
-     * Get the connected component that contains the node with the given
-     * identifier.
-     * 
-     * @param nodeId
-     * @return 
-     */
-    private int getComponentForNode(int nodeId) {
-	
-        //if (!_nodes.contains(nodeId)) {
-        //    throw new RuntimeException("Unknown node identifier: " + nodeId);
-        //}
-        
-        // If the nodeId is not contained in the component map then the node
-        // is in the component that has the same identifier as the nodeId
-        //if (_componentMap.containsKey(nodeId)) {
-        //    return _componentMap.get(nodeId);
-        //} else {
-        //    return nodeId;
-        //}
-        return _componentMap[nodeId];
-    }
-    
     public synchronized void edge(int sourceId, int targetId) {	
         
-        int sourceCompId = this.getComponentForNode(sourceId);
-        int targetCompId = this.getComponentForNode(targetId);
+        int sourceCompId = _componentMap[sourceId];
+        int targetCompId = _componentMap[targetId];
 
         if (sourceCompId != targetCompId) {
             // The respective components may not have been instantiated yet.
@@ -165,6 +142,20 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
 	
         return result;
     }
+    
+    /**
+     * Test if all nodes belong to the same single component.
+     * 
+     * @return 
+     */
+    public boolean isComplete() {
+       
+        if (_components.size() == 1) {
+            int compSize = _components.values().iterator().next().size();
+            return (compSize == _nodes.length());
+        }
+        return false;
+    }
 
     private void merge(
             HashSet<Integer> target,
@@ -179,12 +170,5 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         }
         
         _components.remove(sourceCompId);
-    }
-
-    public synchronized boolean nodesAreInSameComponent(int node1, int node2) {
-        
-        int comp1 = this.getComponentForNode(node1);
-        int comp2 = this.getComponentForNode(node2);
-        return (comp1 == comp2);
     }
 }

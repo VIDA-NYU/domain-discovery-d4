@@ -19,8 +19,8 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -36,7 +36,7 @@ public abstract class BlockScoreFunction {
     
     public BlockScoreFunction(
             EQIndex eqIndex,
-            IdentifiableObjectSet<Column> columns
+            IdentifiableObjectSet<IdentifiableIDSet> columns
     ) {
         
         _nodeSize = eqIndex.nodeSizes();
@@ -44,7 +44,7 @@ public abstract class BlockScoreFunction {
         _columns = new HashMap<>();
         _columnSize = new HashMap<>();
         
-        for (Column column : columns) {
+        for (IdentifiableIDSet column : columns) {
             _columns.put(column.id(), column.toArray());
             int size = 0;
             for (int nodeId : column) {

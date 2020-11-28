@@ -127,6 +127,7 @@ public class MultiScanLocalDomainGenerator {
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
             String trimmer,
+            boolean originalOnly,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -146,7 +147,11 @@ public class MultiScanLocalDomainGenerator {
         queue = new ConcurrentLinkedQueue<>(columnIndex.columns());
         
         SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(nodes, columnIndex.toColumns(), trimmer);
+        trimmerFactory = new SignatureTrimmerFactory(
+                nodes,
+                columnIndex.toColumns(originalOnly),
+                trimmer
+        );
         
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainGeneratorTask task = new DomainGeneratorTask(

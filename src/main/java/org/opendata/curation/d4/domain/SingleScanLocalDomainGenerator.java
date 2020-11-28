@@ -135,6 +135,7 @@ public class SingleScanLocalDomainGenerator {
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
             String trimmer,
+            boolean originalOnly,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -169,6 +170,13 @@ public class SingleScanLocalDomainGenerator {
             );
         }
         
+        SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
+                nodes,
+                columnIndex.toColumns(originalOnly),
+                trimmer
+        );
+
+        
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
@@ -179,7 +187,7 @@ public class SingleScanLocalDomainGenerator {
                     nodes,
                     columns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, columnIndex.toColumns(), trimmer),
+                    trimmerFactory,
                     domains,
                     verbose
             );

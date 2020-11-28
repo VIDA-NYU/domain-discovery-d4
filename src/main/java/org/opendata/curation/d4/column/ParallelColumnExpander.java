@@ -35,7 +35,9 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
@@ -255,18 +257,21 @@ public class ParallelColumnExpander {
             new MemUsagePrinter().print();
         }
                 
+        SignatureTrimmerFactory trimmerFactory;
+        trimmerFactory = new SignatureTrimmerFactory(nodes, nodes.columns(), trimmer);
+        
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
-            List<ExpandedColumn> columns = new ArrayList<>();
+            List<ExpandedColumn> taskColumns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
-                columns.add(columnList.get(iCol));
+                taskColumns.add(columnList.get(iCol));
             }
             ExpanderTask expander = new ExpanderTask(
                     iThread,
                     nodes,
-                    columns,
+                    taskColumns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, nodes.columns(), trimmer),
+                    trimmerFactory,
                     threshold,
                     decreaseFactor,
                     numberOfIterations,

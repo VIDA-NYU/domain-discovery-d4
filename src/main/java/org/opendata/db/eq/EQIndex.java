@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.prune.SizeFunction;
 import org.opendata.core.set.HashObjectSet;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.count.IdentifiableCount;
 import org.opendata.core.util.count.IdentifiableCounterSet;
@@ -63,9 +64,13 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
         return values;
     }
     
-    public IdentifiableObjectSet<Column> columns() {
+    public IdentifiableObjectSet<IdentifiableIDSet> columns() {
         
-        return new Database(this).columns();
+        HashObjectSet<IdentifiableIDSet> columns = new HashObjectSet<>();
+        for (Column column : new Database(this).columns()) {
+            columns.add(column);
+        }
+        return columns;
     }
 
     @Override

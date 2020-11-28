@@ -77,6 +77,9 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
                     }
                 }
             }
+            if (this.isComplete()) {
+                
+            }
         }
     }
 

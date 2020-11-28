@@ -21,7 +21,6 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -31,14 +30,14 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
-    private final IdentifiableObjectSet<Column> _columns;
+    private final IdentifiableObjectSet<IdentifiableIDSet> _columns;
     private final EQIndex _nodes;
     private PrecisionScore _scoreFunc = null;
     private final String _trimmerSpec;
     
     public SignatureTrimmerFactory(
             EQIndex nodes,
-            IdentifiableObjectSet<Column> columns,
+            IdentifiableObjectSet<IdentifiableIDSet> columns,
             String trimmerSpec
     ) {
         _nodes = nodes;
