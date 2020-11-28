@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
@@ -86,7 +87,6 @@ public class MultiScanLocalDomainGenerator {
 
             ExpandedColumn column;
             while ((column = _columns.poll()) != null) {
-                System.out.print(column.id() + " (" + column.totalSize() + "): " + new Date());
                 MutableIdentifiableIDSet col;
                 col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 SignatureBlocksConsumer domainGenerator;
@@ -97,11 +97,14 @@ public class MultiScanLocalDomainGenerator {
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
+                Date runStart = new Date();
                 try {
                     _signatures.stream(trimmer);
                 } catch (java.io.IOException ex) {
                     throw new RuntimeException(ex);
                 }
+                Date runEnd = new Date();
+                System.out.println(column.id() + " (" + column.totalSize() + "): " + (runEnd.getTime() - runStart.getTime()) + " ms");
             }
             
             Date end = new Date();
@@ -161,7 +164,20 @@ public class MultiScanLocalDomainGenerator {
         );
 
         if (verbose) {
-            System.out.println("START @ " + start);
+            System.out.println(
+                    String.format(
+                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
+                            "  --trimmer=%s\n" +
+                            "  --originalonly=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --singlescan=false",
+                            columnList.size(),
+                            trimmer,
+                            Boolean.toString(originalOnly),
+                            threads
+                    )
+            );
+            System.out.println(String.format("START @ %s", start));
             new MemUsagePrinter().print();
         }
         

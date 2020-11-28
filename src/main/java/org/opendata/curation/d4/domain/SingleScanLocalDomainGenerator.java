@@ -144,18 +144,32 @@ public class SingleScanLocalDomainGenerator {
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
         Date start = new Date();
-        if (verbose) {
-            System.out.println("START @ " + start);
-        }
-        
-        ExecutorService es = Executors.newCachedThreadPool();
-        
+
         // Sort column in decreasing number of nodes
         List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
         Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
         Collections.reverse(columnList);
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
+                            "  --trimmer=%s\n" +
+                            "  --originalonly=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --singlescan=false",
+                            columnList.size(),
+                            trimmer,
+                            Boolean.toString(originalOnly),
+                            threads
+                    )
+            );
+            System.out.println("START @ " + start);
+        }
+        
+        ExecutorService es = Executors.newCachedThreadPool();
         
         if (verbose) {
             System.out.println(

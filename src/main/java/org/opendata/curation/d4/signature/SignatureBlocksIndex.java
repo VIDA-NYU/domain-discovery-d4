@@ -82,7 +82,6 @@ public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, Signatur
         for (SignatureBlocks sig : _signatures) {
             consumer.consume(sig);
             if (consumer.isDone()) {
-                System.out.println("Terminate early");
                 break;
             }
         }
