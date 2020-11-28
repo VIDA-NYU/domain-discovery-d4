@@ -15,32 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.experiments;
-
-import java.io.BufferedReader;
-import java.io.File;
-import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
+package org.opendata.db.eq;
 
 /**
- * Read set of term identifier for all terms in a ground-truth domain.
+ * Factory for equivalence classes that parse column and term lists in a lazy
+ * fashion.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class GTReader {
-    
-    public IDSet read(File file) throws java.io.IOException {
+public class LazyParseEQFactory implements EQFactory {
+
+    @Override
+    public EQ parse(String text) {
         
-        HashIDSet terms = new HashIDSet();
-        
-        try (BufferedReader in = FileSystem.openReader(file)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                terms.add(Integer.parseInt(line.split("\t")[1]));
-            }
-        }
-        
-        return terms;
+        String[] tokens = text.split("\t");
+        return new LazyParseEQ(Integer.parseInt(tokens[0]), tokens[1], tokens[2]);
     }
 }

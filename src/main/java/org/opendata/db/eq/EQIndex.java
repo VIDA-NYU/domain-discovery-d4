@@ -37,6 +37,11 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
 
     private int[] _nodeSizes = null;
     
+    public EQIndex(File eqFile, EQFactory factory) throws java.io.IOException {
+        
+        super(new EQReader(eqFile, factory).read());
+    }
+    
     public EQIndex(File eqFile) throws java.io.IOException {
         
         super(new EQReader(eqFile).read());

@@ -15,17 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.db.eq;
+
+import java.io.File;
 
 /**
- * Factory pattern for signature blocks consumers.
+ * Equivalence class index for lazy parse classes.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksConsumerFactory {
+public class LazyParseEQIndex extends EQIndex {
     
-    public void close();
-    public SignatureBlocksConsumer getConsumer();
-    public SignatureBlocksIndex signatures() throws java.io.IOException;
-
+    public LazyParseEQIndex(File eqFile) throws java.io.IOException {
+        
+        super(eqFile, new LazyParseEQFactory());
+    }
 }

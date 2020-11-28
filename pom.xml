@@ -70,12 +70,14 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <!--mainClass>org.opendata.curation.d4.D4</mainClass-->
+                            <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.signature.SignatureBlocksStats</mainClass-->
                             <!--mainClass>org.opendata.db.tools.Dataset2ColumnsConverter</mainClass-->
                             <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
-                            <mainClass>org.opendata.curation.d4.experiments.BestGTLocalMatch</mainClass>
-                            <!--mainClass>org.opendata.curation.d4.explore.ColumnLocalDomainPrinter</mainClass-->
+                            <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
+                            <!--mainClass>org.opendata.curation.d4.experiments.BestGTLocalMatch</mainClass-->
+                            <!--mainClass>org.opendata.curation.d4.explore.GTDisjointTermsPrinter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
                       </manifest>
                    </archive>

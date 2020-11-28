@@ -15,32 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.experiments;
-
-import java.io.BufferedReader;
-import java.io.File;
-import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
+package org.opendata.db.eq;
 
 /**
- * Read set of term identifier for all terms in a ground-truth domain.
+ * Factory pattern for creating equivalence class objects from string
+ * representations.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class GTReader {
+public interface EQFactory {
     
-    public IDSet read(File file) throws java.io.IOException {
-        
-        HashIDSet terms = new HashIDSet();
-        
-        try (BufferedReader in = FileSystem.openReader(file)) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                terms.add(Integer.parseInt(line.split("\t")[1]));
-            }
-        }
-        
-        return terms;
-    }
+    public EQ parse(String text);
 }

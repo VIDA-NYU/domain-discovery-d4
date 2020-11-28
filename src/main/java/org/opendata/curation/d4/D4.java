@@ -34,7 +34,7 @@ import org.opendata.curation.d4.column.ParallelColumnExpander;
 import org.opendata.curation.d4.domain.DomainReader;
 import org.opendata.curation.d4.domain.DomainSetStatsPrinter;
 import org.opendata.curation.d4.domain.DomainWriter;
-import org.opendata.curation.d4.domain.ParallelLocalDomainGenerator;
+import org.opendata.curation.d4.domain.SingleScanLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
@@ -43,6 +43,7 @@ import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.domain.Domain;
+import org.opendata.curation.d4.domain.MultiScanLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.domain.StrongDomainWriter;
@@ -50,7 +51,7 @@ import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.export.PrimaryDomainWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
-import org.opendata.curation.d4.signature.SignatureBlocksWriterFactory;
+import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.column.Column;
@@ -124,9 +125,10 @@ public class D4 {
     public void localDomains(
             EQIndex nodeIndex,
             File columnsFile,
-            SignatureBlocksStream signatures,
+            SignatureBlocksReader signatures,
             String trimmer,
             int threads,
+            boolean singleScan,
             boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
@@ -134,15 +136,27 @@ public class D4 {
         
         ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
         new ExpandedColumnReader(columnsFile).stream(columnIndex);
-        new ParallelLocalDomainGenerator(telemetry).run(
+        if (singleScan) {
+            new SingleScanLocalDomainGenerator(telemetry).run(
+                    nodeIndex,
+                    columnIndex,
+                    signatures,
+                    trimmer,
+                    threads,
+                    verbose,
+                    new DomainWriter(outputFile)
+            );
+        } else {
+            new MultiScanLocalDomainGenerator(telemetry).run(
                 nodeIndex,
                 columnIndex,
-                signatures,
+                signatures.read(),
                 trimmer,
                 threads,
                 verbose,
                 new DomainWriter(outputFile)
         );
+        }
 
         if (verbose) {
             DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
@@ -162,12 +176,7 @@ public class D4 {
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        SignatureBlocksWriterFactory sigWriter;
-        sigWriter = new SignatureBlocksWriterFactory(
-                outputFile,
-                new SignatureTrimmerFactory(nodeIndex, nodeIndex.columns(), trimmerSpec),
-                false
-        );
+        SignatureBlocksWriter sigWriter = new SignatureBlocksWriter(outputFile);
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
@@ -175,7 +184,8 @@ public class D4 {
                 ignoreLastDrop,
                 threads,
                 verbose,
-                sigWriter
+                new SignatureTrimmerFactory(nodeIndex, nodeIndex.columns(), trimmerSpec)
+                        .getTrimmer(sigWriter)
         );
 
         if (verbose) {
@@ -470,6 +480,7 @@ public class D4 {
                                 "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
                         new Parameter("threads", "<int> [default: 6]"),
+                        new Parameter("singlescan", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter(
                                 "localdomains",
@@ -483,6 +494,7 @@ public class D4 {
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             int threads = params.getAsInt("threads", 6);
+            boolean singleScan = params.getAsBool("singlescan", false);
             boolean verbose = params.getAsBool("verbose", true);
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
             try {
@@ -492,6 +504,7 @@ public class D4 {
                         new SignatureBlocksReader(signatureFile),
                         trimmer,
                         threads,
+                        singleScan,
                         verbose,
                         new TelemetryPrinter(),
                         localDomainFile

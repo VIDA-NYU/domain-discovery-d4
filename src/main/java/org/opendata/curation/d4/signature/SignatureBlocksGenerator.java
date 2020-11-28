@@ -133,7 +133,7 @@ public class SignatureBlocksGenerator {
             CandidateSetFinder<SignatureValue> candidateFinder,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumerFactory consumerFactory
+            SignatureBlocksConsumer consumer
     ) throws java.lang.InterruptedException, java.io.IOException {
 
         if (verbose) {
@@ -152,6 +152,8 @@ public class SignatureBlocksGenerator {
             System.out.println("START @ " + start);
         }
         
+        consumer.open();
+        
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
             es.execute(
@@ -159,7 +161,7 @@ public class SignatureBlocksGenerator {
                             queue,
                             sigFact,
                             candidateFinder,
-                            consumerFactory.getConsumer()
+                            consumer
                     )
             );
         }
@@ -170,7 +172,7 @@ public class SignatureBlocksGenerator {
             throw new RuntimeException(ex);
         }
         
-        consumerFactory.close();
+        consumer.close();
         
         Date end = new Date();
         if (verbose) {
@@ -190,7 +192,7 @@ public class SignatureBlocksGenerator {
      * @param threshold
      * @param threads
      * @param verbose
-     * @param consumerFactory
+     * @param consumer
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
      */
@@ -200,7 +202,7 @@ public class SignatureBlocksGenerator {
             Threshold threshold,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumerFactory consumerFactory
+            SignatureBlocksConsumer consumer
     ) throws java.lang.InterruptedException, java.io.IOException {
         
         ThresholdFinder<SignatureValue> candidateFinder;
@@ -212,7 +214,7 @@ public class SignatureBlocksGenerator {
                 candidateFinder,
                 threads,
                 verbose,
-                consumerFactory
+                consumer
         );
     }
     
@@ -225,7 +227,7 @@ public class SignatureBlocksGenerator {
      * @param ignoreLastDrop
      * @param threads
      * @param verbose
-     * @param consumerFactory
+     * @param consumer
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
      */
@@ -236,7 +238,7 @@ public class SignatureBlocksGenerator {
             boolean ignoreLastDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumerFactory consumerFactory
+            SignatureBlocksConsumer consumer
     ) throws java.lang.InterruptedException, java.io.IOException {
 
         MaxDropFinder<SignatureValue> candidateFinder;
@@ -252,7 +254,43 @@ public class SignatureBlocksGenerator {
                 candidateFinder,
                 threads,
                 verbose,
-                consumerFactory
+                consumer
+        );
+    }
+    
+    /**
+     * Generate signature blocks using consecutive steepest drops.
+     * 
+     * @param eqIndex
+     * @param queue
+     * @param threads
+     * @param verbose
+     * @param consumer
+     * @throws java.lang.InterruptedException
+     * @throws java.io.IOException 
+     */
+    public void runWithMaxDrop(
+            EQIndex eqIndex,
+            ConcurrentLinkedQueue<Integer> queue,
+            int threads,
+            boolean verbose,
+            SignatureBlocksConsumer consumer
+    ) throws java.lang.InterruptedException, java.io.IOException {
+
+        MaxDropFinder<SignatureValue> candidateFinder;
+        candidateFinder = new MaxDropFinder<>(
+                new GreaterThanConstraint(BigDecimal.ZERO),
+                false,
+                true
+        );
+
+        this.compute(
+                new ContextSignatureGenerator(eqIndex.nodes()),
+                queue,
+                candidateFinder,
+                threads,
+                verbose,
+                consumer
         );
     }
 }

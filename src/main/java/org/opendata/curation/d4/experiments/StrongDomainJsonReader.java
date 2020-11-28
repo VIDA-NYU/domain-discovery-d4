@@ -24,6 +24,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.IDSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 
 /**
@@ -60,6 +61,30 @@ public class StrongDomainJsonReader {
         }
         return new MutableIdentifiableIDSet(domainId, terms);
     }
+ 
+    public List<IDSet> readBlocks(File file) throws java.io.IOException {
+        
+        JsonArray blocks;
+        blocks = new JsonParser()
+                .parse(new FileReader(file))
+                .getAsJsonObject()
+                .get("terms")
+                .getAsJsonArray();
+        
+        int domainId = Integer.parseInt(file.getName().substring(0, file.getName().indexOf(".")));
+        List<IDSet> terms = new ArrayList<>();
+        
+        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
+            JsonArray block = blocks.get(iBlock).getAsJsonArray();
+            HashIDSet blockTerms = new HashIDSet();
+            for (int iTerm = 0; iTerm < block.size(); iTerm++) {
+                int termId = block.get(iTerm).getAsJsonObject().get("id").getAsInt();
+                blockTerms.add(termId);
+            }
+            terms.add(blockTerms);
+        }
+        return terms;
+    }
     
     public List<MutableIdentifiableIDSet> readAll(
             File inputDir,
@@ -71,6 +96,19 @@ public class StrongDomainJsonReader {
         for (File file : inputDir.listFiles()) {
             if (file.getName().endsWith(".json")) {
                 domains.add(this.read(file, firstBlockOnly));
+            }
+        }
+        
+        return domains;
+    }
+    
+    public List<List<IDSet>> readAllBlocks(File inputDir) throws java.io.IOException {
+
+        List<List<IDSet>> domains = new ArrayList<>();
+        
+        for (File file : inputDir.listFiles()) {
+            if (file.getName().endsWith(".json")) {
+                domains.add(this.readBlocks(file));
             }
         }
         

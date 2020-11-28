@@ -15,11 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.curation.d4.explore;
 
+import org.opendata.curation.d4.signature.*;
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +32,7 @@ import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;
@@ -38,7 +42,20 @@ import org.opendata.db.term.TermIndexReader;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ContextSignaturePrinter {
+public class CosineSimContextSignaturePrinter {
+    
+    private static double cosineSimilarity(double[] v1, double[] v2) {
+        
+        double sum = 0;
+        double a = 0;
+        double b = 0;
+        for (int i = 0; i < v1.length; i++) {
+            sum += (v1[i] * v2[i]);
+            a += (v1[i] * v1[i]);
+            b += (v2[i] * v2[i]);
+        }
+        return sum / (Math.sqrt(a) * Math.sqrt(b));
+    }
     
     public void print(
             EQIndex eqIndex,
@@ -55,10 +72,24 @@ public class ContextSignaturePrinter {
                 ignoreLastDrop
         );
 
-        List<SignatureValue> sig;
-        sig = new ContextSignatureGenerator(eqIndex.nodes())
-                .getSignature(nodeId)
-                .rankedElements();
+        ContextSignatureGenerator sigGen;
+        sigGen = new ContextSignatureGenerator(eqIndex.nodes());
+        List<SignatureValue> sigElements = sigGen.getSignature(nodeId).elements();
+        
+        double[] contextSig = new double[eqIndex.length()];
+        for (SignatureValue val : sigElements) {
+            contextSig[val.id()] = val.value();
+        }
+        
+        List<SignatureValue> sig = new ArrayList<>();
+        for (SignatureValue val : sigElements) {
+            double[] elSig = new double[eqIndex.length()];
+            for (SignatureValue v : sigGen.getSignature(val.id()).elements()) {
+                elSig[val.id()] = v.value();
+            }
+            sig.add(new SignatureValue(val.id(), cosineSimilarity(contextSig, elSig)));
+        }
+        Collections.sort(sig, new DoubleValueDescSort<>());
         
         HashIDSet nodeFilter = new HashIDSet();
         for (SignatureValue el : sig) {
@@ -122,7 +153,7 @@ public class ContextSignaturePrinter {
             "  <node-id>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(ContextSignaturePrinter.class.getName());
+            .getLogger(CosineSimContextSignaturePrinter.class.getName());
     
     public static void main(String[] args) {
         
@@ -144,7 +175,7 @@ public class ContextSignaturePrinter {
         try {
             // Read the node index
             EQIndex nodeIndex = new EQIndex(eqFile);
-            new ContextSignaturePrinter().print(
+            new CosineSimContextSignaturePrinter().print(
                     nodeIndex,
                     new TermIndexReader(termFile),
                     fullSignatureConstraint,

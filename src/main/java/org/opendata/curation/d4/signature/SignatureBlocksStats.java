@@ -71,11 +71,16 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
             
             return _max;
         }
+        
+        public long sum() {
+            
+            return _sum;
+        }
     }
     
     private StatsCollector _blockStats;
     private SimilarityHistogram _histogram = null;
-    private StatsCollector _nodeStats;
+    private StatsCollector[] _nodeStats;
     
     @Override
     public void close() {
@@ -88,13 +93,18 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
         _blockStats.add(sig.size());
         _histogram.add(sig.maxSim());
         
-        int nodeCount = 0;
+        int[] nodeCount = new int[11];
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            nodeCount += sig.get(iBlock).length;
+            int bl = sig.get(iBlock).length;
+            for (int i = 0; i < 10; i++) {
+                nodeCount[i] += Math.min(bl, (i + 1) * 10);
+            }
+            nodeCount[10] += bl;
         }
         
-        _nodeStats.add(nodeCount);
-        
+        for (int i = 0; i < nodeCount.length; i++) {
+            _nodeStats[i].add(nodeCount[i]);
+        }
     }
 
     @Override
@@ -102,7 +112,10 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
 
         _blockStats = new StatsCollector();
         _histogram = new SimilarityHistogram();
-        _nodeStats = new StatsCollector();
+        _nodeStats = new StatsCollector[11];
+        for (int i = 0; i < _nodeStats.length; i++) {
+            _nodeStats[i] = new StatsCollector();
+        }
     }
     
     public void print(PrintWriter out) {
@@ -114,25 +127,24 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
         out.println("MAX. SIZE      : " + _blockStats.max());
         out.println("AVG. SIZE      : " + _blockStats.avg());
         out.println();
-        out.println("NODE COUNTS");
-        out.println("MIN. SIZE      : " + _nodeStats.min());
-        out.println("MAX. SIZE      : " + _nodeStats.max());
-        out.println("AVG. SIZE      : " + _nodeStats.avg());
+        for (int i = 0; i < _nodeStats.length - 1; i++) {
+            out.println("NODE COUNTS " + ((i + 1) * 10));
+            out.println("MIN. SIZE      : " + _nodeStats[i].min());
+            out.println("MAX. SIZE      : " + _nodeStats[i].max());
+            out.println("AVG. SIZE      : " + _nodeStats[i].avg());
+            out.println("SUM            : " + _nodeStats[i].sum());
+        }
+        out.println("NODE COUNTS (TOTAL)");
+        out.println("MIN. SIZE      : " + _nodeStats[10].min());
+        out.println("MAX. SIZE      : " + _nodeStats[10].max());
+        out.println("AVG. SIZE      : " + _nodeStats[10].avg());
+        out.println("SUM            : " + _nodeStats[10].sum());
+        out.flush();
     }
     
     public void print() {
 
-        System.out.println("SIGNATURE COUNT: " + _blockStats.count());
-        System.out.println();
-        System.out.println("SIGNATURE BLOCKS");
-        System.out.println("MIN. SIZE      : " + _blockStats.min());
-        System.out.println("MAX. SIZE      : " + _blockStats.max());
-        System.out.println("AVG. SIZE      : " + _blockStats.avg());
-        System.out.println();
-        System.out.println("NODE COUNTS");
-        System.out.println("MIN. SIZE      : " + _nodeStats.min());
-        System.out.println("MAX. SIZE      : " + _nodeStats.max());
-        System.out.println("AVG. SIZE      : " + _nodeStats.avg());
+        this.print(new PrintWriter(System.out));
     }
     
     private static final String COMMAND =

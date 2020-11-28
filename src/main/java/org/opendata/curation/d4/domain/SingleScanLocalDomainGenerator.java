@@ -32,7 +32,6 @@ import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.core.set.IDSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.eq.EQIndex;
@@ -42,11 +41,14 @@ import org.opendata.db.eq.EQIndex;
  * in the graph generated from the robust signatures of the column elements 
  * represents a local domain.
  * 
- * Uses a concurrent queue to distribute columns across workers. Relies
+ * The single scan local domain generator scans through the set of signature
+ * blocks exactly once (per thread) while generating the local domains. Requires
+ * to have domain generators for all columns in memory (instead of having a
+ * copy of all signature blocks in memory).
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ParallelLocalDomainGenerator {
+public class SingleScanLocalDomainGenerator {
                    
     public static final String TELEMETRY_ID = "LOCAL DOMAINS";
 
@@ -118,12 +120,12 @@ public class ParallelLocalDomainGenerator {
     
     private final TelemetryCollector _telemetry;
     
-    public ParallelLocalDomainGenerator(TelemetryCollector telemetry) {
+    public SingleScanLocalDomainGenerator(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public ParallelLocalDomainGenerator() {
+    public SingleScanLocalDomainGenerator() {
         
         this(new TelemetryPrinter());
     }

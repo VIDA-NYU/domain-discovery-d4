@@ -19,71 +19,51 @@ package org.opendata.db.eq;
 
 import java.io.PrintWriter;
 import org.opendata.core.object.IdentifiableObjectImpl;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.ImmutableIDSet;
 
 /**
- * An equivalence class is an identifiable set of terms. All terms in the
- * equivalence class always occur in the same set of columns.
+ * Alternative implementation for equivalence classes. Delays parsing the list
+ * of columns and terms until their are first accessed..
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class EQImpl extends IdentifiableObjectImpl implements EQ {
+public class LazyParseEQ extends IdentifiableObjectImpl implements EQ {
     
-    private final IDSet _columns;
-    private final IDSet _terms;
+    private final String _columns;
+    private IDSet _columnsList = null;
+    private final String _terms;
+    private IDSet _termsList = null;
     
-    public EQImpl(int id, IDSet terms, IDSet columns) {
+    public LazyParseEQ(int id, String terms, String columns) {
         
         super(id);
         
         _terms = terms;
         _columns = columns;
     }
-
-    public EQImpl(String[] tokens) {
-
-        this(
-                Integer.parseInt(tokens[0]),
-                new ImmutableIDSet(tokens[1]),
-                parseColumnList(tokens[2])
-        );
-    }
     
     @Override
     public IDSet columns() {
         
-        return _columns;
-    }
-    
-    public static IDSet parseColumnList(String list) {
-    
-        HashIDSet columns = new HashIDSet();
-        
-        for (String token : list.split(",")) {
-            if (token.contains(":")) {
-                columns.add(Integer.parseInt(token.substring(0, token.indexOf(":"))));
-            } else {
-                columns.add(Integer.parseInt(token));
-            }
+        if (_columnsList == null) {
+            _columnsList = EQImpl.parseColumnList(_columns);
         }
-        return columns;
+        return _columnsList;
     }
     
     @Override
     public IDSet terms() {
         
-        return _terms;
+        if (_termsList == null) {
+            _termsList = new ImmutableIDSet(_terms);
+        }
+        return _termsList;
     }
     
     @Override
     public void write(PrintWriter out) {
         
-        out.println(
-                this.id() + "\t" +
-                this.terms().toIntString() + "\t" +
-                this.columns().toIntString()
-        );
+        out.println(String.format("%d\t%s\t%s", this.id(), _terms, _columns));
     }
 }
