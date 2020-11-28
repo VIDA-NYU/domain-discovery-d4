@@ -81,6 +81,12 @@ public abstract class SignatureTrimmer implements SignatureBlocksConsumer {
     }
 
     @Override
+    public boolean isDone() {
+        
+        return _consumer.isDone();
+    }
+    
+    @Override
     public void open() {
 
         _consumer.open();

@@ -62,6 +62,17 @@ public class SignatureBlocksDispatcher implements SignatureBlocksConsumer {
     }
 
     @Override
+    public boolean isDone() {
+        
+        for (SignatureBlocksConsumer consumer : _consumers) {
+            if (consumer.isDone()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public void open() {
 
         for (SignatureBlocksConsumer consumer : _consumers) {

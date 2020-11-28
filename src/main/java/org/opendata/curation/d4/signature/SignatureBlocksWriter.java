@@ -61,6 +61,12 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     }
 
     @Override
+    public boolean isDone() {
+        
+        return false;
+    }
+
+    @Override
     public synchronized void open() {
         
         if (_out == null) {

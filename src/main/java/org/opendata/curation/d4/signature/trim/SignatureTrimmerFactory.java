@@ -65,15 +65,13 @@ public class SignatureTrimmerFactory {
      * Get column specific trimmer for a given column. We currently do not make
      * use of the empty signature constraint.
      * 
-     * @param column
+     * @param columnId
      * @param consumer
      * @return 
      */
-    public SignatureTrimmer getTrimmer(
-            IdentifiableIDSet column,
-            SignatureBlocksConsumer consumer
-    ) {
+    public SignatureTrimmer getTrimmer(int columnId, SignatureBlocksConsumer consumer) {
         
+        IdentifiableIDSet column = _columns.get(columnId);
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
             return new ConservativeTrimmer(column, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {

@@ -50,6 +50,12 @@ public class SignatureBlocksBuffer implements Iterable<SignatureBlocks>, Signatu
         
         return _signatures.get(index);
     }
+
+    @Override
+    public boolean isDone() {
+        
+        return false;
+    }
     
     @Override
     public Iterator<SignatureBlocks> iterator() {

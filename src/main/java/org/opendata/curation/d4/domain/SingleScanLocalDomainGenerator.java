@@ -96,7 +96,7 @@ public class SingleScanLocalDomainGenerator {
                         _nodes.nodeSizes()
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
+                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
                 dispatcher.add(trimmer);
             }
             

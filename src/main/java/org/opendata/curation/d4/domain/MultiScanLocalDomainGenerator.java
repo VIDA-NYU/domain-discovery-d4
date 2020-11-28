@@ -17,7 +17,10 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,6 +86,7 @@ public class MultiScanLocalDomainGenerator {
 
             ExpandedColumn column;
             while ((column = _columns.poll()) != null) {
+                System.out.print(column.id() + " (" + column.totalSize() + "): " + new Date());
                 MutableIdentifiableIDSet col;
                 col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 SignatureBlocksConsumer domainGenerator;
@@ -92,7 +96,7 @@ public class MultiScanLocalDomainGenerator {
                         _nodes.nodeSizes()
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
+                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
                 try {
                     _signatures.stream(trimmer);
                 } catch (java.io.IOException ex) {
@@ -136,15 +140,18 @@ public class MultiScanLocalDomainGenerator {
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
         Date start = new Date();
-        if (verbose) {
-            System.out.println("START @ " + start);
-            new MemUsagePrinter().print();
-        }
         
         ExecutorService es = Executors.newCachedThreadPool();
         
+        List<ExpandedColumn> columnList = columnIndex.columns();
+        Collections.sort(columnList, new Comparator<ExpandedColumn>(){
+            @Override
+            public int compare(ExpandedColumn col1, ExpandedColumn col2) {
+                return Integer.compare(col2.totalSize(), col1.totalSize());
+            }
+        });
         ConcurrentLinkedQueue<ExpandedColumn> queue;
-        queue = new ConcurrentLinkedQueue<>(columnIndex.columns());
+        queue = new ConcurrentLinkedQueue<>(columnList);
         
         SignatureTrimmerFactory trimmerFactory;
         trimmerFactory = new SignatureTrimmerFactory(
@@ -152,6 +159,11 @@ public class MultiScanLocalDomainGenerator {
                 columnIndex.toColumns(originalOnly),
                 trimmer
         );
+
+        if (verbose) {
+            System.out.println("START @ " + start);
+            new MemUsagePrinter().print();
+        }
         
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainGeneratorTask task = new DomainGeneratorTask(

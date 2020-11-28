@@ -89,10 +89,7 @@ public class ColumnExpander implements Runnable {
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory
                         .getTrimmer(
-                                new MutableIdentifiableIDSet(
-                                        column.id(),
-                                        column.originalNodes()
-                                ),
+                                column.id(),
                                 columnExpander
                         );
                 dispatcher.add(trimmer);
@@ -132,10 +129,7 @@ public class ColumnExpander implements Runnable {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
                             .getTrimmer(
-                                    new MutableIdentifiableIDSet(
-                                            expander.column().id(),
-                                            expander.column().nodes()
-                                    ),
+                                    expander.column().id(),
                                     expander
                             );
                     dispatcher.add(trimmer);

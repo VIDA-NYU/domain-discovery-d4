@@ -26,5 +26,6 @@ public interface SignatureBlocksConsumer {
    
     public void close();
     public void consume(SignatureBlocks sig);
+    public boolean isDone();
     public void open();
 }

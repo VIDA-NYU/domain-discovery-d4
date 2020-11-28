@@ -48,6 +48,12 @@ public class RobustSignatureIndex implements SignatureBlocksConsumer, SignatureB
         
         return _elements.get(id);
     }
+
+    @Override
+    public boolean isDone() {
+        
+        return false;
+    }
     
     @Override
     public void open() {

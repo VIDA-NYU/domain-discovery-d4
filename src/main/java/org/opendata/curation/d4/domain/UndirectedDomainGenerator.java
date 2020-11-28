@@ -33,6 +33,7 @@ import org.opendata.core.set.IdentifiableIDSet;
 public class UndirectedDomainGenerator extends UndirectedConnectedComponents implements SignatureBlocksConsumer {
     
     private final ExpandedColumn _column;
+    private boolean _isDone = false;
     private final int[] _nodeSizes;
     private final UniqueDomainSet _resultSet;
 
@@ -78,11 +79,17 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
                 }
             }
             if (this.isComplete()) {
-                
+                _isDone = true;
             }
         }
     }
 
+    @Override
+    public boolean isDone() {
+        
+        return _isDone;
+    }
+    
     @Override
     public void open() {
 

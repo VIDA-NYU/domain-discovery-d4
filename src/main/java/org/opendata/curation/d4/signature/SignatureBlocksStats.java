@@ -108,6 +108,12 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     }
 
     @Override
+    public boolean isDone() {
+        
+        return false;
+    }
+
+    @Override
     public void open() {
 
         _blockStats = new StatsCollector();

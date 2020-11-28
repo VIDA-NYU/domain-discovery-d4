@@ -124,10 +124,7 @@ public class ParallelColumnExpander {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
                             .getTrimmer(
-                                    new MutableIdentifiableIDSet(
-                                            expander.column().id(),
-                                            expander.column().nodes()
-                                    ),
+                                    expander.column().id(),
                                     expander
                             );
                     dispatcher.add(trimmer);

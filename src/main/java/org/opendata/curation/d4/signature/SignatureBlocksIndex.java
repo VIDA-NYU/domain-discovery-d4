@@ -51,6 +51,12 @@ public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, Signatur
         
         return _signatures.get(id);
     }
+
+    @Override
+    public boolean isDone() {
+        
+        return false;
+    }
     
     @Override
     public Iterator<SignatureBlocks> iterator() {
@@ -75,6 +81,10 @@ public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, Signatur
         
         for (SignatureBlocks sig : _signatures) {
             consumer.consume(sig);
+            if (consumer.isDone()) {
+                System.out.println("Terminate early");
+                break;
+            }
         }
         
         consumer.close();
