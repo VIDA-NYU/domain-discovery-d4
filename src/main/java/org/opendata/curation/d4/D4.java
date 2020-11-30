@@ -28,7 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
-import org.opendata.curation.d4.column.ExpandedColumnStats;
+import org.opendata.curation.d4.column.ExpandedColumnStatsWriter;
 import org.opendata.curation.d4.column.ExpandedColumnWriterFactory;
 import org.opendata.curation.d4.column.ParallelColumnExpander;
 import org.opendata.curation.d4.domain.DomainReader;
@@ -98,7 +98,7 @@ public class D4 {
         );
 
         if (verbose) {
-            ExpandedColumnStats colStats = new ExpandedColumnStats();
+            ExpandedColumnStatsWriter colStats = new ExpandedColumnStatsWriter();
             new ExpandedColumnReader(outputFile).stream(colStats);
             colStats.print();
         }
