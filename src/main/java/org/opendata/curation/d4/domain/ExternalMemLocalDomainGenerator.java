@@ -179,26 +179,12 @@ public class ExternalMemLocalDomainGenerator {
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
-                            "  --trimmer=%s\n" +
-                            "  --threads=%d",
-                            columnList.size(),
-                            trimmer,
-                            threads
-                    )
-            );
-        }
-        
         SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
                 nodes,
                 columnIndex.toColumns(originalOnly),
                 trimmer
         );
 
-        
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
