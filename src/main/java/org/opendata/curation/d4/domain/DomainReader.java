@@ -20,6 +20,7 @@ package org.opendata.curation.d4.domain;
 import java.io.BufferedReader;
 import java.io.File;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.core.set.HashIDSet;
@@ -33,7 +34,7 @@ import org.opendata.core.set.ImmutableIDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class DomainReader implements DomainStream {
+public class DomainReader implements DataCollection, DomainStream {
    
     private final File _file;
     
@@ -88,6 +89,13 @@ public class DomainReader implements DomainStream {
         return result;
     }
 
+    
+    @Override
+    public String source() {
+
+        return _file.getName();
+    }
+    
     @Override
     public void stream(DomainConsumer consumer) throws java.io.IOException {
 

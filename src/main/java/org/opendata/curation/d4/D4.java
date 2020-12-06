@@ -202,6 +202,7 @@ public class D4 {
             EQIndex nodeIndex,
             File localDomainFile,
             Threshold domainOverlapConstraint,
+            Threshold minSupportConstraint,
             BigDecimal supportFraction,
             int threads,
             boolean verbose,
@@ -209,17 +210,15 @@ public class D4 {
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        IdentifiableObjectSet<Domain> localDomains;
-        localDomains = new DomainReader(localDomainFile).read();
         new StrongDomainGenerator(telemetry).run(
                 nodeIndex,
-                localDomains,
+                new DomainReader(localDomainFile),
                 domainOverlapConstraint,
-                Threshold.getConstraint("GT0.1"),
+                minSupportConstraint,
                 supportFraction,
                 verbose,
                 threads,
-                new StrongDomainWriter(outputFile, localDomains)
+                outputFile
         );
 
         if (verbose) {
@@ -534,6 +533,7 @@ public class D4 {
                                 "<file> [default: 'local-domains.txt.gz']"
                         ),
                         new Parameter("domainOverlap",  "<constraint> [default: 'GT0.5']"),
+                        new Parameter("minSupport",  "<constraint> [default: 'GT0.1']"),
                         new Parameter("supportFraction",  "<double> [default: 0.25]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
@@ -546,7 +546,8 @@ public class D4 {
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
-            Threshold domainOverlapConstraint = params.getAsConstraint(UNKNOWN, "GT0.5");
+            Threshold domainOverlapConstraint = params.getAsConstraint("domainOverlap", "GT0.5");
+            Threshold minSupportConstraint = params.getAsConstraint("minSupport", "GT0.1");
             BigDecimal supportFraction = params
                     .getAsBigDecimal("supportFraction", new BigDecimal("0.25"));
             int threads = params.getAsInt("threads", 6);
@@ -557,6 +558,7 @@ public class D4 {
                         new EQIndex(eqFile),
                         localDomainFile,
                         domainOverlapConstraint,
+                        minSupportConstraint,
                         supportFraction,
                         threads,
                         verbose,

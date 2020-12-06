@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
@@ -227,39 +228,50 @@ public class StrongDomainGenerator {
      * Compute set local domains that have sufficient support.
      * 
      * @param nodes
-     * @param localDomains
+     * @param domainReader
      * @param domainOverlapConstraint
      * @param minSupportConstraint
      * @param supportFraction
      * @param verbose
      * @param threads
-     * @param consumer
+     * @param outputFile
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
      */
     public void run(
             EQIndex nodes,
-            IdentifiableObjectSet<Domain> localDomains,
+            DomainReader domainReader,
             Threshold domainOverlapConstraint,
             Threshold minSupportConstraint,
             BigDecimal supportFraction,
             boolean verbose,
             int threads,
-            StrongDomainConsumer consumer
+            File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
+
+        IdentifiableObjectSet<Domain> localDomains;
+        localDomains = domainReader.read();
         
         Date start = new Date();
         if (verbose) {
             System.out.println(
                     String.format(
-                            "STRING DOMAINS FOR %d LOCAL DOMAINS USING:\n" +
+                            "STRONG DOMAINS FOR %d LOCAL DOMAINS USING:\n" +
+                            "  --eqs=%s\n" +                            
+                            "  --localdomains=%s\n" +
                             "  --domainOverlap=%s\n" +
+                            "  --minSupport=%s\n" +
                             "  --supportFraction=%s\n" +
-                            "  --threads=%d",
+                            "  --threads=%d\n" +
+                            "  --strongdomains=%s",
                             localDomains.length(),
+                            nodes.source(),
+                            domainReader.source(),
                             domainOverlapConstraint.toPlainString(),
+                            minSupportConstraint.toPlainString(),
                             supportFraction.toPlainString(),
-                            threads
+                            threads,
+                            outputFile.getName()
                     )
             );
         }
@@ -342,6 +354,9 @@ public class StrongDomainGenerator {
                 }
             }
         }
+        
+        StrongDomainWriter consumer;
+        consumer = new StrongDomainWriter(outputFile, localDomains);
         
         consumer.open();
 
