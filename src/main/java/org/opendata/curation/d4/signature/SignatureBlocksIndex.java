@@ -30,6 +30,12 @@ import org.opendata.core.set.IDSet;
 public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, SignatureBlocksConsumer, SignatureBlocksStream {
 
     private final HashObjectSet<SignatureBlocks> _signatures = new HashObjectSet<>();
+    private final String _source;
+    
+    public SignatureBlocksIndex(String source) {
+        
+        _source = source;
+    }
     
     public void clear() {
         
@@ -100,6 +106,12 @@ public class SignatureBlocksIndex implements Iterable<SignatureBlocks>, Signatur
         }
         
         consumer.close();
+    }
+
+    @Override
+    public String source() {
+
+        return _source;
     }
     
     public List<SignatureBlocks> toList() {

@@ -15,17 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.column;
-
-import java.util.HashMap;
-import org.opendata.core.set.HashIDSet;
+package org.opendata.core.io.prov;
 
 /**
- * Factory pattern for column consumers.
+ * Simple interface to manage the data sink name for data generators.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface ExpandedColumnConsumerFactory {
+public interface DataSink {
     
-    public ExpandedColumnConsumer getConsumer(HashMap<Integer, HashIDSet> groups);
+    public String target();
 }

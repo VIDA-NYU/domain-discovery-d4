@@ -116,7 +116,7 @@ public class ExpandedColumnStatsWriter implements ExpandedColumnConsumer {
         File outputFile = new File(args[1]);
         
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
+            ExpandedColumnIndex columnIndex = new ExpandedColumnIndex(outputFile);
             new ExpandedColumnReader(columnsFile).stream(columnIndex);
             for (ExpandedColumn column : columnIndex.columns()) {
                 int colCount = columnIndex.columns(column.id()).length();

@@ -29,12 +29,11 @@ import java.util.logging.Logger;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.ExpandedColumnReader;
 import org.opendata.curation.d4.column.ExpandedColumnStatsWriter;
-import org.opendata.curation.d4.column.ExpandedColumnWriterFactory;
 import org.opendata.curation.d4.column.ParallelColumnExpander;
 import org.opendata.curation.d4.domain.DomainReader;
 import org.opendata.curation.d4.domain.DomainSetStatsPrinter;
 import org.opendata.curation.d4.domain.DomainWriter;
-import org.opendata.curation.d4.domain.SingleScanLocalDomainGenerator;
+import org.opendata.curation.d4.domain.ExternalMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
@@ -43,7 +42,7 @@ import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.domain.Domain;
-import org.opendata.curation.d4.domain.MultiScanLocalDomainGenerator;
+import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.domain.StrongDomainWriter;
@@ -94,7 +93,7 @@ public class D4 {
                 numberOfIterations,
                 threads,
                 verbose,
-                new ExpandedColumnWriterFactory(outputFile, false)
+                outputFile
         );
 
         if (verbose) {
@@ -130,16 +129,27 @@ public class D4 {
             String trimmer,
             boolean originalOnly,
             int threads,
-            boolean singleScan,
+            boolean inMem,
             boolean verbose,
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.io.IOException {
         
-        ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
+        ExpandedColumnIndex columnIndex = new ExpandedColumnIndex(columnsFile);
         new ExpandedColumnReader(columnsFile).stream(columnIndex);
-        if (singleScan) {
-            new SingleScanLocalDomainGenerator(telemetry).run(
+        if (inMem) {
+            new InMemLocalDomainGenerator(telemetry).run(
+                nodeIndex,
+                columnIndex,
+                signatures.read(),
+                trimmer,
+                originalOnly,
+                threads,
+                verbose,
+                new DomainWriter(outputFile)
+            );
+        } else {
+            new ExternalMemLocalDomainGenerator(telemetry).run(
                     nodeIndex,
                     columnIndex,
                     signatures,
@@ -149,19 +159,8 @@ public class D4 {
                     verbose,
                     new DomainWriter(outputFile)
             );
-        } else {
-            new MultiScanLocalDomainGenerator(telemetry).run(
-                nodeIndex,
-                columnIndex,
-                signatures.read(),
-                trimmer,
-                originalOnly,
-                threads,
-                verbose,
-                new DomainWriter(outputFile)
-        );
         }
-
+        
         if (verbose) {
             DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
             new DomainReader(outputFile).stream(localStats);
@@ -485,7 +484,7 @@ public class D4 {
                         ),
                         new Parameter("originalonly", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
-                        new Parameter("singlescan", "<boolean> [default: false]"),
+                        new Parameter("inmem", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter(
                                 "localdomains",
@@ -500,7 +499,7 @@ public class D4 {
             String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
             boolean originalOnly = params.getAsBool("originalonly", false);
             int threads = params.getAsInt("threads", 6);
-            boolean singleScan = params.getAsBool("singlescan", false);
+            boolean inMem = params.getAsBool("inmem", false);
             boolean verbose = params.getAsBool("verbose", true);
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
             try {
@@ -511,7 +510,7 @@ public class D4 {
                         trimmer,
                         originalOnly,
                         threads,
-                        singleScan,
+                        inMem,
                         verbose,
                         new TelemetryPrinter(),
                         localDomainFile

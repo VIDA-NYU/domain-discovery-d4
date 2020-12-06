@@ -20,6 +20,7 @@ package org.opendata.db.eq;
 import java.io.File;
 import java.io.PrintWriter;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.prune.SizeFunction;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableIDSet;
@@ -34,18 +35,23 @@ import org.opendata.db.column.Column;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction {
+public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStream, SizeFunction {
 
+    private final File _file;
     private int[] _nodeSizes = null;
     
     public EQIndex(File eqFile, EQFactory factory) throws java.io.IOException {
         
         super(new EQReader(eqFile, factory).read());
+        
+        _file = eqFile;
     }
     
     public EQIndex(File eqFile) throws java.io.IOException {
         
         super(new EQReader(eqFile).read());
+        
+        _file = eqFile;
     }
     
     public int[] columnSizes() {
@@ -72,7 +78,7 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
         }
         return columns;
     }
-
+    
     @Override
     public int getSize(int id) {
 
@@ -97,6 +103,12 @@ public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction
             }
         }
         return _nodeSizes;
+    }
+
+    @Override
+    public String source() {
+        
+        return _file.getName();
     }
     
     /**

@@ -33,9 +33,13 @@ import org.opendata.core.io.FileSystem;
  */
 public class SignatureBlocksReader extends FileSetReader implements SignatureBlocksStream {
    
+    private final File _file;
+    
     public SignatureBlocksReader(File file, boolean verbose) {
         
         super(file, verbose);
+        
+        _file = file;
     }
 
     public SignatureBlocksReader(File file) {
@@ -43,9 +47,11 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
         this(file, false);
     }
     
-    public SignatureBlocksReader(List<File> files) {
+    public SignatureBlocksReader(List<File> files, File directory) {
         
         super(files, false);
+        
+        _file = directory;
     }
     
     public static int[] getBlockNodes(String text) {
@@ -66,7 +72,7 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
     
     public SignatureBlocksIndex read() throws java.io.IOException {
         
-        SignatureBlocksIndex buffer = new SignatureBlocksIndex();
+        SignatureBlocksIndex buffer = new SignatureBlocksIndex(this.source());
         this.stream(buffer);
         return buffer;
     }
@@ -96,5 +102,11 @@ public class SignatureBlocksReader extends FileSetReader implements SignatureBlo
         }
 
         consumer.close();
+    }
+
+    @Override
+    public String source() {
+
+        return _file.getName();
     }
 }

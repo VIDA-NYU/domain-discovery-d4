@@ -26,7 +26,6 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.db.eq.EQIndex;
 
 /**

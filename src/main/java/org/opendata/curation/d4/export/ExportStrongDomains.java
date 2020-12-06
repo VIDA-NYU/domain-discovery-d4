@@ -33,10 +33,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.object.IdentifiableDouble;
-import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.count.Counter;
 import org.opendata.curation.d4.Constants;
@@ -60,28 +58,6 @@ import org.opendata.db.term.TermIndexReader;
  */
 public class ExportStrongDomains {
     
-    private List<List<IdentifiableDouble>> getBlocks(List<IdentifiableDouble> items) {
-        
-        MaxDropFinder<IdentifiableDouble> dropFinder = new MaxDropFinder<>(0.0, true, true);
-
-        int start = 0;
-        final int end = items.size();
-        ArrayList<List<IdentifiableDouble>> blocks = new ArrayList<>();
-        while (start < end) {
-            int pruneIndex = dropFinder.getPruneIndex(items, start);
-            if (pruneIndex <= start) {
-                break;
-            }
-            List<IdentifiableDouble> block = new ArrayList<>();
-            for (int iEl = start; iEl < pruneIndex; iEl++) {
-                block.add(items.get(iEl));
-            }
-            blocks.add(block);
-            start = pruneIndex;
-        }
-        return blocks;
-    }
-
     private String getDomainName(List<String> names) {
     
         HashMap<String, Counter> tokens = new HashMap<>();
@@ -203,15 +179,7 @@ public class ExportStrongDomains {
                     names.add(columnInfo[0]);
                 }
                 String domainName = this.getDomainName(names);
-                List<IdentifiableDouble> items = new ArrayList<>();
-                for (StrongDomainMember node : domain.members()) {
-                    double weight = node.weight().doubleValue();
-                    for (int termId : eqIndex.get(node.id()).terms()) {
-                        items.add(new IdentifiableDouble(termId, weight));
-                    }
-                    Collections.sort(items, new DoubleValueDescSort<>());
-                }
-                List<List<IdentifiableDouble>> blocks = this.getBlocks(items);
+                List<List<IdentifiableDouble>> blocks = domain.getBlocksWithWeights(eqIndex);
                 JsonArray arrTerms = new JsonArray();
                 for (List<IdentifiableDouble> block : blocks) {
                     JsonArray arrBlock = new JsonArray();

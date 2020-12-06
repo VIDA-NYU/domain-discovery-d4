@@ -17,13 +17,15 @@
  */
 package org.opendata.curation.d4.domain;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
@@ -33,7 +35,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
-import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -41,20 +43,18 @@ import org.opendata.db.eq.EQIndex;
  * in the graph generated from the robust signatures of the column elements 
  * represents a local domain.
  * 
- * The single scan local domain generator scans through the set of signature
- * blocks exactly once (per thread) while generating the local domains. Requires
- * to have domain generators for all columns in memory (instead of having a
- * copy of all signature blocks in memory).
+ * The multi scan local domain generator reads the set of signature blocks into
+ * main memory and scans through the set for each column.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SingleScanLocalDomainGenerator {
+public class InMemLocalDomainGenerator {
                    
     public static final String TELEMETRY_ID = "LOCAL DOMAINS";
 
     private class DomainGeneratorTask implements Runnable {
 
-        private final List<ExpandedColumn> _columns;
+        private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
@@ -65,7 +65,7 @@ public class SingleScanLocalDomainGenerator {
         public DomainGeneratorTask(
                 int id,
                 EQIndex nodes,
-                List<ExpandedColumn> columns,
+                ConcurrentLinkedQueue<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 UniqueDomainSet domains,
@@ -83,10 +83,10 @@ public class SingleScanLocalDomainGenerator {
         @Override
         public void run() {
             
-            SignatureBlocksDispatcher dispatcher;
-            dispatcher = new SignatureBlocksDispatcher();
-            
-            for (ExpandedColumn column : _columns) {
+            Date start = new Date();
+
+            ExpandedColumn column;
+            while ((column = _columns.poll()) != null) {
                 MutableIdentifiableIDSet col;
                 col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 SignatureBlocksConsumer domainGenerator;
@@ -97,15 +97,14 @@ public class SingleScanLocalDomainGenerator {
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
-                dispatcher.add(trimmer);
-            }
-            
-            Date start = new Date();
-
-            try {
-                _signatures.stream(dispatcher);
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
+                Date runStart = new Date();
+                try {
+                    _signatures.stream(trimmer);
+                } catch (java.io.IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                Date runEnd = new Date();
+                System.out.println(column.id() + " (" + column.totalSize() + "): " + (runEnd.getTime() - runStart.getTime()) + " ms");
             }
             
             Date end = new Date();
@@ -120,12 +119,12 @@ public class SingleScanLocalDomainGenerator {
     
     private final TelemetryCollector _telemetry;
     
-    public SingleScanLocalDomainGenerator(TelemetryCollector telemetry) {
+    public InMemLocalDomainGenerator(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public SingleScanLocalDomainGenerator() {
+    public InMemLocalDomainGenerator() {
         
         this(new TelemetryPrinter());
     }
@@ -144,62 +143,57 @@ public class SingleScanLocalDomainGenerator {
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
         Date start = new Date();
-
-        // Sort column in decreasing number of nodes
-        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
-        Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
-                Integer.compare(c1.nodes().length(), c2.nodes().length())
-        );
-        Collections.reverse(columnList);
-        
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
-                            "  --trimmer=%s\n" +
-                            "  --originalonly=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --singlescan=false",
-                            columnList.size(),
-                            trimmer,
-                            Boolean.toString(originalOnly),
-                            threads
-                    )
-            );
-            System.out.println("START @ " + start);
-        }
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
-                            "  --trimmer=%s\n" +
-                            "  --threads=%d",
-                            columnList.size(),
-                            trimmer,
-                            threads
-                    )
-            );
-        }
+        List<ExpandedColumn> columnList = columnIndex.columns();
+        Collections.sort(columnList, new Comparator<ExpandedColumn>(){
+            @Override
+            public int compare(ExpandedColumn col1, ExpandedColumn col2) {
+                return Integer.compare(col2.totalSize(), col1.totalSize());
+            }
+        });
+        ConcurrentLinkedQueue<ExpandedColumn> queue;
+        queue = new ConcurrentLinkedQueue<>(columnList);
         
-        SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
+        SignatureTrimmerFactory trimmerFactory;
+        trimmerFactory = new SignatureTrimmerFactory(
                 nodes,
                 columnIndex.toColumns(originalOnly),
                 trimmer
         );
 
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "LOCAL DOMAINS (IN MEMORY) FOR %d COLUMN GROUPS USING:\n" +
+                            "  --eqs=%s\n" +
+                            "  --columns=%s\n" +
+                            "  --signatures=%s\n" +
+                            "  --trimmer=%s\n" +
+                            "  --originalonly=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --inmem=true\n" +
+                            "  --localdomains=%s",
+                            columnList.size(),
+                            nodes.source(),
+                            columnIndex.source(),
+                            signatures.source(),
+                            trimmer,
+                            Boolean.toString(originalOnly),
+                            threads,
+                            consumer.target()
+                    )
+            );
+            System.out.println(String.format("START @ %s", start));
+            new MemUsagePrinter().print();
+        }
         
         for (int iThread = 0; iThread < threads; iThread++) {
-            List<ExpandedColumn> columns = new ArrayList<>();
-            for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
-                columns.add(columnList.get(iCol));
-            }
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
                     nodes,
-                    columns,
+                    queue,
                     signatures,
                     trimmerFactory,
                     domains,

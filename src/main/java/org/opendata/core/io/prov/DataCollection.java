@@ -15,18 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.domain;
-
-import org.opendata.core.io.prov.DataSink;
+package org.opendata.core.io.prov;
 
 /**
- * Consumer interface for domain streams.
+ * Simple interface to manage the information source for different types of
+ * object collections. These collections may either be read from disk or
+ * generated in memory.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface DomainConsumer extends DataSink {
+public interface DataCollection {
     
-    public void close();
-    public void consume(Domain domain);
-    public void open();
+    public String source();
 }

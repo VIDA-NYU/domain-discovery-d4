@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.column;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -197,7 +198,7 @@ public class ParallelColumnExpander {
             int numberOfIterations,
             int threads,
             boolean verbose,
-            ExpandedColumnConsumerFactory consumerFactory
+            File outputFile
     ) {
         HashMap<String, ExpandedColumn> columnIndex = new HashMap<>();
         HashMap<Integer, HashIDSet> groups = new HashMap<>();
@@ -233,18 +234,24 @@ public class ParallelColumnExpander {
             System.out.println(
                     String.format(
                             "EXPAND %d COLUMNS IN %d GROUPS USING:\n" +
+                            "  --eqs=%s\n" +
+                            "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
                             "  --expandThreshold=%s\n" +
                             "  --decrease=%s\n" +
                             "  --iterations=%d\n" +
-                            "  --threads=%d",
+                            "  --threads=%d\n" +
+                            "  --columns=%s",
                             db.length(),
                             columnList.size(),
+                            nodes.source(),
+                            signatures.source(),
                             trimmer,
                             threshold.toPlainString(),
                             decreaseFactor.toPlainString(),
                             numberOfIterations,
-                            threads
+                            threads,
+                            outputFile.getName()
                     )
             );
             LOGGER.log(Level.INFO, String.format("START @ %s", start));
@@ -270,7 +277,7 @@ public class ParallelColumnExpander {
                     decreaseFactor,
                     numberOfIterations,
                     verbose,
-                    consumerFactory.getConsumer(groups)
+                    new ExpandedColumnWriter(outputFile, groups)
             );
             es.execute(expander);
         }

@@ -17,12 +17,14 @@
  */
 package org.opendata.curation.d4.signature;
 
+import org.opendata.core.io.prov.DataCollection;
+
 /**
  * Stream of signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksStream {
+public interface SignatureBlocksStream extends DataCollection {
     
     public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException;
 }

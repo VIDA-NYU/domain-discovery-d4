@@ -17,14 +17,9 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.core.util.MemUsagePrinter;
 
 /**
  * Memory buffer for signature blocks.
@@ -34,6 +29,12 @@ import org.opendata.core.util.MemUsagePrinter;
 public class SignatureBlocksBuffer implements Iterable<SignatureBlocks>, SignatureBlocksConsumer, SignatureBlocksStream {
 
     private final List<SignatureBlocks> _signatures = new ArrayList<>();
+    private final String _source;
+    
+    public SignatureBlocksBuffer(String source) {
+        
+        _source = source;
+    }
     
     @Override
     public void close() {
@@ -85,38 +86,10 @@ public class SignatureBlocksBuffer implements Iterable<SignatureBlocks>, Signatu
         
         consumer.close();
     }
-    
-    private static final String COMMAND =
-            "Usage:\n" +
-            "  <signatures-file-or-dir>";
-    
-    private static final Logger LOGGER = Logger
-            .getLogger(SignatureBlocksBuffer.class.getName());
-    
-    public static void main(String[] args) {
-        
-        if (args.length != 1) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        File signaturesFileOrDir = new File(args[0]);
-        
-        SignatureBlocksBuffer buffer = new SignatureBlocksBuffer();
-        
-        Date start = new Date();
-        try {
-            new SignatureBlocksReader(signaturesFileOrDir, true).stream(buffer);
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
-        }
-        Date end = new Date();
-        
-        long execTime = end.getTime() - start.getTime();
-        
-        new MemUsagePrinter().print();
-        
-        System.out.println("\n\nREAD " + buffer.size() + " SIGNATURES IN " + execTime + " ms");
+
+    @Override
+    public String source() {
+
+        return _source;
     }
 }
