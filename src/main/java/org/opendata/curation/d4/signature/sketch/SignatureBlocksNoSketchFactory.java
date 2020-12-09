@@ -15,16 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.d4.signature.sketch;
+
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 
 /**
- * D4 constant declarations.
+ * Factory pattern for consumer that implement the no-sketch strategy for
+ * signature blocks sketches.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
-    
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.29.0.dev15";
+public class SignatureBlocksNoSketchFactory implements SignatureBlocksSketchFactory {
+
+    @Override
+    public SignatureBlocksConsumer getConsumer(SignatureBlocksConsumer consumer) {
+
+        return consumer;
+    }
+
+    @Override
+    public String toDocString() {
+
+        return "null";
+    }    
 }

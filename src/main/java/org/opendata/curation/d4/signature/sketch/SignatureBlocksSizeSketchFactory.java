@@ -15,16 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.d4.signature.sketch;
+
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 
 /**
- * D4 constant declarations.
+ * Factory for consumer that implement the size-threshold sketch strategy for
+ * signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
+public class SignatureBlocksSizeSketchFactory implements SignatureBlocksSketchFactory {
+
+    private final int _n;
     
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
+    public SignatureBlocksSizeSketchFactory(int n) {
+        
+        _n = n;
+    }
     
-    public static final String VERSION = "0.29.0.dev15";
+    @Override
+    public SignatureBlocksConsumer getConsumer(SignatureBlocksConsumer consumer) {
+
+        return new SignatureBlocksSizeSketch(_n, consumer);
+    }
+
+    @Override
+    public String toDocString() {
+
+        return String.format("N%d", _n);
+    }
 }

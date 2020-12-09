@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
@@ -36,6 +35,7 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -59,6 +59,7 @@ public class InMemLocalDomainGenerator {
         private final int _id;
         private final EQIndex _nodes;
         private final SignatureBlocksStream _signatures;
+        private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -68,6 +69,7 @@ public class InMemLocalDomainGenerator {
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
+                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
@@ -76,6 +78,7 @@ public class InMemLocalDomainGenerator {
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
+            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -99,7 +102,7 @@ public class InMemLocalDomainGenerator {
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
                 Date runStart = new Date();
                 try {
-                    _signatures.stream(trimmer);
+                    _signatures.stream(_sketchFactory.getConsumer(trimmer));
                 } catch (java.io.IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -134,6 +137,7 @@ public class InMemLocalDomainGenerator {
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
             String trimmer,
+            SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,
             int threads,
             boolean verbose,
@@ -171,6 +175,7 @@ public class InMemLocalDomainGenerator {
                             "  --columns=%s\n" +
                             "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
+                            "  --sketch=%s\n" +
                             "  --originalonly=%s\n" +
                             "  --threads=%d\n" +
                             "  --inmem=true\n" +
@@ -180,6 +185,7 @@ public class InMemLocalDomainGenerator {
                             columnIndex.source(),
                             signatures.source(),
                             trimmer,
+                            sketchFactory.toDocString(),
                             Boolean.toString(originalOnly),
                             threads,
                             consumer.target()
@@ -196,6 +202,7 @@ public class InMemLocalDomainGenerator {
                     queue,
                     signatures,
                     trimmerFactory,
+                    sketchFactory,
                     domains,
                     verbose
             );

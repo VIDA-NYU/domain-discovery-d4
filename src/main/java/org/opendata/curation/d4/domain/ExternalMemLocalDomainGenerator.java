@@ -34,6 +34,7 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -59,6 +60,7 @@ public class ExternalMemLocalDomainGenerator {
         private final int _id;
         private final EQIndex _nodes;
         private final SignatureBlocksStream _signatures;
+        private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -68,6 +70,7 @@ public class ExternalMemLocalDomainGenerator {
                 List<ExpandedColumn> columns,
                 SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
+                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
@@ -76,6 +79,7 @@ public class ExternalMemLocalDomainGenerator {
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
+            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -103,7 +107,7 @@ public class ExternalMemLocalDomainGenerator {
             Date start = new Date();
 
             try {
-                _signatures.stream(dispatcher);
+                _signatures.stream(_sketchFactory.getConsumer(dispatcher));
             } catch (java.io.IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -135,6 +139,7 @@ public class ExternalMemLocalDomainGenerator {
             ExpandedColumnIndex columnIndex,
             SignatureBlocksStream signatures,
             String trimmer,
+            SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,
             int threads,
             boolean verbose,
@@ -160,6 +165,7 @@ public class ExternalMemLocalDomainGenerator {
                             "  --columns=%s\n" +
                             "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
+                            "  --sketch=%s\n" +
                             "  --originalonly=%s\n" +
                             "  --threads=%d\n" +
                             "  --inmem=false\n" +
@@ -169,6 +175,7 @@ public class ExternalMemLocalDomainGenerator {
                             columnIndex.source(),
                             signatures.source(),
                             trimmer,
+                            sketchFactory.toDocString(),
                             Boolean.toString(originalOnly),
                             threads,
                             consumer.target()
@@ -196,6 +203,7 @@ public class ExternalMemLocalDomainGenerator {
                     columns,
                     signatures,
                     trimmerFactory,
+                    sketchFactory,
                     domains,
                     verbose
             );

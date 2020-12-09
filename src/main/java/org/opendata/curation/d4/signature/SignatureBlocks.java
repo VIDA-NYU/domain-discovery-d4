@@ -39,18 +39,41 @@ public abstract class SignatureBlocks extends IdentifiableObjectImpl {
         _size = size;
     }
     
+    /**
+     * Get a block from the signature.
+     * 
+     * @param index
+     * @return 
+     */
     public abstract int[] get(int index);
     
+    /**
+     * Test if the signature is empty (has no blocks).
+     * 
+     * @return 
+     */
     public boolean isEmpty() {
         
         return (_size == 0);
     }
     
+    /**
+     * Similarity of the first entry in the signature. This is the similarity
+     * of the most similar term for the equivalence class that is represented
+     * by this signature.
+     * 
+     * @return 
+     */
     public BigDecimal maxSim() {
         
         return _maxSim;
     }
     
+    /**
+     * Number of blocks in the signature.
+     * 
+     * @return 
+     */
     public int size() {
         
         return _size;
