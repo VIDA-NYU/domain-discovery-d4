@@ -15,13 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.curation.d4.experiments;
 
+import org.opendata.curation.d4.signature.*;
 import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -35,52 +34,16 @@ import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.set.IDSet;
+import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Generate output file containing information about the steepest drops in
- * context signatures.
- * 
- * The output contains a single tab-delimited line for each equivalence class
- * containing the following information:
- * 
- * - equivalence class identifier
- * - similarity of first context signature entry
- * - list of similarities for nodes where the steepest drop occurs (separated
- *   by ':'.
+ * Experiment to evaluate the impact of the last drop and full signature
+ * constraint on signature blocks generation.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksDropWriter {
-    
-    private class SignatureDrop {
-        
-        private final int _blockLength;
-        private final int _columnCount;
-        private final BigDecimal _firstElement;
-        private final BigDecimal _lastElement;
-        
-        public SignatureDrop(BigDecimal first, BigDecimal last, int blockLength, int columnCount) {
-            
-            _firstElement = first;
-            _lastElement = last;
-            _blockLength = blockLength;
-            _columnCount = columnCount;
-        }
-        
-        @Override
-        public String toString() {
-            
-            return String.format(
-                    "%s-%s:%d:%d",
-                    _firstElement.setScale(2, RoundingMode.HALF_DOWN).toPlainString(),
-                    _lastElement.setScale(2, RoundingMode.HALF_DOWN).toPlainString(),
-                    _blockLength,
-                    _columnCount
-            );
-        }
-    }
+public class SignatureDropStatsExperiment {
     
     private class BlockGeneratorTask implements Runnable {
 
@@ -115,41 +78,36 @@ public class SignatureBlocksDropWriter {
                 if (sig.isEmpty()) {
                     continue;
                 }
-                int start = 0;
-                final int end = sig.size();
-                ArrayList<SignatureDrop> drops = new ArrayList<>();
-                while (start < end) {
-                    int pruneIndex = _candidateFinder.getPruneIndex(sig, start);
-                    if (pruneIndex <= start) {
-                        break;
-                    }
-                    int blockLen = pruneIndex - start;
-                    IDSet columns = _eqIndex.get(nodeId).columns();
-                    for (int iEl = start; iEl < pruneIndex; iEl++) {
-                        int memberId = sig.get(iEl).id();
-                        columns = columns.intersect(_eqIndex.get(memberId).columns());
-                        if (columns.isEmpty()) {
-                            break;
-                        }
-                    }
-                    drops.add(
-                            new SignatureDrop(
-                                    sig.get(start).toBigDecimal(),
-                                    sig.get(pruneIndex - 1).toBigDecimal(),
-                                    blockLen,
-                                    columns.length()
-                            )
+                int pruneIndex = _candidateFinder.getPruneIndex(sig);
+                double rightBound;
+                if (pruneIndex == sig.size()) {
+                    rightBound = 0;
+                } else {
+                    rightBound = sig.get(pruneIndex).value();
+                }
+                double drop = sig.get(pruneIndex - 1).value() - rightBound;
+                double lastValue = sig.get(sig.size() - 1).value();
+                boolean lastDropIsGreater = drop < lastValue;
+                double fullSigDiff = sig.get(0).value() - lastValue;
+                boolean isFullSig = fullSigDiff < lastValue;
+                String type = null;
+                if (isFullSig) {
+                    type = "F";
+                } else if (lastDropIsGreater) {
+                    type = "L";
+                }
+                if (type != null) {
+                    EQ eq = _eqIndex.get(nodeId);
+                    String line = String.format(
+                            "%d\t%s\t%f\t%d\t%d",
+                            nodeId,
+                            type,
+                            sig.get(0).value(),
+                            eq.columns().length(),
+                            sig.size()
                     );
-                    start = pruneIndex;
+                    _writer.write(line);
                 }
-                if (drops.isEmpty()) {
-                    continue;
-                }
-                String line = nodeId + "\t" + drops.get(0).toString();
-                for (int iDrop = 1; iDrop < drops.size(); iDrop++) {
-                    line += "|" + drops.get(iDrop).toString();
-                }
-                _writer.write(line);
             }
         }
     }
@@ -160,25 +118,11 @@ public class SignatureBlocksDropWriter {
             ConcurrentLinkedQueue<Integer> queue,
             CandidateSetFinder<SignatureValue> candidateFinder,
             int threads,
-            boolean verbose,
             SynchronizedWriter writer
     ) throws java.lang.InterruptedException, java.io.IOException {
 
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
-                            "  --threads=%d",
-                            queue.size(),
-                            threads
-                    )
-            );
-        }
-        
         Date start = new Date();
-        if (verbose) {
-            System.out.println("START @ " + start);
-        }
+        System.out.println("START @ " + start);
         
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
@@ -200,9 +144,7 @@ public class SignatureBlocksDropWriter {
         }
         
         Date end = new Date();
-        if (verbose) {
-            System.out.println("END @ " + end);
-        }
+        System.out.println("END @ " + end);
     }
 
     private final static String COMMAND =
@@ -212,7 +154,7 @@ public class SignatureBlocksDropWriter {
             "  <output-file>";
     
     private final static Logger LOGGER = Logger
-            .getLogger(SignatureBlocksDropWriter.class.getName());
+            .getLogger(SignatureDropStatsExperiment.class.getName());
     
     public static void main(String[] args) {
 
@@ -237,13 +179,12 @@ public class SignatureBlocksDropWriter {
 
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
             EQIndex eqIndex = new EQIndex(eqFile);
-            new SignatureBlocksDropWriter().run(
+            new SignatureDropStatsExperiment().run(
                     eqIndex,
                     new ContextSignatureGenerator(eqIndex.nodes()),
                     new ConcurrentLinkedQueue<>(eqIndex.keys().toList()),
                     candidateFinder,
                     threads,
-                    true,
                     new SynchronizedWriter(out)
             );
         } catch (java.lang.InterruptedException | java.io.IOException ex) {
