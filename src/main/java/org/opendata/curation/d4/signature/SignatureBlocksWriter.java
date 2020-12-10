@@ -20,6 +20,7 @@ package org.opendata.curation.d4.signature;
 import java.io.File;
 import java.io.PrintWriter;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.io.prov.DataSink;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.core.util.StringHelper;
 
@@ -27,7 +28,7 @@ import org.opendata.core.util.StringHelper;
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksWriter implements SignatureBlocksConsumer {
+public class SignatureBlocksWriter implements DataSink, SignatureBlocksConsumer {
 
     private final File _file;
     private int _openCount = 0;
@@ -77,6 +78,12 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
             }
         }
         _openCount++;
+    }
+
+    @Override
+    public String target() {
+
+        return _file.getName();
     }
     
     public void write(SignatureBlocksIndex signatures) {

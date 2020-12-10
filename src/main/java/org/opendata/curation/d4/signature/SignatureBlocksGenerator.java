@@ -33,6 +33,8 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.prune.ThresholdFinder;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -57,10 +59,15 @@ public class SignatureBlocksGenerator {
     
     public static final String DEFAULT = MAX_DROP;
     
+    /**
+     * Worker for generating signature blocks for equivalence classes.
+     * 
+     */
     private class BlockGeneratorTask implements Runnable {
 
         private final CandidateSetFinder<SignatureValue> _candidateFinder;
         private final SignatureBlocksConsumer _consumer;
+        private final boolean _ignoreMinorDrop;
         private final ConcurrentLinkedQueue<Integer> _queue;
         private final ContextSignatureGenerator _sigFact;
         
@@ -68,13 +75,25 @@ public class SignatureBlocksGenerator {
                 ConcurrentLinkedQueue<Integer> queue,
                 ContextSignatureGenerator sigFact,
                 CandidateSetFinder<SignatureValue> candidateFinder,
+                boolean ignoreMinorDrop,
                 SignatureBlocksConsumer consumer
         ) {
             
             _queue = queue;
             _sigFact = sigFact;
             _candidateFinder = candidateFinder;
+            _ignoreMinorDrop = ignoreMinorDrop;
             _consumer = consumer;
+        }
+        
+        private int[] getBlock(List<SignatureValue> sig, int start, int end) {
+            
+            int[] block = new int[end - start];
+            for (int iEl = start; iEl < end; iEl++) {
+                block[iEl - start] = sig.get(iEl).id();
+            }
+            Arrays.sort(block);
+            return block;
         }
         
         @Override
@@ -88,29 +107,51 @@ public class SignatureBlocksGenerator {
                 if (sig.isEmpty()) {
                     continue;
                 }
+                ArrayList<int[]> blocks = new ArrayList<>();
                 int start = 0;
                 final int end = sig.size();
-                ArrayList<int[]> blocks = new ArrayList<>();
                 while (start < end) {
                     int pruneIndex = _candidateFinder.getPruneIndex(sig, start);
                     if (pruneIndex <= start) {
                         break;
                     }
-                    int[] block = new int[pruneIndex - start];
-                    for (int iEl = start; iEl < pruneIndex; iEl++) {
-                        block[iEl - start] = sig.get(iEl).id();
+                    // If the ignoreMinorDrop flag is true check that the
+                    // difference at the drop is at least as large as the
+                    // difference between the elements in the block.
+                    if (_ignoreMinorDrop) {
+                        double rightBound = 0;
+                        if (sig.size() < pruneIndex) {
+                            rightBound = sig.get(pruneIndex).value();
+                        }
+                        double leftBound = sig.get(pruneIndex - 1).value();
+                        double diff = leftBound - rightBound;
+                        double blockDiff = sig.get(start).value() - leftBound;
+                        if (blockDiff > diff) {
+                            // We encountered a minor drop. If the list of
+                            // blocks is empty (i.e., there is no steepest drop
+                            // but the full signature constrant is not satisfied
+                            // either) we break to return an empty signature.
+                            // Otherwise, we add the remaining elements as the
+                            // final block.
+                            if (blocks.isEmpty()) {
+                                break;
+                            } else {
+                                pruneIndex = end;
+                            }
+                        }
                     }
-                    Arrays.sort(block);
-                    blocks.add(block);
+                    blocks.add(this.getBlock(sig, start, pruneIndex));
                     start = pruneIndex;
                 }
-                _consumer.consume(
-                        new SignatureBlocksImpl(
-                                nodeId,
-                                sig.get(0).toBigDecimal(),
-                                blocks
-                        )
-                );
+                if (!blocks.isEmpty()) {
+                    _consumer.consume(
+                            new SignatureBlocksImpl(
+                                    nodeId,
+                                    sig.get(0).toBigDecimal(),
+                                    blocks
+                            )
+                    );
+                }
             }
         }
     }
@@ -131,22 +172,12 @@ public class SignatureBlocksGenerator {
             ContextSignatureGenerator sigFact,
             ConcurrentLinkedQueue<Integer> queue,
             CandidateSetFinder<SignatureValue> candidateFinder,
+            boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
             SignatureBlocksConsumer consumer
     ) throws java.lang.InterruptedException, java.io.IOException {
 
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
-                            "  --threads=%d",
-                            queue.size(),
-                            threads
-                    )
-            );
-        }
-        
         Date start = new Date();
         if (verbose) {
             System.out.println("START @ " + start);
@@ -161,6 +192,7 @@ public class SignatureBlocksGenerator {
                             queue,
                             sigFact,
                             candidateFinder,
+                            ignoreMinorDrop,
                             consumer
                     )
             );
@@ -212,6 +244,7 @@ public class SignatureBlocksGenerator {
                 new ContextSignatureGenerator(eqIndex.nodes()),
                 queue,
                 candidateFinder,
+                false,
                 threads,
                 verbose,
                 consumer
@@ -223,23 +256,51 @@ public class SignatureBlocksGenerator {
      * 
      * @param eqIndex
      * @param queue
+     * @param trimmerSpec
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
+     * @param ignoreMinorDrop
      * @param threads
      * @param verbose
-     * @param consumer
+     * @param writer
      * @throws java.lang.InterruptedException
      * @throws java.io.IOException 
      */
     public void runWithMaxDrop(
             EQIndex eqIndex,
             ConcurrentLinkedQueue<Integer> queue,
+            String trimmerSpec,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
+            boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumer consumer
+            SignatureBlocksWriter writer
     ) throws java.lang.InterruptedException, java.io.IOException {
+
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
+                            "  --eqs=%s\n" +
+                            "  --trimmer=%s\n" +
+                            "  --fullSignatureConstraint=%s\n" +
+                            "  --ignoreLastDrop=%s\n" +
+                            "  --ignoreMinorDrop=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --signatures=%s",
+                            queue.size(),
+                            eqIndex.source(),
+                            trimmerSpec,
+                            Boolean.toString(fullSignatureConstraint),
+                            Boolean.toString(ignoreLastDrop),
+                            Boolean.toString(ignoreMinorDrop),
+                            threads,
+                            writer.target()
+                    )
+            );
+        }
+        
 
         MaxDropFinder<SignatureValue> candidateFinder;
         candidateFinder = new MaxDropFinder<>(
@@ -248,13 +309,18 @@ public class SignatureBlocksGenerator {
                 ignoreLastDrop
         );
 
+        SignatureTrimmer trimmer;
+        trimmer = new SignatureTrimmerFactory(eqIndex, eqIndex.columns(), trimmerSpec)
+                .getTrimmer(writer);
+        
         this.compute(
                 new ContextSignatureGenerator(eqIndex.nodes()),
                 queue,
                 candidateFinder,
+                ignoreMinorDrop,
                 threads,
                 verbose,
-                consumer
+                trimmer
         );
     }
     
@@ -263,6 +329,7 @@ public class SignatureBlocksGenerator {
      * 
      * @param eqIndex
      * @param queue
+     * @param ignoreMinorDrop
      * @param threads
      * @param verbose
      * @param consumer
@@ -272,6 +339,7 @@ public class SignatureBlocksGenerator {
     public void runWithMaxDrop(
             EQIndex eqIndex,
             ConcurrentLinkedQueue<Integer> queue,
+            boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
             SignatureBlocksConsumer consumer
@@ -288,6 +356,7 @@ public class SignatureBlocksGenerator {
                 new ContextSignatureGenerator(eqIndex.nodes()),
                 queue,
                 candidateFinder,
+                ignoreMinorDrop,
                 threads,
                 verbose,
                 consumer

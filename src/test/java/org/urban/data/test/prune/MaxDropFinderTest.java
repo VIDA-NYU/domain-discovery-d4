@@ -84,11 +84,6 @@ public class MaxDropFinderTest {
 
         // The largest drop is between elements 2 and 3
 	assertEquals(3, dropFinder.getPruneIndex(elements));
-        IDSet nodes = dropFinder.pruneElements(elements);
-	assertEquals(3, nodes.length());
-        for (int nodeId : new int[]{10, 1, 2}) {
-            assertTrue(nodes.contains(nodeId));
-        }
         
         elements.add(3, new IdentifiableDouble(10, 0.55));
         

@@ -53,7 +53,6 @@ import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSizeSketchFactory;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.Database;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
@@ -207,6 +206,7 @@ public class D4 {
             String trimmerSpec,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
+            boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
             TelemetryCollector telemetry,
@@ -217,12 +217,13 @@ public class D4 {
         new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
+                trimmerSpec,
                 fullSignatureConstraint,
                 ignoreLastDrop,
+                ignoreMinorDrop,
                 threads,
                 verbose,
-                new SignatureTrimmerFactory(nodeIndex, nodeIndex.columns(), trimmerSpec)
-                        .getTrimmer(sigWriter)
+                sigWriter
         );
 
         if (verbose) {
@@ -420,6 +421,9 @@ public class D4 {
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
                         new Parameter("trimmer", "<string> [default: LIBERAL]"),
+                        new Parameter("fullSignatureConstraint", "<boolean> [default: true]"),
+                        new Parameter("ignoreLastDrop", "<boolean> [default: true]"),
+                        new Parameter("ignoreMinorDrop", "<boolean> [default: true]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']")
@@ -431,14 +435,16 @@ public class D4 {
             int threads = params.getAsInt("threads", 6);
             boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            boolean fullSignatureConstraint = false;
-            boolean ignoreLastDrop = true;
+            boolean fullSignatureConstraint = params.getAsBool("fullSignatureConstraint", true);
+            boolean ignoreLastDrop = params.getAsBool("ignoreLastDrop", true);
+            boolean ignoreMinorDrop = params.getAsBool("ignoreMinorDrop", true);
             try {
                 new D4().signatures(
                         new EQIndex(eqFile),
                         trimmerSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,
+                        ignoreMinorDrop,
                         threads,
                         verbose,
                         new TelemetryPrinter(),
