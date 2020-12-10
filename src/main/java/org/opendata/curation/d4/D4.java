@@ -35,7 +35,7 @@ import org.opendata.curation.d4.domain.DomainSetStatsPrinter;
 import org.opendata.curation.d4.domain.DomainWriter;
 import org.opendata.curation.d4.domain.ExternalMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
-import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
+import org.opendata.curation.d4.signature.RobustSignatureGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
@@ -48,7 +48,6 @@ import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.export.PrimaryDomainWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
-import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSizeSketchFactory;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
@@ -60,6 +59,9 @@ import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.TermIndexGenerator;
 import org.opendata.db.term.TermIndexReader;
 import org.opendata.db.tools.Dataset2ColumnsConverter;
+import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.sketch.SignatureBlocksNoSketchFactory;
+import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 
 /**
  * Complete D4 pipeline.
@@ -68,13 +70,9 @@ import org.opendata.db.tools.Dataset2ColumnsConverter;
  */
 public class D4 {
 
-    private static SignatureBlocksSketchFactory SignatureBlocksNoSketchFactory() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-    
     public void expandColumns(
             EQIndex nodeIndex,
-            SignatureBlocksStream signatures,
+            RobustSignatureStream signatures,
             String trimmer,
             SignatureBlocksSketchFactory sketchFactory,
             Threshold expandThreshold,
@@ -145,7 +143,7 @@ public class D4 {
     private static SignatureBlocksSketchFactory getSketchFactory(String spec) {
         
         if (spec == null) {
-            return SignatureBlocksNoSketchFactory();
+            return new SignatureBlocksNoSketchFactory();
         } else if ((spec.toUpperCase().startsWith("N")) && (spec.length() > 1)) {
             return new SignatureBlocksSizeSketchFactory(Integer.parseInt(spec.substring(1)));
         }
@@ -214,7 +212,7 @@ public class D4 {
     ) throws java.lang.InterruptedException, java.io.IOException {
         
         SignatureBlocksWriter sigWriter = new SignatureBlocksWriter(outputFile);
-        new SignatureBlocksGenerator(telemetry).runWithMaxDrop(
+        new RobustSignatureGenerator(telemetry).run(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
                 trimmerSpec,
@@ -420,9 +418,9 @@ public class D4 {
                                 "eqs",
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
-                        new Parameter("trimmer", "<string> [default: LIBERAL]"),
+                        new Parameter("robustifier", "<string> [default: LIBERAL]"),
                         new Parameter("fullSignatureConstraint", "<boolean> [default: true]"),
-                        new Parameter("ignoreLastDrop", "<boolean> [default: true]"),
+                        new Parameter("ignoreLastDrop", "<boolean> [default: false]"),
                         new Parameter("ignoreMinorDrop", "<boolean> [default: true]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
@@ -431,17 +429,17 @@ public class D4 {
                     args
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
-            String trimmerSpec = params.getAsString("trimmer", SignatureTrimmer.LIBERAL);
+            String robustifierSpec = params.getAsString("robustifier", SignatureRobustifier.LIBERAL);
             int threads = params.getAsInt("threads", 6);
             boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             boolean fullSignatureConstraint = params.getAsBool("fullSignatureConstraint", true);
-            boolean ignoreLastDrop = params.getAsBool("ignoreLastDrop", true);
+            boolean ignoreLastDrop = params.getAsBool("ignoreLastDrop", false);
             boolean ignoreMinorDrop = params.getAsBool("ignoreMinorDrop", true);
             try {
                 new D4().signatures(
                         new EQIndex(eqFile),
-                        trimmerSpec,
+                        robustifierSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,
                         ignoreMinorDrop,

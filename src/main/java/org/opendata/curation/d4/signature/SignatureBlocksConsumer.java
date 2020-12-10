@@ -17,6 +17,8 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.util.List;
+
 /**
  * Consumer for a stream of signature blocks.
  * 
@@ -25,7 +27,6 @@ package org.opendata.curation.d4.signature;
 public interface SignatureBlocksConsumer {
    
     public void close();
-    public void consume(SignatureBlocks sig);
-    public boolean isDone();
+    public void consume(int nodeId, List<SignatureBlock> blocks);
     public void open();
 }

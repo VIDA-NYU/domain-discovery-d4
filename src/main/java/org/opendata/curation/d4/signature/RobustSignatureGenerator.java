@@ -29,35 +29,30 @@ import java.util.concurrent.TimeUnit;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.GreaterThanConstraint;
-import org.opendata.core.constraint.Threshold;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.prune.ThresholdFinder;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.signature.trim.ColumnSupportBlockFilter;
+import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
+import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 import org.opendata.db.eq.EQIndex;
 
 /**
- * Generate output file containing context signature blocks.
+ * Generate output file containing robust context signature blocks.
  * 
  * The output contains a single tab-delimited line for each equivalence class
  * containing the following information:
  * 
  * - equivalence class identifier
- * - similarity of first context signature entry
- * - list of signature blocks. Each block is a comma-separated list of node
- *   identifier. Blocks are separated by a tab.
+ * - list of signature blocks. Each block is prefixed by the similarity of the
+ *   first and last element (delimited by '-') and a a comma-separated list of
+ *   node identifier (delimited from the prefix by ':'). Blocks are separated
+ *   by a tab.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksGenerator {
+public class RobustSignatureGenerator {
     
-    public static final String MAX_DROP = "MAX-DROP";
-    public static final String THRESHOLD = "THRESHOLD";
-
     public static final String TELEMETRY_ID = "SIGNATURE BLOCKS";
-    
-    public static final String DEFAULT = MAX_DROP;
     
     /**
      * Worker for generating signature blocks for equivalence classes.
@@ -86,14 +81,18 @@ public class SignatureBlocksGenerator {
             _consumer = consumer;
         }
         
-        private int[] getBlock(List<SignatureValue> sig, int start, int end) {
+        private SignatureBlock getBlock(List<SignatureValue> sig, int start, int end) {
             
             int[] block = new int[end - start];
             for (int iEl = start; iEl < end; iEl++) {
                 block[iEl - start] = sig.get(iEl).id();
             }
             Arrays.sort(block);
-            return block;
+            return new SignatureBlock(
+                    block,
+                    sig.get(start).value(),
+                    sig.get(end - 1).value()
+            );
         }
         
         @Override
@@ -107,7 +106,7 @@ public class SignatureBlocksGenerator {
                 if (sig.isEmpty()) {
                     continue;
                 }
-                ArrayList<int[]> blocks = new ArrayList<>();
+                ArrayList<SignatureBlock> blocks = new ArrayList<>();
                 int start = 0;
                 final int end = sig.size();
                 while (start < end) {
@@ -144,13 +143,7 @@ public class SignatureBlocksGenerator {
                     start = pruneIndex;
                 }
                 if (!blocks.isEmpty()) {
-                    _consumer.consume(
-                            new SignatureBlocksImpl(
-                                    nodeId,
-                                    sig.get(0).toBigDecimal(),
-                                    blocks
-                            )
-                    );
+                    _consumer.consume(nodeId, blocks);
                 }
             }
         }
@@ -158,25 +151,87 @@ public class SignatureBlocksGenerator {
 
     private final TelemetryCollector _telemetry;
     
-    public SignatureBlocksGenerator(TelemetryCollector telemetry) {
+    public RobustSignatureGenerator(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public SignatureBlocksGenerator() {
+    public RobustSignatureGenerator() {
         
         this(new TelemetryPrinter());
     }
     
-    private void compute(
-            ContextSignatureGenerator sigFact,
+    /**
+     * Generate signature blocks using consecutive steepest drops.
+     * 
+     * @param eqIndex
+     * @param queue
+     * @param robustifierSpec
+     * @param fullSignatureConstraint
+     * @param ignoreLastDrop
+     * @param ignoreMinorDrop
+     * @param threads
+     * @param verbose
+     * @param writer
+     * @throws java.lang.InterruptedException
+     * @throws java.io.IOException 
+     */
+    public void run(
+            EQIndex eqIndex,
             ConcurrentLinkedQueue<Integer> queue,
-            CandidateSetFinder<SignatureValue> candidateFinder,
+            String robustifierSpec,
+            boolean fullSignatureConstraint,
+            boolean ignoreLastDrop,
             boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumer consumer
+            SignatureBlocksWriter writer
     ) throws java.lang.InterruptedException, java.io.IOException {
+
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
+                            "  --eqs=%s\n" +
+                            "  --robustifier=%s\n" +
+                            "  --fullSignatureConstraint=%s\n" +
+                            "  --ignoreLastDrop=%s\n" +
+                            "  --ignoreMinorDrop=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --signatures=%s",
+                            queue.size(),
+                            eqIndex.source(),
+                            robustifierSpec,
+                            Boolean.toString(fullSignatureConstraint),
+                            Boolean.toString(ignoreLastDrop),
+                            Boolean.toString(ignoreMinorDrop),
+                            threads,
+                            writer.target()
+                    )
+            );
+        }
+        
+
+        MaxDropFinder<SignatureValue> candidateFinder;
+        candidateFinder = new MaxDropFinder<>(
+                new GreaterThanConstraint(BigDecimal.ZERO),
+                fullSignatureConstraint,
+                ignoreLastDrop
+        );
+
+        SignatureRobustifier consumer;
+        if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.COLSUPP)) {
+            consumer = new ColumnSupportBlockFilter(eqIndex, writer);
+        } else if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.LIBERAL)) {
+            consumer = new LiberalRobustifier(eqIndex.nodeSizes(), writer);
+        } else {
+            throw new IllegalArgumentException(
+                    String.format("Unknown robustifier '%s'", robustifierSpec)
+            );
+        }
+        
+        ContextSignatureGenerator sigFact;
+        sigFact = new ContextSignatureGenerator(eqIndex.nodes());
 
         Date start = new Date();
         if (verbose) {
@@ -215,151 +270,5 @@ public class SignatureBlocksGenerator {
             long execTime = end.getTime() - start.getTime();
             _telemetry.add(TELEMETRY_ID, execTime);
         }
-    }
-    /**
-     * Generate signature blocks using a fixed threshold constraint.
-     * 
-     * @param eqIndex
-     * @param queue
-     * @param threshold
-     * @param threads
-     * @param verbose
-     * @param consumer
-     * @throws java.lang.InterruptedException
-     * @throws java.io.IOException 
-     */
-    public void runWithThreshold(
-            EQIndex eqIndex,
-            ConcurrentLinkedQueue<Integer> queue,
-            Threshold threshold,
-            int threads,
-            boolean verbose,
-            SignatureBlocksConsumer consumer
-    ) throws java.lang.InterruptedException, java.io.IOException {
-        
-        ThresholdFinder<SignatureValue> candidateFinder;
-        candidateFinder = new ThresholdFinder<>(threshold);
-
-        this.compute(
-                new ContextSignatureGenerator(eqIndex.nodes()),
-                queue,
-                candidateFinder,
-                false,
-                threads,
-                verbose,
-                consumer
-        );
-    }
-    
-    /**
-     * Generate signature blocks using consecutive steepest drops.
-     * 
-     * @param eqIndex
-     * @param queue
-     * @param trimmerSpec
-     * @param fullSignatureConstraint
-     * @param ignoreLastDrop
-     * @param ignoreMinorDrop
-     * @param threads
-     * @param verbose
-     * @param writer
-     * @throws java.lang.InterruptedException
-     * @throws java.io.IOException 
-     */
-    public void runWithMaxDrop(
-            EQIndex eqIndex,
-            ConcurrentLinkedQueue<Integer> queue,
-            String trimmerSpec,
-            boolean fullSignatureConstraint,
-            boolean ignoreLastDrop,
-            boolean ignoreMinorDrop,
-            int threads,
-            boolean verbose,
-            SignatureBlocksWriter writer
-    ) throws java.lang.InterruptedException, java.io.IOException {
-
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --fullSignatureConstraint=%s\n" +
-                            "  --ignoreLastDrop=%s\n" +
-                            "  --ignoreMinorDrop=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --signatures=%s",
-                            queue.size(),
-                            eqIndex.source(),
-                            trimmerSpec,
-                            Boolean.toString(fullSignatureConstraint),
-                            Boolean.toString(ignoreLastDrop),
-                            Boolean.toString(ignoreMinorDrop),
-                            threads,
-                            writer.target()
-                    )
-            );
-        }
-        
-
-        MaxDropFinder<SignatureValue> candidateFinder;
-        candidateFinder = new MaxDropFinder<>(
-                new GreaterThanConstraint(BigDecimal.ZERO),
-                fullSignatureConstraint,
-                ignoreLastDrop
-        );
-
-        SignatureTrimmer trimmer;
-        trimmer = new SignatureTrimmerFactory(eqIndex, eqIndex.columns(), trimmerSpec)
-                .getTrimmer(writer);
-        
-        this.compute(
-                new ContextSignatureGenerator(eqIndex.nodes()),
-                queue,
-                candidateFinder,
-                ignoreMinorDrop,
-                threads,
-                verbose,
-                trimmer
-        );
-    }
-    
-    /**
-     * Generate signature blocks using consecutive steepest drops.
-     * 
-     * @param eqIndex
-     * @param queue
-     * @param ignoreMinorDrop
-     * @param threads
-     * @param verbose
-     * @param consumer
-     * @throws java.lang.InterruptedException
-     * @throws java.io.IOException 
-     */
-    public void runWithMaxDrop(
-            EQIndex eqIndex,
-            ConcurrentLinkedQueue<Integer> queue,
-            boolean ignoreMinorDrop,
-            int threads,
-            boolean verbose,
-            SignatureBlocksConsumer consumer
-    ) throws java.lang.InterruptedException, java.io.IOException {
-
-        MaxDropFinder<SignatureValue> candidateFinder;
-        candidateFinder = new MaxDropFinder<>(
-                new GreaterThanConstraint(BigDecimal.ZERO),
-                false,
-                true
-        );
-
-        this.compute(
-                new ContextSignatureGenerator(eqIndex.nodes()),
-                queue,
-                candidateFinder,
-                ignoreMinorDrop,
-                threads,
-                verbose,
-                consumer
-        );
     }
 }

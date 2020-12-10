@@ -19,9 +19,10 @@ package org.opendata.curation.d4.signature.sketch;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocks;
+import org.opendata.curation.d4.signature.RobustSignature;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksImpl;
+import org.opendata.curation.d4.signature.RobustSignatureImpl;
 
 /**
  * Consumer that prunes individual blocks in a signature. The size sketch
@@ -33,12 +34,12 @@ import org.opendata.curation.d4.signature.SignatureBlocksImpl;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksSizeSketch implements SignatureBlocksConsumer {
+public class SignatureBlocksSizeSketch implements RobustSignatureConsumer {
 
-    private final SignatureBlocksConsumer _consumer;
+    private final RobustSignatureConsumer _consumer;
     public final int _n;
     
-    public SignatureBlocksSizeSketch(int n, SignatureBlocksConsumer consumer) {
+    public SignatureBlocksSizeSketch(int n, RobustSignatureConsumer consumer) {
         
         _n = n;
         _consumer = consumer;
@@ -52,7 +53,7 @@ public class SignatureBlocksSizeSketch implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(RobustSignature sig) {
 
         List<int[]> blocks = new ArrayList<>();
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
@@ -64,13 +65,7 @@ public class SignatureBlocksSizeSketch implements SignatureBlocksConsumer {
             }
             blocks.add(block);
         }
-        _consumer.consume(new SignatureBlocksImpl(sig.id(), sig.maxSim(), blocks));
-    }
-
-    @Override
-    public boolean isDone() {
-
-        return _consumer.isDone();
+        _consumer.consume(new RobustSignatureImpl(sig.id(), blocks));
     }
 
     @Override

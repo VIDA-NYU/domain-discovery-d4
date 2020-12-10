@@ -31,7 +31,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
-import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
@@ -39,11 +38,13 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
  * Expand columns using multiple threads. Each thread expands a single columns
@@ -67,7 +68,7 @@ public class ParallelColumnExpander {
         private final int _id;
         private final EQIndex _nodes;
         private final int _numberOfIterations;
-        private final SignatureBlocksStream _signatures;
+        private final RobustSignatureStream _signatures;
         private final SignatureBlocksSketchFactory _sketchFactory;
         private final Threshold _threshold;
         private final SignatureTrimmerFactory _trimmerFactory;
@@ -77,7 +78,7 @@ public class ParallelColumnExpander {
                 int id,
                 EQIndex nodes,
                 List<ExpandedColumn> columns,
-                SignatureBlocksStream signatures,
+                RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 SignatureBlocksSketchFactory sketchFactory,
                 Threshold threshold,
@@ -121,8 +122,8 @@ public class ParallelColumnExpander {
             }
             int round = 0;
             while (!columns.isEmpty()) {
-                SignatureBlocksDispatcher dispatcher;
-                dispatcher = new SignatureBlocksDispatcher();
+                RobustSignatureDispatcher dispatcher;
+                dispatcher = new RobustSignatureDispatcher();
                 for (SingleColumnExpander expander : columns) {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
@@ -144,7 +145,7 @@ public class ParallelColumnExpander {
                             )
                     );
                 }
-                SignatureBlocksConsumer consumer;
+                RobustSignatureConsumer consumer;
                 consumer = _sketchFactory.getConsumer(dispatcher);
                 try {
                     _signatures.stream(consumer);
@@ -196,7 +197,7 @@ public class ParallelColumnExpander {
     
     public void run(
             EQIndex nodes,
-            SignatureBlocksStream signatures,
+            RobustSignatureStream signatures,
             String trimmer,
             SignatureBlocksSketchFactory sketchFactory,
             IdentifiableObjectSet<Column> db,

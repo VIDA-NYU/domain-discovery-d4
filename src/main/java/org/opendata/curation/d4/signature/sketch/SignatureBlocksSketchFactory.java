@@ -17,7 +17,7 @@
  */
 package org.opendata.curation.d4.signature.sketch;
 
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Factory pattern for generating signature blocks consumers for sketches.
@@ -34,7 +34,7 @@ public interface SignatureBlocksSketchFactory {
      * @param consumer
      * @return 
      */
-    public SignatureBlocksConsumer getConsumer(SignatureBlocksConsumer consumer);
+    public RobustSignatureConsumer getConsumer(RobustSignatureConsumer consumer);
     
     /**
      * Get documentation string for the signature blocks sketches that are

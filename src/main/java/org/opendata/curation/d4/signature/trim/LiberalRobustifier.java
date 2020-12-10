@@ -17,12 +17,9 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.SignatureBlocks;
+import java.util.List;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksImpl;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
-import org.opendata.core.object.filter.AnyObjectFilter;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Liberal signature blocks trimmer. The liberal trimmer prunes all
@@ -31,35 +28,26 @@ import org.opendata.core.object.filter.AnyObjectFilter;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class LiberalTrimmer extends SignatureTrimmer {
+public class LiberalRobustifier extends SignatureRobustifier {
 
     private final int[] _nodeSizes;
     
-    public LiberalTrimmer(
-            int[] nodeSizes,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
-    ) {
-        super(new AnyObjectFilter(), nonEmptyConstraint, consumer);
+    public LiberalRobustifier(int[] nodeSizes, SignatureBlocksConsumer consumer) {
+        super(consumer);
         
         _nodeSizes = nodeSizes;
     }
-    
-    public LiberalTrimmer(int[] nodeSizes, SignatureBlocksConsumer consumer) {
-        
-        this(nodeSizes, new ZeroThreshold(), consumer);
-    }
 
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void consume(int nodeId, List<SignatureBlock> blocks) {
 
         int index = 0;
         int maxIndex = -1;
         int maxSize = -1;
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+        for (SignatureBlock block : blocks) {
             int size = 0;
-            for (int nodeId : sig.get(iBlock)) {
-                size += _nodeSizes[nodeId];
+            for (int memberId : block.elements()) {
+                size += _nodeSizes[memberId];
             }
             if (size > maxSize) {
                 maxSize = size;
@@ -67,10 +55,6 @@ public class LiberalTrimmer extends SignatureTrimmer {
             }
             index++;
         }
-        int[][] blocks = new int[Math.max(1, maxIndex)][];
-        for (int iBlock = 0; iBlock < blocks.length; iBlock++) {
-            blocks[iBlock] = sig.get(iBlock);
-        }
-        consumer.consume(new SignatureBlocksImpl(sig.id(), sig.maxSim(), blocks));
+        this.push(nodeId, blocks, Math.max(1, maxIndex));
     }
 }

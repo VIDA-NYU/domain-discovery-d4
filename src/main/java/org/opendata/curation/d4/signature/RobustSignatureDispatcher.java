@@ -26,21 +26,21 @@ import java.util.List;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksDispatcher implements SignatureBlocksConsumer {
+public class RobustSignatureDispatcher implements RobustSignatureConsumer {
     
-    private final List<SignatureBlocksConsumer> _consumers;
+    private final List<RobustSignatureConsumer> _consumers;
 
-    public SignatureBlocksDispatcher(List<SignatureBlocksConsumer> consumers) {
+    public RobustSignatureDispatcher(List<RobustSignatureConsumer> consumers) {
 
         _consumers = consumers;
     }
 
-    public SignatureBlocksDispatcher() {
+    public RobustSignatureDispatcher() {
         
         this(new ArrayList<>());
     }
     
-    public void add(SignatureBlocksConsumer consumer) {
+    public void add(RobustSignatureConsumer consumer) {
         
         _consumers.add(consumer);
     }
@@ -48,34 +48,23 @@ public class SignatureBlocksDispatcher implements SignatureBlocksConsumer {
     @Override
     public void close() {
 
-        for (SignatureBlocksConsumer consumer : _consumers) {
+        for (RobustSignatureConsumer consumer : _consumers) {
             consumer.close();
         }
    }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(RobustSignature sig) {
 
-        for (SignatureBlocksConsumer consumer : _consumers) {
+        for (RobustSignatureConsumer consumer : _consumers) {
             consumer.consume(sig);
         }
     }
 
     @Override
-    public boolean isDone() {
-        
-        for (SignatureBlocksConsumer consumer : _consumers) {
-            if (consumer.isDone()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public void open() {
 
-        for (SignatureBlocksConsumer consumer : _consumers) {
+        for (RobustSignatureConsumer consumer : _consumers) {
             consumer.open();
         }
     }

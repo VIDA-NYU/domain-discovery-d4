@@ -24,7 +24,7 @@ import org.opendata.core.io.prov.DataCollection;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksStream extends DataCollection {
+public interface RobustSignatureStream extends DataCollection {
     
-    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException;
+    public void stream(RobustSignatureConsumer consumer) throws java.io.IOException;
 }

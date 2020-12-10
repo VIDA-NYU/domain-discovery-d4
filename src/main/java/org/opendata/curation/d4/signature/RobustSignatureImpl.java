@@ -15,38 +15,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
 import java.util.List;
-import org.opendata.curation.d4.signature.RobustSignature;
-import org.opendata.core.object.IdentifiableDouble;
 
 /**
- * Trimmed signature is a wrapper around a signature blocks object. Instead of
- * creating a copy of the blocks only a list of block indexes is maintained that
- * references the non-pruned blocks.
+ * Use two-dimensional array to represent signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class CentristSignature extends RobustSignature {
+public class RobustSignatureImpl extends RobustSignature {
 
-    private final List<IdentifiableDouble> _elements;
-    private final RobustSignature _sig;
-                    
-    public CentristSignature(
-            RobustSignature sig,
-            List<IdentifiableDouble> elements,
-            int dropIndex
-    ) {
-        super(sig.id(), dropIndex);
+    private final int[][] _blocks;
+
+    public RobustSignatureImpl(int id, List<int[]> blocks) {
         
-        _sig = sig;
-        _elements = elements;
+        super(id, blocks.size());
+        
+        _blocks = new int[blocks.size()][];
+        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
+            _blocks[iBlock] = blocks.get(iBlock);
+        }
     }
     
+    public RobustSignatureImpl(int id, int[][] blocks) {
+        
+        super(id, blocks.length);
+        
+        _blocks = blocks;
+    }
+
     @Override
     public int[] get(int index) {
 
-        return _sig.get(_elements.get(index).id());
+        return _blocks[index];
     }
 }

@@ -17,7 +17,7 @@
  */
 package org.opendata.curation.d4.signature.sketch;
 
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Factory pattern for consumer that implement the no-sketch strategy for
@@ -28,7 +28,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 public class SignatureBlocksNoSketchFactory implements SignatureBlocksSketchFactory {
 
     @Override
-    public SignatureBlocksConsumer getConsumer(SignatureBlocksConsumer consumer) {
+    public RobustSignatureConsumer getConsumer(RobustSignatureConsumer consumer) {
 
         return consumer;
     }
@@ -37,5 +37,5 @@ public class SignatureBlocksNoSketchFactory implements SignatureBlocksSketchFact
     public String toDocString() {
 
         return "null";
-    }    
+    }
 }

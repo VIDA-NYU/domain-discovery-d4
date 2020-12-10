@@ -18,10 +18,10 @@
 package org.opendata.curation.d4.domain;
 
 import org.opendata.curation.d4.column.ExpandedColumn;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.graph.UndirectedConnectedComponents;
 import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Generator for local domains in an expanded column. Domains are generated as
@@ -30,7 +30,7 @@ import org.opendata.core.set.IdentifiableIDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class UndirectedDomainGenerator extends UndirectedConnectedComponents implements SignatureBlocksConsumer {
+public class UndirectedDomainGenerator extends UndirectedConnectedComponents implements RobustSignatureConsumer {
     
     private final ExpandedColumn _column;
     private boolean _isDone = false;
@@ -66,8 +66,12 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(RobustSignature sig) {
 
+        if (_isDone) {
+            return;
+        }
+        
         final int sigId = sig.id();
         
         if (_column.contains(sigId)) {
@@ -82,12 +86,6 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
                 _isDone = true;
             }
         }
-    }
-
-    @Override
-    public boolean isDone() {
-        
-        return _isDone;
     }
     
     @Override

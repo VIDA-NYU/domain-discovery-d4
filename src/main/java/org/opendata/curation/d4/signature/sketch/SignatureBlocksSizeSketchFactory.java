@@ -17,7 +17,7 @@
  */
 package org.opendata.curation.d4.signature.sketch;
 
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Factory for consumer that implement the size-threshold sketch strategy for
@@ -35,7 +35,7 @@ public class SignatureBlocksSizeSketchFactory implements SignatureBlocksSketchFa
     }
     
     @Override
-    public SignatureBlocksConsumer getConsumer(SignatureBlocksConsumer consumer) {
+    public RobustSignatureConsumer getConsumer(RobustSignatureConsumer consumer) {
 
         return new SignatureBlocksSizeSketch(_n, consumer);
     }

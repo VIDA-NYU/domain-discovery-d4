@@ -17,38 +17,43 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 /**
- * Use two-dimensional array to represent signature blocks.
+ * Block in the robust signature for an equivalence class. Each block maintains
+ * the similarity for the first and last entry in the blocks as well as the list
+ * of all node identifier for the equivalence classes in the block.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksImpl extends SignatureBlocks {
-
-    private final int[][] _blocks;
-
-    public SignatureBlocksImpl(int id, BigDecimal maxSim, List<int[]> blocks) {
+public class SignatureBlock {
+   
+    private final int[] _elements;
+    private final double _firstValue;
+    private final double _lastValue;
+    
+    public SignatureBlock(int[] elements, double firstValue, double lastValue) {
         
-        super(id, maxSim, blocks.size());
-        
-        _blocks = new int[blocks.size()][];
-        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
-            _blocks[iBlock] = blocks.get(iBlock);
-        }
+        _elements = elements;
+        _firstValue = firstValue;
+        _lastValue = lastValue;
     }
     
-    public SignatureBlocksImpl(int id, BigDecimal maxSim, int[][] blocks) {
+    public int[] elements() {
         
-        super(id, maxSim, blocks.length);
-        
-        _blocks = blocks;
+        return _elements;
     }
-
-    @Override
-    public int[] get(int index) {
-
-        return _blocks[index];
+    
+    public double firstValue() {
+        
+        return _firstValue;
+    }
+    
+    public double lastValue() {
+        
+        return _lastValue;
+    }
+    
+    public int length() {
+        
+        return _elements.length;
     }
 }

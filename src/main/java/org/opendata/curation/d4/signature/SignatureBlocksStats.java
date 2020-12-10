@@ -19,6 +19,7 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.util.Avg;
@@ -79,8 +80,10 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     }
     
     private StatsCollector _blockStats;
-    private SimilarityHistogram _histogram = null;
-    private StatsCollector[] _nodeStats;
+    private SimilarityHistogram _firstDropHistogram = null;
+    private SimilarityHistogram _lastDropHistogram = null;
+    private StatsCollector _nodeStats;
+    private SimilarityHistogram _similarityHistogram = null;
     
     @Override
     public void close() {
@@ -88,63 +91,60 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(int nodeId, List<SignatureBlock> blocks) {
 
-        _blockStats.add(sig.size());
-        _histogram.add(sig.maxSim());
+        _blockStats.add(blocks.size());
+        _firstDropHistogram.add(blocks.get(0).lastValue());
+        _lastDropHistogram.add(blocks.get(blocks.size() - 1).lastValue());
+        _similarityHistogram.add(blocks.get(0).firstValue());
         
-        int[] nodeCount = new int[11];
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            int bl = sig.get(iBlock).length;
-            for (int i = 0; i < 10; i++) {
-                nodeCount[i] += Math.min(bl, (i + 1) * 10);
-            }
-            nodeCount[10] += bl;
+        int nodeCount = 0;
+        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
+            nodeCount += blocks.get(iBlock).length();
         }
         
-        for (int i = 0; i < nodeCount.length; i++) {
-            _nodeStats[i].add(nodeCount[i]);
-        }
-    }
-
-    @Override
-    public boolean isDone() {
-        
-        return false;
+        _nodeStats.add(nodeCount);
     }
 
     @Override
     public void open() {
 
         _blockStats = new StatsCollector();
-        _histogram = new SimilarityHistogram();
-        _nodeStats = new StatsCollector[11];
-        for (int i = 0; i < _nodeStats.length; i++) {
-            _nodeStats[i] = new StatsCollector();
-        }
+        _firstDropHistogram = new SimilarityHistogram();
+        _lastDropHistogram = new SimilarityHistogram();
+        _similarityHistogram = new SimilarityHistogram();
+        _nodeStats = new StatsCollector();
     }
     
     public void print(PrintWriter out) {
 
+        out.println("SIMILARITIES:");
+        out.println("\tMAX. SIM\tFIRST DROP\tLAST DROP");
+        for (String key : _similarityHistogram.keys()) {
+            out.println(
+                    String.format(
+                            "%s\t%d\t%d\t%d",
+                            key,
+                            _similarityHistogram.get(key),
+                           _firstDropHistogram.get(key),
+                            _lastDropHistogram.get(key)
+                    )
+            );
+        }
+        out.println();
         out.println("SIGNATURE COUNT: " + _blockStats.count());
         out.println();
         out.println("SIGNATURE BLOCKS");
         out.println("MIN. SIZE      : " + _blockStats.min());
         out.println("MAX. SIZE      : " + _blockStats.max());
         out.println("AVG. SIZE      : " + _blockStats.avg());
+        out.println("SUM            : " + _blockStats.sum());
         out.println();
-        for (int i = 0; i < _nodeStats.length - 1; i++) {
-            out.println("NODE COUNTS " + ((i + 1) * 10));
-            out.println("MIN. SIZE      : " + _nodeStats[i].min());
-            out.println("MAX. SIZE      : " + _nodeStats[i].max());
-            out.println("AVG. SIZE      : " + _nodeStats[i].avg());
-            out.println("SUM            : " + _nodeStats[i].sum());
-        }
-        out.println("NODE COUNTS (TOTAL)");
-        out.println("MIN. SIZE      : " + _nodeStats[10].min());
-        out.println("MAX. SIZE      : " + _nodeStats[10].max());
-        out.println("AVG. SIZE      : " + _nodeStats[10].avg());
-        out.println("SUM            : " + _nodeStats[10].sum());
+        out.println("NODE COUNTS");
+        out.println("MIN. SIZE      : " + _nodeStats.min());
+        out.println("MAX. SIZE      : " + _nodeStats.max());
+        out.println("AVG. SIZE      : " + _nodeStats.avg());
+        out.println("SUM            : " + _nodeStats.sum());
         out.flush();
     }
     

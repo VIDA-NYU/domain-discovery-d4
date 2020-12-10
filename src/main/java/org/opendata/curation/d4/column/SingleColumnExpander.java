@@ -23,11 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -35,7 +35,7 @@ import org.opendata.db.eq.EQIndex;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SingleColumnExpander implements SignatureBlocksConsumer {
+public class SingleColumnExpander implements RobustSignatureConsumer {
 
     private static final Logger LOGGER = Logger
             .getLogger(SingleColumnExpander.class.getName());
@@ -215,7 +215,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(RobustSignature sig) {
 
         boolean isOriginalNode = _column.isColumnNode(sig.id());
         int weight = _nodeSizes[sig.id()];

@@ -15,29 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
-import org.opendata.curation.d4.signature.RobustSignature;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import java.util.List;
 
 /**
- * Signature trimmer that simply returns the complete list of signature blocks.
+ * Consumer for a stream of robust signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class NonTrimmer extends SignatureTrimmer {
-
-    public NonTrimmer(
-            IDSet column,
-            RobustSignatureConsumer consumer
-    ) {
-        super(column, consumer);
-    }
-    
-    @Override
-    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
-
-        consumer.consume(sig);
-    }
+public interface RobustSignatureConsumer {
+   
+    public void close();
+    public void consume(RobustSignature sig);
+    public void open();
 }

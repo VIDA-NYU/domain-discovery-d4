@@ -29,14 +29,14 @@ import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -58,7 +58,7 @@ public class InMemLocalDomainGenerator {
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
-        private final SignatureBlocksStream _signatures;
+        private final RobustSignatureStream _signatures;
         private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
@@ -67,7 +67,7 @@ public class InMemLocalDomainGenerator {
                 int id,
                 EQIndex nodes,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
-                SignatureBlocksStream signatures,
+                RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
@@ -92,7 +92,7 @@ public class InMemLocalDomainGenerator {
             while ((column = _columns.poll()) != null) {
                 MutableIdentifiableIDSet col;
                 col = new MutableIdentifiableIDSet(column.id(), column.nodes());
-                SignatureBlocksConsumer domainGenerator;
+                RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
@@ -135,7 +135,7 @@ public class InMemLocalDomainGenerator {
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
-            SignatureBlocksStream signatures,
+            RobustSignatureStream signatures,
             String trimmer,
             SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,

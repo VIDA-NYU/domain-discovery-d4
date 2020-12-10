@@ -17,13 +17,12 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.SignatureBlocks;
+import java.util.List;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.constraint.ZeroThreshold;
-import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlocksImpl;
+import org.opendata.curation.d4.signature.SignatureBlock;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -32,7 +31,7 @@ import org.opendata.db.eq.EQIndex;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnSupportBlockFilter extends SignatureTrimmer {
+public class ColumnSupportBlockFilter extends SignatureRobustifier {
 
     private final EQIndex _eqIndex;
     private final int _minStart;
@@ -43,7 +42,7 @@ public class ColumnSupportBlockFilter extends SignatureTrimmer {
             Threshold nonEmptyConstraint,
             SignatureBlocksConsumer consumer
     ) {
-        super(new AnyObjectFilter(), nonEmptyConstraint, consumer);
+        super(consumer);
         
         _eqIndex = eqIndex;
         _minStart = minStart;
@@ -67,15 +66,15 @@ public class ColumnSupportBlockFilter extends SignatureTrimmer {
     }
 
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void consume(int nodeId, List<SignatureBlock> blocks) {
 
-        IDSet nodeColumns = _eqIndex.get(sig.id()).columns();
+        IDSet nodeColumns = _eqIndex.get(nodeId).columns();
         
         int lastIndex = 0;
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+        for (SignatureBlock block : blocks) {
             IDSet columns = nodeColumns;
-            for (int nodeId : sig.get(iBlock)) {
-                columns = columns.intersect(_eqIndex.get(nodeId).columns());
+            for (int memberId : block.elements()) {
+                columns = columns.intersect(_eqIndex.get(memberId).columns());
                 if (columns.isEmpty()) {
                     break;
                 }
@@ -85,11 +84,6 @@ public class ColumnSupportBlockFilter extends SignatureTrimmer {
             }
             lastIndex++;
         }
-        int sigSize = Math.max(_minStart, lastIndex);
-        int[][] blocks = new int[sigSize][];
-        for (int iBlock = 0; iBlock < blocks.length; iBlock++) {
-            blocks[iBlock] = sig.get(iBlock);
-        }
-        consumer.consume(new SignatureBlocksImpl(sig.id(), sig.maxSim(), blocks));
+        this.push(nodeId, blocks, Math.max(_minStart, lastIndex));
     }
 }

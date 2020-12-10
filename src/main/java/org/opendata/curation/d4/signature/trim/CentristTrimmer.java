@@ -21,11 +21,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.GreaterThanConstraint;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
@@ -33,6 +30,7 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.sort.DoubleValueDescSort;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Centrist signature blocks trimmer. The centrist trimmer uses a scoring
@@ -52,10 +50,9 @@ public class CentristTrimmer extends SignatureTrimmer {
             IdentifiableIDSet column,
             BlockScoreFunction scoreFunc,
             CandidateSetFinder<IdentifiableDouble> dropFinder,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            RobustSignatureConsumer consumer
     ) {
-        super(column, nonEmptyConstraint, consumer);
+        super(column, consumer);
         
         _columnId = column.id();
         _scoreFunc = scoreFunc;
@@ -65,8 +62,7 @@ public class CentristTrimmer extends SignatureTrimmer {
     public CentristTrimmer(
             IdentifiableIDSet column,
             BlockScoreFunction scoreFunc,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            RobustSignatureConsumer consumer
     ) {
     
         this(
@@ -77,39 +73,12 @@ public class CentristTrimmer extends SignatureTrimmer {
                     false,
                     false
                 ),
-                nonEmptyConstraint,
                 consumer
-        );
-    }
-
-    public CentristTrimmer(
-            IdentifiableIDSet column,
-            BlockScoreFunction scoreFunc,
-            SignatureBlocksConsumer consumer
-    ) {
-    
-        this(
-                column,
-                scoreFunc,
-                new ZeroThreshold(),
-                consumer
-        );
-    }
-
-    public CentristTrimmer(
-            IdentifiableIDSet column,
-            BlockScoreFunction scoreFunc
-    ) {
-    
-        this(
-                column,
-                scoreFunc,
-                null
         );
     }
 
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
 
         List<IdentifiableDouble> elements = new ArrayList<>();
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
@@ -126,7 +95,7 @@ public class CentristTrimmer extends SignatureTrimmer {
         }
     }
 
-    public IDSet trimmedBlocks(SignatureBlocks sig) {
+    public IDSet trimmedBlocks(RobustSignature sig) {
 
         List<IdentifiableDouble> elements = new ArrayList<>();
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
