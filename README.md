@@ -117,6 +117,10 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 signatures
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
+  --robustifier=<str> [LIBERAL | COLSUPP]
+  --fullSignatureConstraint=<boolean> [default: true]
+  --ignoreLastDrop=<boolean> [default: false]
+  --ignoreMinorDrop=<boolean> [default: true] 
   --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --signatures=<file> [default: 'signatures.txt.gz']
