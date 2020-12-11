@@ -30,18 +30,18 @@ import org.opendata.core.object.IdentifiableObjectImpl;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SimpleIdentifiableIDSet extends IdentifiableObjectImpl implements IdentifiableIDSet {
+public class IdentifiableIDSetWrapper extends IdentifiableObjectImpl implements IdentifiableIDSet {
     
     private final IDSet _values;
     
-    public SimpleIdentifiableIDSet(int id) {
+    public IdentifiableIDSetWrapper(int id) {
     
         super(id);
         
         _values = new ImmutableIDSet();
     }
     
-    public SimpleIdentifiableIDSet(int id, IDSet values) {
+    public IdentifiableIDSetWrapper(int id, IDSet values) {
         
         super(id);
         

@@ -17,12 +17,14 @@
  */
 package org.opendata.curation.d4.domain;
 
+import org.opendata.core.io.prov.DataSink;
+
 /**
  * Consumer interface for domain streams.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface DomainConsumer {
+public interface DomainConsumer extends DataSink {
     
     public void close();
     public void consume(Domain domain);

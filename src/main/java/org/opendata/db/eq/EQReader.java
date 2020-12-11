@@ -30,11 +30,18 @@ import org.opendata.core.set.IdentifiableObjectSet;
  */
 public class EQReader implements EQStream {
    
+    private EQFactory _factory;
     private final File _file;
     
-    public EQReader(File file) {
+    public EQReader(File file, EQFactory factory) {
         
         _file = file;
+        _factory = factory;
+    }
+    
+    public EQReader(File file) {
+
+        this(file, new DefaultEQFactory());
     }
     
     public IdentifiableObjectSet<EQ> read() throws java.io.IOException {
@@ -46,7 +53,7 @@ public class EQReader implements EQStream {
             while ((line = in.readLine()) != null) {
                 line = line.trim();
                 if (!line.equals("")) {
-                    result.add(new EQImpl(line.split("\t")));
+                    result.add(_factory.parse(line));
                 }
             }
         }

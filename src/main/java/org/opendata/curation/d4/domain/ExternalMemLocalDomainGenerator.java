@@ -28,24 +28,28 @@ import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.core.set.MutableIdentifiableIDSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
+import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
  * in the graph generated from the robust signatures of the column elements 
  * represents a local domain.
  * 
- * Uses a concurrent queue to distribute columns across workers. Relies
+ * The single scan local domain generator scans through the set of signature
+ * blocks exactly once (per thread) while generating the local domains. Requires
+ * to have domain generators for all columns in memory (instead of having a
+ * copy of all signature blocks in memory).
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ParallelLocalDomainGenerator {
+public class ExternalMemLocalDomainGenerator {
                    
     public static final String TELEMETRY_ID = "LOCAL DOMAINS";
 
@@ -55,7 +59,8 @@ public class ParallelLocalDomainGenerator {
         private final UniqueDomainSet _domains;
         private final int _id;
         private final EQIndex _nodes;
-        private final SignatureBlocksStream _signatures;
+        private final RobustSignatureStream _signatures;
+        private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -63,8 +68,9 @@ public class ParallelLocalDomainGenerator {
                 int id,
                 EQIndex nodes,
                 List<ExpandedColumn> columns,
-                SignatureBlocksStream signatures,
+                RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
+                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
@@ -73,6 +79,7 @@ public class ParallelLocalDomainGenerator {
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
+            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -80,26 +87,27 @@ public class ParallelLocalDomainGenerator {
         @Override
         public void run() {
             
-            SignatureBlocksDispatcher dispatcher;
-            dispatcher = new SignatureBlocksDispatcher();
+            RobustSignatureDispatcher dispatcher;
+            dispatcher = new RobustSignatureDispatcher();
             
             for (ExpandedColumn column : _columns) {
-                IDSet col = column.nodes();
-                SignatureBlocksConsumer domainGenerator;
+                MutableIdentifiableIDSet col;
+                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
+                RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
                         _nodes.nodeSizes()
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col, domainGenerator);
+                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
                 dispatcher.add(trimmer);
             }
             
             Date start = new Date();
 
             try {
-                _signatures.stream(dispatcher);
+                _signatures.stream(_sketchFactory.getConsumer(dispatcher));
             } catch (java.io.IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -116,12 +124,12 @@ public class ParallelLocalDomainGenerator {
     
     private final TelemetryCollector _telemetry;
     
-    public ParallelLocalDomainGenerator(TelemetryCollector telemetry) {
+    public ExternalMemLocalDomainGenerator(TelemetryCollector telemetry) {
         
         _telemetry = telemetry;
     }
     
-    public ParallelLocalDomainGenerator() {
+    public ExternalMemLocalDomainGenerator() {
         
         this(new TelemetryPrinter());
     }
@@ -129,8 +137,10 @@ public class ParallelLocalDomainGenerator {
     public void run(
             EQIndex nodes,
             ExpandedColumnIndex columnIndex,
-            SignatureBlocksStream signatures,
+            RobustSignatureStream signatures,
             String trimmer,
+            SignatureBlocksSketchFactory sketchFactory,
+            boolean originalOnly,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -139,12 +149,7 @@ public class ParallelLocalDomainGenerator {
         UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
         
         Date start = new Date();
-        if (verbose) {
-            System.out.println("START @ " + start);
-        }
-        
-        ExecutorService es = Executors.newCachedThreadPool();
-        
+
         // Sort column in decreasing number of nodes
         List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
         Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
@@ -155,16 +160,38 @@ public class ParallelLocalDomainGenerator {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "LOCAL DOMAINS FOR %d COLUMN GROUPS USING:\n" +
+                            "LOCAL DOMAINS (EXTERNAL MEMORY) FOR %d COLUMN GROUPS USING:\n" +
+                            "  --eqs=%s\n" +
+                            "  --columns=%s\n" +
+                            "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
-                            "  --threads=%d",
+                            "  --sketch=%s\n" +
+                            "  --originalonly=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --inmem=false\n" +
+                            "  --localdomains=%s",
                             columnList.size(),
+                            nodes.source(),
+                            columnIndex.source(),
+                            signatures.source(),
                             trimmer,
-                            threads
+                            sketchFactory.toDocString(),
+                            Boolean.toString(originalOnly),
+                            threads,
+                            consumer.target()
                     )
             );
+            System.out.println("START @ " + start);
         }
         
+        ExecutorService es = Executors.newCachedThreadPool();
+        
+        SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
+                nodes,
+                columnIndex.toColumns(originalOnly),
+                trimmer
+        );
+
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
@@ -175,7 +202,8 @@ public class ParallelLocalDomainGenerator {
                     nodes,
                     columns,
                     signatures,
-                    new SignatureTrimmerFactory(nodes, trimmer),
+                    trimmerFactory,
+                    sketchFactory,
                     domains,
                     verbose
             );

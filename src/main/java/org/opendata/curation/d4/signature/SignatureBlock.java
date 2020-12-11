@@ -17,42 +17,43 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.math.BigDecimal;
-import org.opendata.core.object.IdentifiableObjectImpl;
-
 /**
- * List of blocks for a context signature. Contains the node identifier and the
- * similarity of the first entry in the context signature.
+ * Block in the robust signature for an equivalence class. Each block maintains
+ * the similarity for the first and last entry in the blocks as well as the list
+ * of all node identifier for the equivalence classes in the block.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public abstract class SignatureBlocks extends IdentifiableObjectImpl {
+public class SignatureBlock {
+   
+    private final int[] _elements;
+    private final double _firstValue;
+    private final double _lastValue;
     
-    private final BigDecimal _maxSim;
-    private final int _size;
-    
-    public SignatureBlocks(int id, BigDecimal maxSim, int size) {
+    public SignatureBlock(int[] elements, double firstValue, double lastValue) {
         
-        super(id);
-        
-        _maxSim = maxSim;
-        _size = size;
+        _elements = elements;
+        _firstValue = firstValue;
+        _lastValue = lastValue;
     }
     
-    public abstract int[] get(int index);
-    
-    public boolean isEmpty() {
+    public int[] elements() {
         
-        return (_size == 0);
+        return _elements;
     }
     
-    public BigDecimal maxSim() {
+    public double firstValue() {
         
-        return _maxSim;
+        return _firstValue;
     }
     
-    public int size() {
+    public double lastValue() {
         
-        return _size;
+        return _lastValue;
+    }
+    
+    public int length() {
+        
+        return _elements.length;
     }
 }

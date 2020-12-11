@@ -18,7 +18,7 @@
 package org.opendata.curation.d4.signature.trim;
 
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocks;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.object.IdentifiableDouble;
 
 /**
@@ -28,17 +28,17 @@ import org.opendata.core.object.IdentifiableDouble;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class CentristSignature extends SignatureBlocks {
+public class CentristSignature extends RobustSignature {
 
     private final List<IdentifiableDouble> _elements;
-    private final SignatureBlocks _sig;
+    private final RobustSignature _sig;
                     
     public CentristSignature(
-            SignatureBlocks sig,
+            RobustSignature sig,
             List<IdentifiableDouble> elements,
             int dropIndex
     ) {
-        super(sig.id(), sig.maxSim(), dropIndex);
+        super(sig.id(), dropIndex);
         
         _sig = sig;
         _elements = elements;

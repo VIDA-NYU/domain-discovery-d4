@@ -15,35 +15,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.prune;
+package org.opendata.curation.d4.signature;
 
 import java.util.List;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.object.IdentifiableDouble;
 
 /**
- * Return list of candidates that satisfy a given threshold constraint.
+ * Use two-dimensional array to represent signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class ThresholdFinder <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
- 
-    private final Threshold _constraint;
+public class RobustSignatureImpl extends RobustSignature {
 
-    public ThresholdFinder(Threshold constraint) {
+    private final int[][] _blocks;
+
+    public RobustSignatureImpl(int id, List<int[]> blocks) {
         
-        _constraint = constraint;
+        super(id, blocks.size());
+        
+        _blocks = new int[blocks.size()][];
+        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
+            _blocks[iBlock] = blocks.get(iBlock);
+        }
+    }
+    
+    public RobustSignatureImpl(int id, int[][] blocks) {
+        
+        super(id, blocks.length);
+        
+        _blocks = blocks;
     }
 
     @Override
-    public int getPruneIndex(List<T> elements, int start) {
+    public int[] get(int index) {
 
-        for (int iIndex = start; iIndex < elements.size(); iIndex++) {
-            if (!_constraint.isSatisfied(elements.get(iIndex).value())) {
-                return iIndex;
-            }
-        }
-        return elements.size();
+        return _blocks[index];
     }
 }

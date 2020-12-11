@@ -15,33 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.curation.d4.experiments;
 
-import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
+import java.io.BufferedReader;
+import java.io.File;
+import org.opendata.core.io.FileSystem;
+import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.IDSet;
 
 /**
- * Signature blocks factory for single in-memory index.
+ * Read set of term identifier for all terms in a ground-truth domain.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksIndexFactory implements SignatureBlocksConsumerFactory {
-
-    private SignatureBlocksConsumer _consumer = null;
-    private SignatureBlocksIndex _signatures = null;
+public class GTReader {
     
-    @Override
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes) {
-
-        if (_consumer == null) {
-            _signatures = new SignatureBlocksIndex();
-            _consumer = new LiberalTrimmer(nodeSizes, _signatures);
-        }
-        return _consumer;
-    }
-    
-    @Override
-    public SignatureBlocksIndex signatures() {
+    public IDSet read(File file) throws java.io.IOException {
         
-        return _signatures;
+        HashIDSet terms = new HashIDSet();
+        
+        try (BufferedReader in = FileSystem.openReader(file)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                terms.add(Integer.parseInt(line.split("\t")[1]));
+            }
+        }
+        
+        return terms;
     }
 }

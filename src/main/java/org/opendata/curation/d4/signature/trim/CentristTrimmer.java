@@ -21,17 +21,15 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.GreaterThanConstraint;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.core.object.IdentifiableDouble;
-import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.sort.DoubleValueDescSort;
-import org.opendata.db.eq.EQHelper;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Centrist signature blocks trimmer. The centrist trimmer uses a scoring
@@ -43,102 +41,49 @@ import org.opendata.db.eq.EQHelper;
  */
 public class CentristTrimmer extends SignatureTrimmer {
 
-    private final int[] _column;
-    private final int _columnSize;
-    private final CandidateSetFinder<IdentifiableDouble> _dropFinder;
-    private final BlockScoreFunction _func;
-    private final int[] _nodeSizes;
-    
+    private final int _columnId;
+    private final MaxDropFinder<IdentifiableDouble> _dropFinder;
+    private final BlockScoreFunction _scoreFunc;
+
     public CentristTrimmer(
-            IDSet column,
-            int[] nodeSizes,
-            BlockScoreFunction func,
-            CandidateSetFinder<IdentifiableDouble> dropFinder,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            IdentifiableIDSet column,
+            BlockScoreFunction scoreFunc,
+            MaxDropFinder<IdentifiableDouble> dropFinder,
+            RobustSignatureConsumer consumer
     ) {
-        super(column, nonEmptyConstraint, consumer);
+        super(column, consumer);
         
-        _column = column.toArray();
-        _nodeSizes = nodeSizes;
-        _func = func;
+        _columnId = column.id();
+        _scoreFunc = scoreFunc;
         _dropFinder = dropFinder;
-        
-        _columnSize = EQHelper.setSize(_column, nodeSizes);
     }
 
     public CentristTrimmer(
-            IDSet column,
-            int[] nodeSizes,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            IdentifiableIDSet column,
+            BlockScoreFunction scoreFunc,
+            RobustSignatureConsumer consumer
     ) {
     
         this(
                 column,
-                nodeSizes,
-                new PrecisionScore(),
+                scoreFunc,
                 new MaxDropFinder<>(
                     new GreaterThanConstraint(BigDecimal.ZERO),
                     false,
                     false
                 ),
-                nonEmptyConstraint,
-                consumer
-        );
-    }
-
-    public CentristTrimmer(
-            IDSet column,
-            int[] nodeSizes,
-            SignatureBlocksConsumer consumer
-    ) {
-    
-        this(
-                column,
-                nodeSizes,
-                new ZeroThreshold(),
                 consumer
         );
     }
 
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
 
         List<IdentifiableDouble> elements = new ArrayList<>();
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
             final int[] block = sig.get(iBlock);
-            final int len1 = block.length;
-            final int len2 = _column.length;
-            int idx1 = 0;
-            int idx2 = 0;
-            int blSize = 0;
-            int overlap = 0;
-            while ((idx1 < len1) && (idx2 < len2)) {
-                final int nodeId = block[idx1];
-                int comp = Integer.compare(nodeId, _column[idx2]);
-                if (comp < 0) {
-                    blSize += _nodeSizes[nodeId];
-                    idx1++;
-                } else if (comp > 0) {
-                    idx2++;
-                } else {
-                    int nodeSize = _nodeSizes[nodeId];
-                    blSize += nodeSize;
-                    overlap += nodeSize;
-                    idx1++;
-                    idx2++;
-                }
-            }
-            if (overlap > 0) {
-                while (idx1 < len1) {
-                    blSize += _nodeSizes[block[idx1++]];
-                }
-                BigDecimal val = _func.relevance(_columnSize, blSize, overlap);
-                elements.add(new IdentifiableDouble(iBlock, val.doubleValue()));
-            } else {
-                elements.add(new IdentifiableDouble(iBlock, 0.0));
-            }
+            BigDecimal score = _scoreFunc.score(block, _columnId);
+            elements.add(new IdentifiableDouble(iBlock, score));
         }
         Collections.sort(elements, new DoubleValueDescSort());
         int dropIndex = _dropFinder.getPruneIndex(elements);
@@ -147,5 +92,23 @@ public class CentristTrimmer extends SignatureTrimmer {
                 consumer.consume(new CentristSignature(sig, elements, dropIndex));
             }
         }
+    }
+
+    public IDSet trimmedBlocks(RobustSignature sig) {
+
+        List<IdentifiableDouble> elements = new ArrayList<>();
+        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
+            final int[] block = sig.get(iBlock);
+            BigDecimal score = _scoreFunc.score(block, _columnId);
+            elements.add(new IdentifiableDouble(iBlock, score));
+        }
+        Collections.sort(elements, new DoubleValueDescSort());
+        int dropIndex = _dropFinder.getPruneIndex(elements);
+        
+        HashIDSet result = new HashIDSet();
+        for (int iEl = 0; iEl < dropIndex; iEl++) {
+            result.add(elements.get(iEl).id());
+        }
+        return result;
     }
 }

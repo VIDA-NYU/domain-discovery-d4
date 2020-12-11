@@ -15,23 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.prune;
-
-import java.util.List;
-import org.opendata.core.object.IdentifiableDouble;
+package org.opendata.core.io.prov;
 
 /**
- * The "NO Pruning" candidate set finder returns all elements in a given list
- * without any pruning.
+ * Simple interface to manage the information source for different types of
+ * object collections. These collections may either be read from disk or
+ * generated in memory.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class NoPruneCandidateSet <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
- 
-    @Override
-    public int getPruneIndex(List<T> elements, int start) {
-
-        return elements.size();
-    }
+public interface DataCollection {
+    
+    public String source();
 }

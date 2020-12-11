@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.io.FileSystem;
 import org.opendata.curation.d4.Constants;
 import org.opendata.core.util.Avg;
 
@@ -31,7 +32,7 @@ import org.opendata.core.util.Avg;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ExpandedColumnStats implements ExpandedColumnConsumer {
+public class ExpandedColumnStatsWriter implements ExpandedColumnConsumer {
 
     private int _columnCount = 0;
     private int _expandedCount = 0;
@@ -96,27 +97,39 @@ public class ExpandedColumnStats implements ExpandedColumnConsumer {
     
     private static final String COMMAND =
             "Usage:\n" +
-            "  <column-file>";
+            "  <column-file>\n" +
+            "  <output-file>";
     
     private static final Logger LOGGER = Logger
-            .getLogger(ExpandedColumnStats.class.getName());
+            .getLogger(ExpandedColumnStatsWriter.class.getName());
     
     public static void main(String[] args) {
         
-        System.out.println(Constants.NAME + " - Expanded Column Stats - Version (" + Constants.VERSION + ")\n");
+        System.out.println(Constants.NAME + " - Expanded Column Stats Writer - Version (" + Constants.VERSION + ")\n");
 
-        if (args.length != 1) {
+        if (args.length != 2) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
-        File columnFile = new File(args[0]);
+        File columnsFile = new File(args[0]);
+        File outputFile = new File(args[1]);
         
-        ExpandedColumnStats consumer = new ExpandedColumnStats();
-        
-        try (PrintWriter out = new PrintWriter(System.out)) {
-            new ExpandedColumnReader(columnFile).stream(consumer);
-            consumer.print(out);
+        try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
+            ExpandedColumnIndex columnIndex = new ExpandedColumnIndex(outputFile);
+            new ExpandedColumnReader(columnsFile).stream(columnIndex);
+            for (ExpandedColumn column : columnIndex.columns()) {
+                int colCount = columnIndex.columns(column.id()).length();
+                String line = String.format(
+                        "%d\t%d\t%d\t%d",
+                        column.id(),
+                        colCount,
+                        column.originalNodes().length(),
+                        column.expansionSize()
+                );
+                out.println(line);
+                System.out.println(line);
+            }
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

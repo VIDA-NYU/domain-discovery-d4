@@ -57,7 +57,7 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
         return _columns;
     }
     
-    private static IDSet parseColumnList(String list) {
+    public static IDSet parseColumnList(String list) {
     
         HashIDSet columns = new HashIDSet();
         

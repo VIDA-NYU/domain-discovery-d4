@@ -19,15 +19,16 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.List;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.FormatedBigDecimal;
+import org.opendata.core.io.prov.DataSink;
 import org.opendata.core.util.StringHelper;
 
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksWriter implements SignatureBlocksConsumer {
+public class SignatureBlocksWriter implements DataSink, SignatureBlocksConsumer {
 
     private final File _file;
     private int _openCount = 0;
@@ -49,11 +50,16 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(int nodeId, List<SignatureBlock> blocks) {
 
-        String line = sig.id() + "\t" + new FormatedBigDecimal(sig.maxSim()).toString();
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            line += "\t" + StringHelper.joinIntegers(sig.get(iBlock));
+        String line = Integer.toString(nodeId);
+        for (SignatureBlock block : blocks) {
+            line += String.format(
+                    "\t%.6f-%.6f:%s",
+                    block.firstValue(),
+                    block.lastValue(),
+                    StringHelper.joinIntegers(block.elements())
+            );
         }
         synchronized(this) {
             _out.println(line);
@@ -72,9 +78,10 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
         }
         _openCount++;
     }
-    
-    public void write(SignatureBlocksIndex signatures) {
-        
-        signatures.stream(this);
+
+    @Override
+    public String target() {
+
+        return _file.getName();
     }
 }

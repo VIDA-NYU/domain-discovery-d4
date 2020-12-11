@@ -17,51 +17,96 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.util.Iterator;
+import java.util.List;
 import org.opendata.core.set.HashObjectSet;
+import org.opendata.core.set.IDSet;
 
 /**
- * Maintain an index of robust signatures in main memory.
+ * Memory buffer for signature blocks indexed by their identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class RobustSignatureIndex implements SignatureBlocksConsumer, SignatureBlocksStream {
+public class RobustSignatureIndex implements Iterable<RobustSignature>, RobustSignatureConsumer, RobustSignatureStream {
 
-    private final HashObjectSet<SignatureBlocks> _elements = new HashObjectSet<>();
+    private final HashObjectSet<RobustSignature> _signatures = new HashObjectSet<>();
+    private final String _source;
+    
+    public RobustSignatureIndex(String source) {
+        
+        _source = source;
+    }
+    
+    public void clear() {
+        
+        _signatures.clear();
+    }
     
     @Override
     public void close() {
 
     }
 
-    public boolean contains(int id) {
+    @Override
+    public synchronized void consume(RobustSignature sig) {
+
+        _signatures.add(sig);
+    }
+
+    public RobustSignature get(int id) {
         
-        return _elements.contains(id);
+        return _signatures.get(id);
     }
     
     @Override
-    public synchronized void consume(SignatureBlocks sig) {
+    public Iterator<RobustSignature> iterator() {
 
-        _elements.add(sig);
-    }
-
-    public SignatureBlocks get(int id) {
-        
-        return _elements.get(id);
+        return _signatures.iterator();
     }
     
+    public int length() {
+        
+        return _signatures.length();
+    }
+
     @Override
     public void open() {
 
     }
 
     @Override
-    public void stream(SignatureBlocksConsumer consumer) {
+    public void stream(RobustSignatureConsumer consumer) {
 
         consumer.open();
         
-        for (SignatureBlocks sig : _elements) {
+        for (RobustSignature sig : _signatures) {
             consumer.consume(sig);
         }
+        
         consumer.close();
+    }
+
+    public void stream(RobustSignatureConsumer consumer, IDSet filter) {
+
+        consumer.open();
+        
+        for (int sigId : filter) {
+            if (_signatures.contains(sigId)) {
+                consumer.consume(_signatures.get(sigId));
+            }
+        }
+        
+        consumer.close();
+    }
+
+    @Override
+    public String source() {
+
+        return _source;
+    }
+    
+    public List<RobustSignature> toList() {
+        
+        return _signatures.toList();
     }
 }

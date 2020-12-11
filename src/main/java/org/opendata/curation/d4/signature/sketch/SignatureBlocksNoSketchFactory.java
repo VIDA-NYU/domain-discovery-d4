@@ -15,14 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.curation.d4.signature.sketch;
+
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
- * Stream of signature blocks.
+ * Factory pattern for consumer that implement the no-sketch strategy for
+ * signature blocks sketches.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksStream {
-    
-    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException;
+public class SignatureBlocksNoSketchFactory implements SignatureBlocksSketchFactory {
+
+    @Override
+    public RobustSignatureConsumer getConsumer(RobustSignatureConsumer consumer) {
+
+        return consumer;
+    }
+
+    @Override
+    public String toDocString() {
+
+        return "null";
+    }
 }

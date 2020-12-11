@@ -23,11 +23,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -35,7 +35,7 @@ import org.opendata.db.eq.EQIndex;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SingleColumnExpander implements SignatureBlocksConsumer {
+public class SingleColumnExpander implements RobustSignatureConsumer {
 
     private static final Logger LOGGER = Logger
             .getLogger(SingleColumnExpander.class.getName());
@@ -97,7 +97,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     private boolean _done = false;
     private int _expansionSize;
     private int _iteration;
-    private final int _maxNodeId;
     private final int[] _nodeSizes;
     private final int _numberOfIterations;
     private HashMap<Integer, SupportCounter> _support;
@@ -116,8 +115,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         _numberOfIterations = numberOfIterations;
         _decreaseFactor = decreaseFactor;
         _threshold = threshold;
-        
-        _maxNodeId = nodes.getMaxId();
         
         _done = (_numberOfIterations <= 0);
         _iteration = 0;
@@ -174,7 +171,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
         
         for (int nodeId : _support.keySet()) {
             SupportCounter sup = _support.get(nodeId);
-            boolean added = false;
             BigDecimal orgSup = null;
             try {
                 orgSup = sup.originalSupport(_columnSize);
@@ -201,7 +197,6 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
                 if (_threshold.isSatisfied(overallSup)) {
                     expansionNodes.add(nodeId);
                     expansionSize += _nodeSizes[nodeId];
-                    added = true;
                 }
             }
         }
@@ -220,7 +215,7 @@ public class SingleColumnExpander implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(SignatureBlocks sig) {
+    public void consume(RobustSignature sig) {
 
         boolean isOriginalNode = _column.isColumnNode(sig.id());
         int weight = _nodeSizes[sig.id()];

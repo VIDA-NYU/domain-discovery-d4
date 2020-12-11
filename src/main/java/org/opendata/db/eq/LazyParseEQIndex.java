@@ -15,17 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.column;
+package org.opendata.db.eq;
 
-import java.util.HashMap;
-import org.opendata.core.set.HashIDSet;
+import java.io.File;
 
 /**
- * Factory pattern for column consumers.
+ * Equivalence class index for lazy parse classes.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface ExpandedColumnConsumerFactory {
+public class LazyParseEQIndex extends EQIndex {
     
-    public ExpandedColumnConsumer getConsumer(HashMap<Integer, HashIDSet> groups);
+    public LazyParseEQIndex(File eqFile) throws java.io.IOException {
+        
+        super(eqFile, new LazyParseEQFactory());
+    }
 }

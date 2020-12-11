@@ -19,29 +19,22 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
-import org.opendata.curation.d4.signature.trim.CentristTrimmer;
-import org.opendata.curation.d4.signature.trim.LiberalTrimmer;
-import org.opendata.curation.d4.signature.trim.PrecisionScore;
 import org.opendata.core.constraint.GreaterThanConstraint;
-import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;
 
 /**
- * Print context signature for node. Allows to include scores of blocks for a 
- * given column.
+ * Print context signature for node.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
@@ -52,7 +45,6 @@ public class ContextSignaturePrinter {
             TermIndexReader termReader,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
-            Column column,
             int nodeId
     ) throws java.io.IOException {
 
@@ -72,40 +64,11 @@ public class ContextSignaturePrinter {
         for (SignatureValue el : sig) {
             nodeFilter.add(eqIndex.get(el.id()).terms());
         }
-        if (column != null) {
-            for (int n : column) {
-                nodeFilter.add(eqIndex.get(n).terms());
-            }
-        }
         IdentifiableObjectSet<Term> termIndex = termReader.read(nodeFilter);
 
-        if (column != null) {
-            System.out.println("COLUMN");
-            for (int n : column) {
-                for (int termId : eqIndex.get(n).terms()) {
-                    String value = termIndex.get(termId).name();
-                    System.out.println(n + "\t" + termId + "\t" + value);
-                }
-            }
-            System.out.println();
-        }
-        
-        int[] columnNodes = null;
-        int columnSize = -1;
-        int[] nodeSizes = null;
-        List<IdentifiableDouble> scores = null;
-        if (column != null) {
-            columnNodes = column.toArray();
-            nodeSizes = eqIndex.nodeSizes();
-            for (int n : column) {
-                columnSize += eqIndex.get(n).terms().length();
-            }
-            scores = new ArrayList<>();
-        }
         int start = 0;
         final int end = sig.size();
         int blockCount = 0;
-        ArrayList<int[]> blocks = new ArrayList<>();
         while (start < end) {
             int pruneIndex = candidateFinder.getPruneIndex(sig, start);
             if (pruneIndex <= start) {
@@ -120,23 +83,8 @@ public class ContextSignaturePrinter {
                 block[iEl - start] = el.id();
                 termCount += eqIndex.get(el.id()).terms().length();
             }
-            blocks.add(block);
             Arrays.sort(block);
-            if (column != null ) {
-                scores.add(
-                        this.score(
-                                blockCount,
-                                block,
-                                columnNodes,
-                                columnSize,
-                                nodeSizes
-                        )
-                );
-            }
             String headline = "\n-- BLOCK " + blockCount + " (" + nodeCount + " NODES, " + termCount + " TERMS)";
-            if (column != null) {
-                headline += " SCORE " + scores.get(scores.size() - 1).toPlainString() + "\n";
-            }
             System.out.println(headline);
             for (int iEl = start; iEl < pruneIndex; iEl++) {
                 SignatureValue el = sig.get(iEl);
@@ -154,82 +102,13 @@ public class ContextSignaturePrinter {
                 }
             }
             start = pruneIndex;
-        }
-        
-        if (column != null) {
-            RobustSignatureIndex buffer = new RobustSignatureIndex();
-            new LiberalTrimmer(
-                    nodeSizes,
-                    new CentristTrimmer(column, nodeSizes, buffer)
-            ).consume(new SignatureBlocksImpl(nodeId, BigDecimal.ONE, blocks));
-            System.out.println("\nSIGNATURE BLOCKS FOR COLUMN " + column.id() + "\n");
-            SignatureBlocks sigBlocks = buffer.get(nodeId);
-            for (int iBlock = 0; iBlock < sigBlocks.size(); iBlock++) {
-                for (int n : sigBlocks.get(iBlock)) {
-                boolean isFirst = true;
-                for (int termId : eqIndex.get(n).terms()) {
-                    String line;
-                    if (isFirst) {
-                        line = Integer.toString(n);
-                        isFirst = false;
-                    } else {
-                        line = "";
-                    }
-                    line += "\t" + termIndex.get(termId).name();
-                    System.out.println(line);
-                }
-                }
-                System.out.println();
-            }
-        }
-    }
-
-    private IdentifiableDouble score(
-            int blockId,
-            int[] block,
-            int[] column,
-            int columnSize,
-            int[] nodeSizes
-    ) {
-        final int len1 = block.length;
-        final int len2 = column.length;
-        int idx1 = 0;
-        int idx2 = 0;
-        int blSize = 0;
-        int overlap = 0;
-        while ((idx1 < len1) && (idx2 < len2)) {
-            final int nodeId = block[idx1];
-            int comp = Integer.compare(nodeId, column[idx2]);
-            if (comp < 0) {
-                blSize += nodeSizes[nodeId];
-                idx1++;
-            } else if (comp > 0) {
-                idx2++;
-            } else {
-                int nodeSize = nodeSizes[nodeId];
-                blSize += nodeSize;
-                overlap += nodeSize;
-                idx1++;
-                idx2++;
-            }
-        }
-        while (idx1 < len1) {
-            blSize += nodeSizes[block[idx1++]];
-        }
-        if (overlap > 0) {
-            BigDecimal val = new PrecisionScore().relevance(columnSize, blSize, overlap);
-            return new IdentifiableDouble(blockId, val.doubleValue());
-        } else {
-            return new IdentifiableDouble(blockId, 0.0);
-        }
+        }        
     }
     
-    private static final String ARG_COLUMN = "column";
     private static final String ARG_FULLSIG = "fullSigConstraint";
     private static final String ARG_LASTDROP = "ignoreLastDrop";
     
     private static final String[] ARGS = {
-        ARG_COLUMN,
         ARG_FULLSIG,
         ARG_LASTDROP
     };
@@ -238,7 +117,6 @@ public class ContextSignaturePrinter {
             "Usage\n" +
             "  --" + ARG_FULLSIG + "=[true | false] [default: false]\n" +
             "  --" + ARG_LASTDROP + "=[true | false] [default: true]\n" +
-            "  --" + ARG_COLUMN + "=<int> (default: none)\n" +
             "  <eq-file>\n" +
             "  <term-file>\n" +
             "  <node-id>";
@@ -262,24 +140,15 @@ public class ContextSignaturePrinter {
 
         boolean fullSignatureConstraint = params.getAsBool(ARG_FULLSIG, false);
         boolean ignoreLastDrop = params.getAsBool(ARG_LASTDROP, true);
-        int columnId = -1;
-        if (params.has(ARG_COLUMN)) {
-            columnId = params.getAsInt(ARG_COLUMN);
-        }
         
         try {
             // Read the node index
             EQIndex nodeIndex = new EQIndex(eqFile);
-            Column column = null;
-            if (columnId > -1) {
-                column = nodeIndex.columns().get(columnId);
-            }
             new ContextSignaturePrinter().print(
                     nodeIndex,
                     new TermIndexReader(termFile),
                     fullSignatureConstraint,
                     ignoreLastDrop,
-                    column,
                     nodeId
             );
         } catch (java.io.IOException ex) {

@@ -17,12 +17,10 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksImpl;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
+import org.opendata.curation.d4.signature.RobustSignature;
+import org.opendata.curation.d4.signature.RobustSignatureImpl;
 import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Conservative signature blocks trimmer. The conservative trimmer prunes all
@@ -34,22 +32,16 @@ public class ConservativeTrimmer extends SignatureTrimmer {
 
     public ConservativeTrimmer(
             IDSet column,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            RobustSignatureConsumer consumer
     ) {
-        super(column, nonEmptyConstraint, consumer);
-    }
-
-    public ConservativeTrimmer(IDSet column, SignatureBlocksConsumer consumer) {
-    
-        this(column, new ZeroThreshold(), consumer);
+        super(column, consumer);
     }
 
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
 
         int[][] block = new int[1][];
         block[0] = sig.get(0);
-        consumer.consume(new SignatureBlocksImpl(sig.id(), sig.maxSim(), block));
+        consumer.consume(new RobustSignatureImpl(sig.id(), block));
     }
 }

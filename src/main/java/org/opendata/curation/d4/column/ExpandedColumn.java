@@ -68,4 +68,9 @@ public abstract class ExpandedColumn extends IdentifiableObjectImpl {
 
         return _nodes;
     }
+    
+    public int totalSize() {
+        
+        return _nodes.length() + _expansion.length();
+    }
 }

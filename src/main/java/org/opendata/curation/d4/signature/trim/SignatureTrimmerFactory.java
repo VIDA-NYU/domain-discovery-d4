@@ -17,9 +17,9 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.core.constraint.Threshold;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.db.eq.EQIndex;
 
 /**
@@ -29,12 +29,18 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
+    private final IdentifiableObjectSet<IdentifiableIDSet> _columns;
     private final EQIndex _nodes;
+    private PrecisionScore _scoreFunc = null;
     private final String _trimmerSpec;
     
-    public SignatureTrimmerFactory(EQIndex nodes, String trimmerSpec) {
-        
+    public SignatureTrimmerFactory(
+            EQIndex nodes,
+            IdentifiableObjectSet<IdentifiableIDSet> columns,
+            String trimmerSpec
+    ) {
         _nodes = nodes;
+        _columns = columns;
         _trimmerSpec = trimmerSpec;
     }
     
@@ -42,26 +48,20 @@ public class SignatureTrimmerFactory {
      * Get column specific trimmer for a given column. We currently do not make
      * use of the empty signature constraint.
      * 
-     * @param column
+     * @param columnId
      * @param consumer
      * @return 
      */
-    public SignatureTrimmer getTrimmer(IDSet column, SignatureBlocksConsumer consumer) {
+    public SignatureTrimmer getTrimmer(int columnId, RobustSignatureConsumer consumer) {
         
+        IdentifiableIDSet column = _columns.get(columnId);
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
             return new ConservativeTrimmer(column, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
-            return new CentristTrimmer(column, _nodes.nodeSizes(), consumer);
-        } else if (_trimmerSpec.startsWith(SignatureTrimmer.CENTRIST)) {
-            int pos = _trimmerSpec.indexOf(":");
-            if (pos != -1) {
-                return new CentristTrimmer(
-                        column,
-                        _nodes.nodeSizes(),
-                        Threshold.getConstraint(_trimmerSpec.substring(pos + 1)),
-                        consumer
-                );                
+            if (_scoreFunc == null) {
+                _scoreFunc = new PrecisionScore(_nodes, _columns);
             }
+            return new CentristTrimmer(column, _scoreFunc, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {
             return new NonTrimmer(column, consumer);
         }

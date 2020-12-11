@@ -17,38 +17,14 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.math.BigDecimal;
-import java.util.List;
+import org.opendata.core.io.prov.DataCollection;
 
 /**
- * Use two-dimensional array to represent signature blocks.
+ * Stream of signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksImpl extends SignatureBlocks {
-
-    private final int[][] _blocks;
-
-    public SignatureBlocksImpl(int id, BigDecimal maxSim, List<int[]> blocks) {
-        
-        super(id, maxSim, blocks.size());
-        
-        _blocks = new int[blocks.size()][];
-        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
-            _blocks[iBlock] = blocks.get(iBlock);
-        }
-    }
+public interface RobustSignatureStream extends DataCollection {
     
-    public SignatureBlocksImpl(int id, BigDecimal maxSim, int[][] blocks) {
-        
-        super(id, maxSim, blocks.length);
-        
-        _blocks = blocks;
-    }
-
-    @Override
-    public int[] get(int index) {
-
-        return _blocks[index];
-    }
+    public void stream(RobustSignatureConsumer consumer) throws java.io.IOException;
 }

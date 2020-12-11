@@ -19,6 +19,9 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.db.eq.EQIndex;
 
 /**
  * Block score function that uses the smaller of the column size and block size
@@ -26,8 +29,13 @@ import java.math.MathContext;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class MinJIScore implements BlockScoreFunction {
+public class MinJIScore extends BlockScoreFunction {
 
+    public MinJIScore(EQIndex eqIndex, IdentifiableObjectSet<IdentifiableIDSet> columns) {
+        
+        super(eqIndex, columns);
+    }
+    
     @Override
     public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
 

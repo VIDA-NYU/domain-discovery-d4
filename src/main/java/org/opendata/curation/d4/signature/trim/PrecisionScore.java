@@ -19,13 +19,21 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import org.opendata.core.metric.Precision;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.db.eq.EQIndex;
 
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore implements BlockScoreFunction {
+public class PrecisionScore extends BlockScoreFunction {
 
+    public PrecisionScore(EQIndex eqIndex, IdentifiableObjectSet<IdentifiableIDSet> columns) {
+        
+        super(eqIndex, columns);
+    }
+    
     @Override
     public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
 

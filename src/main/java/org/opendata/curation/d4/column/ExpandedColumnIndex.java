@@ -17,11 +17,17 @@
  */
 package org.opendata.curation.d4.column;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.core.set.IdentifiableIDSetWrapper;
+import org.opendata.core.set.IdentifiableObjectSet;
 
 /**
  * Create an unique index of expanded columns. Two expanded columns are
@@ -31,11 +37,17 @@ import org.opendata.core.set.IDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ExpandedColumnIndex implements ExpandedColumnConsumer {
+public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsumer {
 
     private HashMap<String, Integer> _columnIndex;
     private List<ExpandedColumn> _columnList = null;
     private HashMap<Integer, HashIDSet> _columnMapping;
+    private final String _source;
+    
+    public ExpandedColumnIndex(File file) {
+        
+        _source = file.getName();
+    }
     
     @Override
     public void close() {
@@ -81,5 +93,30 @@ public class ExpandedColumnIndex implements ExpandedColumnConsumer {
         _columnIndex = new HashMap<>();
         _columnList = new ArrayList<>();
         _columnMapping = new HashMap<>();
-    }    
+    }
+    
+    public IdentifiableObjectSet<IdentifiableIDSet> toColumns(boolean originalOnly) {
+        
+        HashObjectSet<IdentifiableIDSet> result = new HashObjectSet<>();
+        
+        for (ExpandedColumn column : _columnList) {
+            IDSet nodes;
+            if (originalOnly) {
+                nodes = column.originalNodes();
+            } else {
+                nodes = column.nodes();
+            }
+            for (int columnId : this.columns(column.id())) {
+                result.add(new IdentifiableIDSetWrapper(columnId, nodes));
+            }
+        }
+        
+        return result;
+    }
+
+    @Override
+    public String source() {
+
+        return _source;
+    }
 }

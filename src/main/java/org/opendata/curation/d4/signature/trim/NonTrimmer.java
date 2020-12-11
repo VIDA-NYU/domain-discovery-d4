@@ -17,11 +17,9 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.SignatureBlocks;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
+import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
  * Signature trimmer that simply returns the complete list of signature blocks.
@@ -32,19 +30,13 @@ public class NonTrimmer extends SignatureTrimmer {
 
     public NonTrimmer(
             IDSet column,
-            Threshold nonEmptyConstraint,
-            SignatureBlocksConsumer consumer
+            RobustSignatureConsumer consumer
     ) {
-        super(column, nonEmptyConstraint, consumer);
-    }
-    
-    public NonTrimmer(IDSet column, SignatureBlocksConsumer consumer) {
-        
-        this(column, new ZeroThreshold(), consumer);
+        super(column, consumer);
     }
     
     @Override
-    public void trim(SignatureBlocks sig, SignatureBlocksConsumer consumer) {
+    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
 
         consumer.consume(sig);
     }

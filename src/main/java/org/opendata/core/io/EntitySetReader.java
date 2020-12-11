@@ -65,7 +65,7 @@ public class EntitySetReader {
     
     public void read(EntityConsumer consumer) throws java.io.IOException {
         
-        this.read(new AnyObjectFilter<Integer>(), consumer);
+        this.read(new AnyObjectFilter<>(), consumer);
     }
     
     public EntitySet readEntities(ObjectFilter<Integer> filter) throws java.io.IOException {

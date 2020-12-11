@@ -15,16 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.core.io.prov;
 
 /**
- * Factory pattern for signature blocks consumers.
+ * Simple interface to manage the data sink name for data generators.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksConsumerFactory {
+public interface DataSink {
     
-    public SignatureBlocksConsumer getConsumer(int[] nodeSizes);
-    public SignatureBlocksIndex signatures() throws java.io.IOException;
-
+    public String target();
 }

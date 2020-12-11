@@ -21,12 +21,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
-import org.opendata.curation.d4.signature.SignatureBlocksStream;
+import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
  * Write set of expanded column equivalence classes to file.
@@ -41,7 +41,7 @@ public class ColumnExpander implements Runnable {
     private final int _id;
     private final EQIndex _nodes;
     private final int _numberOfIterations;
-    private final SignatureBlocksStream _signatures;
+    private final RobustSignatureStream _signatures;
     private final Threshold _threshold;
     private final SignatureTrimmerFactory _trimmerFactory;
               
@@ -49,7 +49,7 @@ public class ColumnExpander implements Runnable {
             int id,
             EQIndex nodes,
             List<ExpandedColumn> columns,
-            SignatureBlocksStream signatures,
+            RobustSignatureStream signatures,
             SignatureTrimmerFactory trimmerFactory,
             Threshold threshold,
             BigDecimal decreaseFactor,
@@ -73,7 +73,7 @@ public class ColumnExpander implements Runnable {
         System.out.println("TASK " + _id + " EXPAND " + _columns.size() + " COLUMNS");
         
         List<SingleColumnExpander> expanders = new ArrayList<>();
-        SignatureBlocksDispatcher dispatcher = new SignatureBlocksDispatcher();
+        RobustSignatureDispatcher dispatcher = new RobustSignatureDispatcher();
         
         for (ExpandedColumn column : _columns) {
             SingleColumnExpander columnExpander;
@@ -87,7 +87,10 @@ public class ColumnExpander implements Runnable {
             if (!columnExpander.isDone()) {
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory
-                        .getTrimmer(column.originalNodes(), columnExpander);
+                        .getTrimmer(
+                                column.id(),
+                                columnExpander
+                        );
                 dispatcher.add(trimmer);
                 expanders.add(columnExpander);
             } else {
@@ -109,7 +112,7 @@ public class ColumnExpander implements Runnable {
                 throw new RuntimeException(ex);
             }
             ArrayList<SingleColumnExpander> active = new ArrayList<>();
-            dispatcher = new SignatureBlocksDispatcher();
+            dispatcher = new RobustSignatureDispatcher();
             int expansionCount = 0;
             int expandedCount = 0;
             for (SingleColumnExpander expander : expanders) {
@@ -124,7 +127,10 @@ public class ColumnExpander implements Runnable {
                     active.add(expander);
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(expander.column().nodes(), expander);
+                            .getTrimmer(
+                                    expander.column().id(),
+                                    expander
+                            );
                     dispatcher.add(trimmer);
                 }
             }
