@@ -18,13 +18,14 @@
 package org.opendata.curation.d4.signature;
 
 import java.util.List;
+import org.opendata.core.io.prov.DataSink;
 
 /**
  * Consumer for a stream of signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksConsumer {
+public interface SignatureBlocksConsumer extends DataSink {
    
     public void close();
     public void consume(int nodeId, List<SignatureBlock> blocks);

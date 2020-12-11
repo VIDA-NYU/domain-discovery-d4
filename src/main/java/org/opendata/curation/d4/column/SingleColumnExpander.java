@@ -39,58 +39,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
 
     private static final Logger LOGGER = Logger
             .getLogger(SingleColumnExpander.class.getName());
-    
-    private class SupportCounter {
         
-        private int _expansionSupport = 0;
-        private int _originalSupport = 0;
-        
-        public int expansionSupportCount() {
-            
-            return _expansionSupport;
-        }
-        
-        public void incExpansionSupport(int value) {
-            
-            _expansionSupport += value;
-        }
-        
-        public void incOriginalSupport(int value) {
-            
-            _originalSupport += value;
-        }
-        
-        public BigDecimal originalSupport(int size) {
-            
-            if (size == 0) {
-                return BigDecimal.ZERO;
-            }
-
-            return new BigDecimal(_originalSupport)
-                    .divide(new BigDecimal(size), MathContext.DECIMAL64);
-        }
-        
-        public int originalSupportCount() {
-            
-            return _originalSupport;
-        }
-        
-        public BigDecimal overallSupport(int size) {
-            
-            if (size == 0) {
-                return BigDecimal.ZERO;
-            }
-            
-            return new BigDecimal(_originalSupport + _expansionSupport)
-                    .divide(new BigDecimal(size), MathContext.DECIMAL64);
-        }
-        
-        public int overallSupportCount() {
-            
-            return _originalSupport + _expansionSupport;
-        }
-    }
-    
     private ExpandedColumn _column = null;
     private final int _columnSize;
     private final BigDecimal _decreaseFactor;
@@ -107,8 +56,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
             ExpandedColumn column,
             Threshold threshold,
             BigDecimal decreaseFactor,
-            int numberOfIterations,
-            List<IdentifiableObjectSet<SupportSet>> expansionCollector
+            int numberOfIterations
     ) {
         _nodeSizes = nodes.nodeSizes();
         _column = column;
@@ -131,17 +79,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
         _columnSize = size;
         _expansionSize = 0;
     }
-    
-    public SingleColumnExpander(
-            EQIndex nodes,
-            ExpandedColumn column,
-            Threshold threshold,
-            BigDecimal decreaseFactor,
-            int numberOfIterations
-    ) {
-        this(nodes, column, threshold, decreaseFactor, numberOfIterations, null);
-    }
-    
+
     public ExpandedColumn column() {
 
         return _column;
@@ -244,5 +182,10 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
 
         _done = false;        
         _support = new HashMap<>();
+    }
+    
+    public HashMap<Integer, SupportCounter> support() {
+        
+        return _support;
     }
 }

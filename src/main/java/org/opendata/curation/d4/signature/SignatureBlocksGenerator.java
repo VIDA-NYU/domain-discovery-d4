@@ -98,15 +98,13 @@ public class SignatureBlocksGenerator {
                 double blockDiff = sig.get(start).value() - leftBound;
                 if (blockDiff > drop.diff()) {
                     // We encountered a minor drop. If the list of
-                    // blocks is empty (i.e., there is no steepest drop
-                    // but the full signature constrant is not satisfied
-                    // either) we break to return an empty signature.
+                    // blocks is empty we ignore this minor drop to ensure that
+                    // the first block is always included.
                     // Otherwise, we add the remaining elements as the
                     // final block.
-                    if (blocks.isEmpty()) {
-                        return blocks;
+                    if (!blocks.isEmpty()) {
+                        pruneIndex = end;
                     }
-                    pruneIndex = end;
                 }
             }
             blocks.add(this.getBlock(sig, start, pruneIndex));

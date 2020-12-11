@@ -40,4 +40,10 @@ public class Entity extends IdentifiableObjectImpl implements IdentifiableObject
 
         return _name;
     }
+    
+    @Override
+    public String toString() {
+        
+        return this.name();
+    }
 }
