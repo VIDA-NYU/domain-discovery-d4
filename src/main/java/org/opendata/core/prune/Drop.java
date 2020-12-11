@@ -17,33 +17,43 @@
  */
 package org.opendata.core.prune;
 
-import java.util.List;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.object.IdentifiableDouble;
-
 /**
- * Return list of candidates that satisfy a given threshold constraint.
+ * Steepest drop information. Contains the right boundary of the drop and
+ * the difference. Also contains a flag indicating whether the drop is due
+ * to the full signature constraint.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
  */
-public class ThresholdFinder <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
- 
-    private final Threshold _constraint;
-
-    public ThresholdFinder(Threshold constraint) {
+public class Drop {
+   
+    private final double _diff;
+    private final int _index;
+    private final boolean _isFullSignature;
+    
+    public Drop(int index, double diff, boolean isFullSignature) {
         
-        _constraint = constraint;
+        _index = index;
+        _diff = diff;
+        _isFullSignature = isFullSignature;
     }
-
-    @Override
-    public int getPruneIndex(List<T> elements, int start) {
-
-        for (int iIndex = start; iIndex < elements.size(); iIndex++) {
-            if (!_constraint.isSatisfied(elements.get(iIndex).value())) {
-                return iIndex;
-            }
-        }
-        return elements.size();
+    
+    public Drop() {
+        
+        this(0, 0., false);
+    }
+    
+    public double diff() {
+        
+        return _diff;
+    }
+    
+    public int index() {
+        
+        return _index;
+    }
+    
+    public boolean isFullSignature() {
+        
+        return _isFullSignature;
     }
 }

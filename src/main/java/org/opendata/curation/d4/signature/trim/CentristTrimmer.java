@@ -24,7 +24,6 @@ import java.util.List;
 import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.object.IdentifiableDouble;
-import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
@@ -43,13 +42,13 @@ import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 public class CentristTrimmer extends SignatureTrimmer {
 
     private final int _columnId;
-    private final CandidateSetFinder<IdentifiableDouble> _dropFinder;
+    private final MaxDropFinder<IdentifiableDouble> _dropFinder;
     private final BlockScoreFunction _scoreFunc;
 
     public CentristTrimmer(
             IdentifiableIDSet column,
             BlockScoreFunction scoreFunc,
-            CandidateSetFinder<IdentifiableDouble> dropFinder,
+            MaxDropFinder<IdentifiableDouble> dropFinder,
             RobustSignatureConsumer consumer
     ) {
         super(column, consumer);

@@ -31,7 +31,7 @@ import org.opendata.core.util.SimilarityHistogram;
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public class OtsuMethod <T extends IdentifiableDouble> extends CandidateSetFinder<T> {
+public class OtsuMethod <T extends IdentifiableDouble> {
 
     private final int _scale;
     private final SizeFunction _sizeFunc;
@@ -47,7 +47,6 @@ public class OtsuMethod <T extends IdentifiableDouble> extends CandidateSetFinde
         this(sizeFunc, 3);
     }
     
-    @Override
     public int getPruneIndex(List<T> elements, int start) {
 
         SimilarityHistogram histogram = new SimilarityHistogram(_scale);

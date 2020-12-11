@@ -26,10 +26,10 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.set.IDSet;
 
 /**
- *
+ * Unit tests for the steepest drop finder.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class MaxDropFinderTest {

@@ -32,7 +32,6 @@ import java.util.logging.Logger;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.SynchronizedWriter;
-import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQIndex;
@@ -47,7 +46,7 @@ public class SignatureDropStatsExperiment {
     
     private class BlockGeneratorTask implements Runnable {
 
-        private final CandidateSetFinder<SignatureValue> _candidateFinder;
+        private final MaxDropFinder<SignatureValue> _candidateFinder;
         private final EQIndex _eqIndex;
         private final ConcurrentLinkedQueue<Integer> _queue;
         private final ContextSignatureGenerator _sigFact;
@@ -57,7 +56,7 @@ public class SignatureDropStatsExperiment {
                 EQIndex eqIndex,
                 ConcurrentLinkedQueue<Integer> queue,
                 ContextSignatureGenerator sigFact,
-                CandidateSetFinder<SignatureValue> candidateFinder,
+                MaxDropFinder<SignatureValue> candidateFinder,
                 SynchronizedWriter writer
         ) {
             _eqIndex = eqIndex;
@@ -116,7 +115,7 @@ public class SignatureDropStatsExperiment {
             EQIndex eqIndex,
             ContextSignatureGenerator sigFact,
             ConcurrentLinkedQueue<Integer> queue,
-            CandidateSetFinder<SignatureValue> candidateFinder,
+            MaxDropFinder<SignatureValue> candidateFinder,
             int threads,
             SynchronizedWriter writer
     ) throws java.lang.InterruptedException, java.io.IOException {

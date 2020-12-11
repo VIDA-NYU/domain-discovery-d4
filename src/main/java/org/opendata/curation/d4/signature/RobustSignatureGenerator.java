@@ -17,19 +17,20 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.GreaterThanConstraint;
-import org.opendata.core.prune.CandidateSetFinder;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.curation.d4.signature.trim.ColumnSupportBlockFilter;
 import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
@@ -60,39 +61,22 @@ public class RobustSignatureGenerator {
      */
     private class BlockGeneratorTask implements Runnable {
 
-        private final CandidateSetFinder<SignatureValue> _candidateFinder;
+        private final SignatureBlocksGenerator _blockGenerator;
         private final SignatureBlocksConsumer _consumer;
-        private final boolean _ignoreMinorDrop;
         private final ConcurrentLinkedQueue<Integer> _queue;
         private final ContextSignatureGenerator _sigFact;
         
         public BlockGeneratorTask(
                 ConcurrentLinkedQueue<Integer> queue,
                 ContextSignatureGenerator sigFact,
-                CandidateSetFinder<SignatureValue> candidateFinder,
-                boolean ignoreMinorDrop,
+                SignatureBlocksGenerator blockGenerator,
                 SignatureBlocksConsumer consumer
         ) {
             
             _queue = queue;
             _sigFact = sigFact;
-            _candidateFinder = candidateFinder;
-            _ignoreMinorDrop = ignoreMinorDrop;
+            _blockGenerator = blockGenerator;
             _consumer = consumer;
-        }
-        
-        private SignatureBlock getBlock(List<SignatureValue> sig, int start, int end) {
-            
-            int[] block = new int[end - start];
-            for (int iEl = start; iEl < end; iEl++) {
-                block[iEl - start] = sig.get(iEl).id();
-            }
-            Arrays.sort(block);
-            return new SignatureBlock(
-                    block,
-                    sig.get(start).value(),
-                    sig.get(end - 1).value()
-            );
         }
         
         @Override
@@ -100,48 +84,8 @@ public class RobustSignatureGenerator {
 
             Integer nodeId;
             while ((nodeId = _queue.poll()) != null) {
-                List<SignatureValue> sig;
-                sig = _sigFact.getSignature(nodeId).rankedElements();
-                // No output if the context signautre is empty
-                if (sig.isEmpty()) {
-                    continue;
-                }
-                ArrayList<SignatureBlock> blocks = new ArrayList<>();
-                int start = 0;
-                final int end = sig.size();
-                while (start < end) {
-                    int pruneIndex = _candidateFinder.getPruneIndex(sig, start);
-                    if (pruneIndex <= start) {
-                        break;
-                    }
-                    // If the ignoreMinorDrop flag is true check that the
-                    // difference at the drop is at least as large as the
-                    // difference between the elements in the block.
-                    if (_ignoreMinorDrop) {
-                        double rightBound = 0;
-                        if (sig.size() < pruneIndex) {
-                            rightBound = sig.get(pruneIndex).value();
-                        }
-                        double leftBound = sig.get(pruneIndex - 1).value();
-                        double diff = leftBound - rightBound;
-                        double blockDiff = sig.get(start).value() - leftBound;
-                        if (blockDiff > diff) {
-                            // We encountered a minor drop. If the list of
-                            // blocks is empty (i.e., there is no steepest drop
-                            // but the full signature constrant is not satisfied
-                            // either) we break to return an empty signature.
-                            // Otherwise, we add the remaining elements as the
-                            // final block.
-                            if (blocks.isEmpty()) {
-                                break;
-                            } else {
-                                pruneIndex = end;
-                            }
-                        }
-                    }
-                    blocks.add(this.getBlock(sig, start, pruneIndex));
-                    start = pruneIndex;
-                }
+                List<SignatureBlock> blocks = _blockGenerator
+                        .toBlocks(_sigFact.getSignature(nodeId).rankedElements());
                 if (!blocks.isEmpty()) {
                     _consumer.consume(nodeId, blocks);
                 }
@@ -246,8 +190,10 @@ public class RobustSignatureGenerator {
                     new BlockGeneratorTask(
                             queue,
                             sigFact,
-                            candidateFinder,
-                            ignoreMinorDrop,
+                            new SignatureBlocksGenerator(
+                                    candidateFinder,
+                                    ignoreMinorDrop
+                            ),
                             consumer
                     )
             );
@@ -269,6 +215,55 @@ public class RobustSignatureGenerator {
         if (verbose) {
             long execTime = end.getTime() - start.getTime();
             _telemetry.add(TELEMETRY_ID, execTime);
+        }
+    }
+    
+    private static final String COMMAND =
+            "Usage:\n" +
+            "  <eq-file>\n" +
+            "  <trimmer> [LIBERAL | COLSUPP]\n" +
+            "  <full-signature-constraint>\n" +
+            "  <ignore-last-drop>\n" +
+            "  <ignore-minor-drop>\n" +
+            "  <node-id>\n" +
+            "  <output-file>";
+    
+    private static final Logger LOGGER = Logger
+            .getLogger(RobustSignatureGenerator.class.getName());
+    
+    public static void main(String[] args) throws IOException {
+        
+        if (args.length != 7) {
+            System.out.println(COMMAND);
+            System.exit(-1);
+        }
+        
+        File eqFile = new File(args[0]);
+        String trimmerSpec = args[1].toUpperCase();
+        boolean fullSignatureConstraint = Boolean.parseBoolean(args[2]);
+        boolean ignoreLastDrop = Boolean.parseBoolean(args[3]);
+        boolean ignoreMinorDrop = Boolean.parseBoolean(args[4]);
+        int nodeId = Integer.parseInt(args[5]);
+        File outputFile = new File(args[6]);
+        
+        ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
+        queue.add(nodeId);
+        
+        try {
+            new RobustSignatureGenerator().run(
+                    new EQIndex(eqFile),
+                    queue,
+                    trimmerSpec,
+                    fullSignatureConstraint,
+                    ignoreLastDrop,
+                    ignoreMinorDrop,
+                    1,
+                    true,
+                    new SignatureBlocksWriter(outputFile)
+            );
+        } catch (java.lang.InterruptedException | java.io.IOException ex) {
+            LOGGER.log(Level.SEVERE, "RUN", ex);
+            System.exit(-1);
         }
     }
 }
