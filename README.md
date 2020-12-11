@@ -147,10 +147,8 @@ expand-columns
 Valid values for the `--trimmer`parameter are:
 
 - CONSERVATIVE
-- CENTRIST{:GT0.X | GEQ0.X}
+- CENTRIST
 - LIBERAL
-
-The centrist trimmer accepts an optional threshold constraint to prune signature blocks with low significance. Some equivalence classes can have very large signature blocks. These block may overlap very small overlap with a column during the trimming process. When expanding with low expand threshold these large signature blocks can lead to thousands of terms being added to an expanded column. To avoid these cases use **CENTRIST:GT0.01**, for example. 
 
 **Local Domains:** This step derives from each column a set of domain candidates, called *local domains*. Local domains are clusters of terms in an (expanded) column that are likely to belong to the same type.
 
