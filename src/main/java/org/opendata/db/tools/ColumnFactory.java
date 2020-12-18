@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.value.DefaultValueTransformer;
 
 /**
  * Factory for column files. Writes column information to given output file.
@@ -37,13 +38,11 @@ public class ColumnFactory {
     private final Counter _counter;
     private final PrintWriter _out;
     private final File _outputDir;
-    private final boolean _toUpper;
     
-    public ColumnFactory(File outputDir, PrintWriter out, boolean toUpper) {
+    public ColumnFactory(File outputDir, PrintWriter out) {
         
         _outputDir = outputDir;
         _out = out;
-        _toUpper = toUpper;
 
         _counter = new Counter(0);
 
@@ -60,7 +59,10 @@ public class ColumnFactory {
                 columnId + "." + name + ".txt.gz"
         );
         try {
-            ColumnHandler handler = new ColumnHandler(outputFile, _toUpper);
+            ColumnHandler handler = new ColumnHandler(
+                    outputFile,
+                    new DefaultValueTransformer()
+            );
             _out.println(columnId + "\t" + name + "\t" + dataset);
             return handler;
         } catch (java.io.IOException ex) {

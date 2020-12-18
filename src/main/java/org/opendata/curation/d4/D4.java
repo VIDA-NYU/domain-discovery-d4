@@ -329,7 +329,6 @@ public class D4 {
                     new Parameter[] {
                         new Parameter("input", "<directory> [default: 'tsv']"),
                         new Parameter("metadata", "<file> [default: 'columns.tsv']"),
-                        new Parameter("toupper", "<boolean> [default: true]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("output", "<directory> [default: 'columns']")
                     },
@@ -337,13 +336,12 @@ public class D4 {
             );
             File inputDir = params.getAsFile("input", "tsv");
             File outputFile = params.getAsFile("metadata", "columns.tsv");
-            boolean toUpper = params.getAsBool("toupper", true);
             boolean verbose = params.getAsBool("verbose", true);
             File outputDir = params.getAsFile("output", "columns");
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
                 List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
                         .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, toUpper, verbose)
+                new Dataset2ColumnsConverter(outputDir, out, verbose)
                         .run(files);
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);

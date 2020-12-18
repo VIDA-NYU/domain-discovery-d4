@@ -65,7 +65,7 @@ The first four commands are required for transforming the input datasets into th
 
 ### Data Preparation
 
-**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. Column files contain a list of distinct values for the respective column. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step the user has the option to convert all column value to upper case (to make the domain-discovery process case-insensitive).
+**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. Column files contain a list of distinct values for the respective column. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step all column values will be converted to upper case (to make the domain-discovery process case-insensitive).
 
 ```
 $> java -jar  /home/user/lib/D4.jar columns --help
@@ -74,8 +74,7 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 columns
   --input=<directory> [default: 'tsv']
   --metadata=<file> [default: 'columns.tsv']
-  --toupper=<boolean> [default: true]
-  --verbose=<boolean> [default: true]
+   --verbose=<boolean> [default: true]
   --output=<directory> [default: 'columns']
 ```
 
@@ -89,6 +88,7 @@ term-index
   --input=<directory | file> [default: 'text-columns.txt']
   --textThreshold=<constraint> [default: 'GT0.5']
   --membuffer=<int> [default: 10000000]
+  --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --output=<file> [default: 'text-columns.txt']
 ```

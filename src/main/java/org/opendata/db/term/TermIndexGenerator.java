@@ -72,34 +72,28 @@ public class TermIndexGenerator {
         public void run() {
             
             DefaultDataTypeAnnotator annotator = new DefaultDataTypeAnnotator();
-            DefaultValueTransformer transformer = new DefaultValueTransformer();
 
             File file = null;
             while ((file = _queue.poll()) != null) {
                 ColumnReader reader = new FlexibleColumnReader(file);
                 Date start = new Date();
-                HashSet<String> columnValues = new HashSet<>();
+                int textCount = 0;
+                int valueCount = 0;
                 while (reader.hasNext()) {
                     ValueCounter colVal = reader.next();
                     if (!colVal.isEmpty()) {
-                        String term = transformer.transform(colVal.getText());
-                        if (!columnValues.contains(term)) {
-                            columnValues.add(term);
+                        if (annotator.getType(colVal.getText()).isText()) {
+                            textCount++;
                         }
+                        valueCount++;
                     }
                 }
-                if (columnValues.isEmpty()) {
+                if (valueCount == 0) {
                     continue;
-                }
-                int textCount = 0;
-                for (String term : columnValues) {
-                    if (annotator.getType(term).isText()) {
-                        textCount++;
-                    }
                 }
                 Date end = new Date();
                 BigDecimal textFrac;
-                textFrac = new Support(textCount, columnValues.size()).value();
+                textFrac = new Support(textCount, valueCount).value();
                 if (_verbose) {
                     System.out.println(
                             String.format(
@@ -114,8 +108,10 @@ public class TermIndexGenerator {
                     continue;
                 }
                 final int columnId = reader.columnId();
-                for (String term : columnValues) {
-                    _termIndex.add(term, columnId);
+                reader = new FlexibleColumnReader(file);
+                while (reader.hasNext()) {
+                    ValueCounter colVal = reader.next();
+                    _termIndex.add(colVal.getText(), columnId);
                 }
             }
         }        
