@@ -40,7 +40,7 @@ import org.opendata.core.util.StringHelper;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class TermIndexFileGenerator {
+public class TermIndexFile {
     
     private class IOTerm implements Comparable<IOTerm> {
 
@@ -256,7 +256,7 @@ public class TermIndexFileGenerator {
     private final int _maxBufferSize;
     private final boolean _verbose;
     
-    public TermIndexFileGenerator(int maxBufferSize, boolean verbose) {
+    public TermIndexFile(int maxBufferSize, boolean verbose) {
         
         _maxBufferSize = maxBufferSize;
         
@@ -277,7 +277,6 @@ public class TermIndexFileGenerator {
         if (_buffer.size() > _maxBufferSize) {
             try {
                 this.writeBuffer();
-                _buffer = new HashMap<>();
             } catch (java.io.IOException ex) {
                 throw new RuntimeException(ex);
             }
@@ -330,6 +329,7 @@ public class TermIndexFileGenerator {
             System.out.println("DONE @ " + new Date());
         }
 
+        _buffer = new HashMap<>();
         _files.add(file);
     }
 }

@@ -50,7 +50,7 @@ public class TermIndexGenerator {
     private class TermGeneratorTask implements Runnable {
 
         private final ConcurrentLinkedQueue<File> _queue;
-        private final TermIndexFileGenerator _termIndex;
+        private final TermIndexFile _termIndex;
         private final Threshold _textThreshold;
         private final boolean _verbose;
         
@@ -58,7 +58,7 @@ public class TermIndexGenerator {
                 ConcurrentLinkedQueue<File> queue,
                 Threshold textThreshold,
                 boolean verbose,
-                TermIndexFileGenerator termIndex
+                TermIndexFile termIndex
         ) {
             _queue = queue;
             _textThreshold = textThreshold;
@@ -128,8 +128,8 @@ public class TermIndexGenerator {
         ConcurrentLinkedQueue<File> queue;
         queue = new ConcurrentLinkedQueue<>(files);
         
-        TermIndexFileGenerator termIndex;
-        termIndex = new TermIndexFileGenerator(bufferSize, verbose);
+        TermIndexFile termIndex;
+        termIndex = new TermIndexFile(bufferSize, verbose);
         
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
