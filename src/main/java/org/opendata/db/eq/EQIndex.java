@@ -95,7 +95,7 @@ public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStre
         return nodes;
     }
     
-    public int[] nodeSizes() {
+    public synchronized int[] nodeSizes() {
         
         if (_nodeSizes == null) {
             _nodeSizes = new int[this.getMaxId() + 1];

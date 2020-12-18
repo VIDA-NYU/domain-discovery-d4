@@ -78,6 +78,8 @@
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.experiments.SignatureDropStatsExperiment</mainClass-->
+                            <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
+                            <!--mainClass>org.opendata.curation.d4.experiments.EQSimilarityWriter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.explore.GTDisjointTermsPrinter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
                       </manifest>

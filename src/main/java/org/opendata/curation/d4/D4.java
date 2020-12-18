@@ -362,6 +362,7 @@ public class D4 {
                         new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("output", "<file> [default: 'text-columns.txt']")
                     },
                     args
@@ -370,6 +371,7 @@ public class D4 {
             Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
             boolean verbose = params.getAsBool("verbose", true);
+            int threads = params.getAsInt("threads", 6);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
                 new TermIndexGenerator().run(
@@ -377,9 +379,10 @@ public class D4 {
                         threshold,
                         bufferSize,
                         verbose,
+                        threads,
                         outputFile
                 );
-            } catch (java.io.IOException ex) {
+            } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "TERM INDEX", ex);
                 System.exit(-1);
             }

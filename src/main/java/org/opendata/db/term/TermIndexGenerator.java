@@ -17,295 +17,97 @@
  */
 package org.opendata.db.term;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
+import org.opendata.core.io.FileListReader;
 import org.opendata.core.value.ValueCounter;
 import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
 import org.opendata.core.value.DefaultValueTransformer;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.Support;
-import org.opendata.core.set.IDSet;
-import org.opendata.core.util.MemUsagePrinter;
+import org.opendata.curation.d4.Constants;
 import org.opendata.db.column.ColumnReader;
-import org.opendata.db.column.ValueColumnsReaderFactory;
+import org.opendata.db.column.FlexibleColumnReader;
 
 /**
  * Create a term index file. The output file is tab-delimited and contains three
- * columns: (1) the term identifier, (2) the term, and a comma-separated list of
- * column identifier:count pairs.
+ * columns: (1) the term identifier, (2) the term, and (3) a comma-separated
+ * list of column identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class TermIndexGenerator {
 
-    private class IOTerm {
+    private class TermGeneratorTask implements Runnable {
 
-        private final IDSet _columns;
-        private final String _term;
-
-        public IOTerm(String term, IDSet columns) {
-            
-            _term = term;
-            _columns = columns;
-        }
-
-        public IDSet columns() {
-
-            return _columns;
-        }
+        private final ConcurrentLinkedQueue<File> _queue;
+        private final TermIndexFileGenerator _termIndex;
+        private final Threshold _textThreshold;
+        private final boolean _verbose;
         
-        public IOTerm merge(IOTerm t) {
-            
-            return new IOTerm(_term, _columns.union(t.columns()));
-        }
-
-        public String term() {
-
-            return _term;
-        }
-
-        public void write(PrintWriter out) {
-
-            out.println(
-                    this.term() + "\t" +
-                    _columns.toIntString()
-            );
-        }
-    }
-
-    private class TermFileMerger {
-    
-        public int merge(
-                TermSetIterator reader1,
-                TermSetIterator reader2,
-                OutputStream os
-        ) throws java.io.IOException {
-
-            int lineCount = 0;
-            
-            try (PrintWriter out = new PrintWriter(os)) {
-                while ((!reader1.done()) && (!reader2.done())) {
-                    IOTerm t1 = reader1.term();
-                    IOTerm t2 = reader2.term();
-                    int comp = t1.term().compareTo(t2.term());
-                    if (comp < 0) {
-                        t1.write(out);
-                        reader1.next();
-                    } else if (comp > 0) {
-                        t2.write(out);
-                        reader2.next();
-                    } else {
-                        t1.merge(t2).write(out);
-                        reader1.next();
-                        reader2.next();
-                    }
-                    lineCount++;
-                }
-                while (!reader1.done()) {
-                    reader1.term().write(out);
-                    reader1.next();
-                    lineCount++;
-                }
-                while (!reader2.done()) {
-                    reader2.term().write(out);
-                    reader2.next();
-                    lineCount++;
-                }
-            }
-            return lineCount;
-        }
-    }
-
-    private interface TermSetIterator {
-    
-        public boolean done();
-        public void next() throws java.io.IOException;
-        public IOTerm term();
-    }
-    
-    private class TermFileReader implements TermSetIterator {
-    
-        private BufferedReader _in = null;
-        private IOTerm _term = null;
-        
-        public TermFileReader(InputStream is) throws java.io.IOException {
-
-            _in = new BufferedReader(new InputStreamReader(is));
-
-            this.readNext();
-        }
-
-        public TermFileReader(File file) throws java.io.IOException {
-
-            this(FileSystem.openFile(file));
-        }
-
-        @Override
-        public boolean done() {
-
-            return (_term == null);
-        }
-
-        @Override
-        public void next() throws java.io.IOException {
-
-            if ((_in != null) && (_term != null)) {
-                this.readNext();
-            }
-        }
-
-        private void readNext() throws java.io.IOException {
-
-            String line = _in.readLine();
-            if (line != null) {
-                String[] tokens = line.split("\t");
-                _term = new IOTerm(
-                        tokens[0],
-                        new HashIDSet(tokens[1].split((",")))
-                );
-            } else {
-                _term = null;
-                _in.close();
-                _in = null;
-            }
-        }
-
-        @Override
-        public IOTerm term() {
-
-            return _term;
-        }
-    }
-    
-    private class TermSetReader implements TermSetIterator {
-
-        private final ArrayList<String> _terms;
-        private final HashMap<String, HashIDSet> _termIndex;
-        private int _readIndex;
-        
-        public TermSetReader(
-                ArrayList<String> terms,
-                HashMap<String, HashIDSet> termIndex
+        public TermGeneratorTask(
+                ConcurrentLinkedQueue<File> queue,
+                Threshold textThreshold,
+                boolean verbose,
+                TermIndexFileGenerator termIndex
         ) {
-            _terms = terms;
+            _queue = queue;
+            _textThreshold = textThreshold;
+            _verbose = verbose;
             _termIndex = termIndex;
+        }
+        
+        @Override
+        public void run() {
             
-            _readIndex = 0;
-        }
-        
-        @Override
-        public boolean done() {
+            DefaultDataTypeAnnotator annotator = new DefaultDataTypeAnnotator();
+            DefaultValueTransformer transformer = new DefaultValueTransformer();
 
-            return (_readIndex >= _terms.size());
-        }
-
-        @Override
-        public void next() {
-            
-            _readIndex++;
-        }
-
-        @Override
-        public IOTerm term() {
-
-            String term = _terms.get(_readIndex);
-            return new IOTerm(term, _termIndex.get(term));
-        }
-    }
-
-    public void createIndex(
-            ValueColumnsReaderFactory readers,
-            Threshold textThreshold,
-            int bufferSize,
-            boolean verbose,
-            File outputFile
-    ) throws java.io.IOException {
-        
-        DefaultDataTypeAnnotator annotator = new DefaultDataTypeAnnotator();
-        DefaultValueTransformer transformer = new DefaultValueTransformer();
-        
-        HashMap<String, HashIDSet> termIndex = new HashMap<>();
-        int columnCount = 0;
-        while (readers.hasNext()) {
-            ColumnReader reader = readers.next();
-            columnCount++;
-            HashSet<String> columnValues = new HashSet<>();
-            while (reader.hasNext()) {
-                ValueCounter colVal = reader.next();
-                if (!colVal.isEmpty()) {
-                    String term = transformer.transform(colVal.getText());
-                    if (!columnValues.contains(term)) {
-                        columnValues.add(term);
+            File file = null;
+            while ((file = _queue.poll()) != null) {
+                if (_verbose) {
+                    System.out.println(file.getName());
+                }
+                ColumnReader reader = new FlexibleColumnReader(file);
+                HashSet<String> columnValues = new HashSet<>();
+                while (reader.hasNext()) {
+                    ValueCounter colVal = reader.next();
+                    if (!colVal.isEmpty()) {
+                        String term = transformer.transform(colVal.getText());
+                        if (!columnValues.contains(term)) {
+                            columnValues.add(term);
+                        }
                     }
                 }
-            }
-            if (columnValues.isEmpty()) {
-                continue;
-            }
-            int textCount = 0;
-            for (String term : columnValues) {
-                if (annotator.getType(term).isText()) {
-                    textCount++;
+                if (columnValues.isEmpty()) {
+                    continue;
                 }
-            }
-            BigDecimal textFrac;
-            textFrac = new Support(textCount, columnValues.size()).value();
-            if (!textThreshold.isSatisfied(textFrac)) {
-                continue;
-            }
-            if (verbose) {
-                System.out.println(String.format("Include column %d", reader.columnId()));
-            }
-            for (String term : columnValues) {
-                if (!termIndex.containsKey(term)) {
-                    termIndex.put(term, new HashIDSet(reader.columnId()));
-                } else {
-                    termIndex.get(term).add(reader.columnId());
-                }
-                if (termIndex.size() > bufferSize) {
-                    if (verbose) {
-                        System.out.println("WRITE AT COLUMN " + columnCount);
+                int textCount = 0;
+                for (String term : columnValues) {
+                    if (annotator.getType(term).isText()) {
+                        textCount++;
                     }
-                    writeTermIndex(termIndex, verbose, outputFile);
-                    termIndex = new HashMap<>();
+                }
+                BigDecimal textFrac;
+                textFrac = new Support(textCount, columnValues.size()).value();
+                if (!_textThreshold.isSatisfied(textFrac)) {
+                    continue;
+                }
+                final int columnId = reader.columnId();
+                for (String term : columnValues) {
+                    _termIndex.add(term, columnId);
                 }
             }
-        }
-        if (!termIndex.isEmpty()) {
-            writeTermIndex(termIndex, verbose, outputFile);
-        }
-        // Add unique term id and term data type information to terms in
-        // current output file.
-        File tmpFile = File.createTempFile("tmp", outputFile.getName());
-        try (
-                BufferedReader in = FileSystem.openReader(outputFile);
-                PrintWriter out = FileSystem.openPrintWriter(tmpFile)
-        ) {
-            String line;
-            int termId = 0;
-            while ((line = in.readLine()) != null) {
-                String[] tokens = line.split("\t");
-                out.println(termId + "\t" + tokens[0] + "\t" + tokens[1]);
-                termId++;
-            }
-        }
-        FileSystem.copy(tmpFile, outputFile);
-        Files.delete(tmpFile.toPath());
+        }        
     }
     
     public void run(
@@ -313,8 +115,9 @@ public class TermIndexGenerator {
             Threshold textThreshold,
             int bufferSize,
             boolean verbose,
+            int threads,
             File outputFile
-    ) throws java.io.IOException {
+    ) throws java.lang.InterruptedException, java.io.IOException {
         
         // Create the directory for the output file if it does not exist.
         FileSystem.createParentFolder(outputFile);
@@ -322,59 +125,64 @@ public class TermIndexGenerator {
             outputFile.delete();
         }
         
-        this.createIndex(
-                new ValueColumnsReaderFactory(files),
-                textThreshold,
-                bufferSize,
-                verbose,
-                outputFile
-        );
-    }
-
-    private void writeTermIndex(
-            HashMap<String, HashIDSet> termIndex,
-            boolean verbose,
-            File outputFile
-    ) throws java.io.IOException {
-
-        ArrayList<String> terms = new ArrayList<>(termIndex.keySet());
-        Collections.sort(terms);
-	
-        if (!outputFile.exists()) {
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                for (String term : terms) {
-                    HashIDSet columns = termIndex.get(term);
-                    out.println(
-                            term + "\t" +
-                            columns.toIntString()
-                    );
-                }
-            }
-            if (verbose) {
-                System.out.println("INITIAL FILE HAS " + termIndex.size() + " ROWS.");
-            }
-        } else {
-            if (verbose) {
-                System.out.println("MERGE " + termIndex.size() + " TERMS.");
-            }
-            File tmpFile = File.createTempFile("tmp", outputFile.getName());
-            int count = new TermFileMerger().merge(new TermFileReader(outputFile),
-                    new TermSetReader(terms, termIndex),
-                    FileSystem.openOutputFile(tmpFile)
-            );
-            Files.copy(
-                    tmpFile.toPath(),
-                    outputFile.toPath(),
-                    new CopyOption[]{StandardCopyOption.REPLACE_EXISTING}
-            );
-            Files.delete(tmpFile.toPath());
-            if (verbose) {
-                System.out.println("MERGED FILE HAS " + count + " ROWS.");
-            }
-        }
+        ConcurrentLinkedQueue<File> queue;
+        queue = new ConcurrentLinkedQueue<>(files);
         
-        if (verbose) {
-            new MemUsagePrinter().print("MEMORY USAGE");
+        TermIndexFileGenerator termIndex;
+        termIndex = new TermIndexFileGenerator(bufferSize, verbose);
+        
+        ExecutorService es = Executors.newCachedThreadPool();
+        for (int iThread = 0; iThread < threads; iThread++) {
+            es.execute(
+                    new TermGeneratorTask(
+                            queue,
+                            textThreshold,
+                            verbose,
+                            termIndex
+                    )
+            );
+        }
+        es.shutdown();
+        es.awaitTermination(threads, TimeUnit.DAYS);
+        
+        termIndex.write(outputFile);
+    }
+    
+    private final static String COMMAND =
+	    "Usage:\n" +
+	    "  <column-file-or-dir>\n" +
+            "  <text-threshold>\n" +
+	    "  <mem-buffer-size>\n" +
+            "  <threads>\n" +
+	    "  <output-file>";
+    
+    public static void main(String[] args) {
+        
+	System.out.println(Constants.NAME + " - Term Index Generator - Version (" + Constants.VERSION + ")\n");
+
+        if (args.length != 5) {
+            System.out.println(COMMAND);
+            System.exit(-1);
+        }
+
+        File inputDirectory = new File(args[0]);
+        Threshold textThreshold = Threshold.getConstraint(args[1]);
+        int bufferSize = Integer.parseInt(args[2]);
+        int threads = Integer.parseInt(args[3]);
+        File outputFile = new File(args[4]);
+        
+        try {
+            new TermIndexGenerator().run(
+                    new FileListReader(".txt").listFiles(inputDirectory),
+                    textThreshold,
+                    bufferSize,
+                    true,
+                    threads,
+                    outputFile
+            );
+        } catch (java.lang.InterruptedException | java.io.IOException ex) {
+            Logger.getGlobal().log(Level.SEVERE, "CREATE TERM INDEX", ex);
+            System.exit(-1);
         }
     }
 }
