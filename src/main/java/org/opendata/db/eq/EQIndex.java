@@ -19,6 +19,7 @@ package org.opendata.db.eq;
 
 import java.io.File;
 import java.io.PrintWriter;
+import org.opendata.core.graph.Node;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.prune.SizeFunction;
@@ -89,12 +90,12 @@ public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStre
         
         HashObjectSet nodes = new HashObjectSet<>();
         for (EQ eq : this) {
-            nodes.add(new Node(eq));
+            nodes.add(new Node(eq.id(), eq.columns().toArray()));
         }
         return nodes;
     }
     
-    public int[] nodeSizes() {
+    public synchronized int[] nodeSizes() {
         
         if (_nodeSizes == null) {
             _nodeSizes = new int[this.getMaxId() + 1];

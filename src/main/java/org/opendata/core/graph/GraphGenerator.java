@@ -15,19 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
-
-import java.util.List;
-import org.opendata.core.io.prov.DataSink;
+package org.opendata.core.graph;
 
 /**
- * Consumer for a stream of signature blocks.
+ * Simple interface for dynamic graph generators. The generators implement a
+ * single method that allows to add an edge between a pair of nodes. Whether
+ * that edge is considered a directed or a un-directed edge is implementation
+ * dependent.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface SignatureBlocksConsumer extends DataSink {
+public interface GraphGenerator {
    
-    public void close();
-    public void consume(int nodeId, List<SignatureBlock> blocks);
-    public void open();
+    /**
+     * Add a new edge between a pair of nodes to the graph.
+     * 
+     * @param source
+     * @param target 
+     */
+    public void edge(int source, int target);
 }

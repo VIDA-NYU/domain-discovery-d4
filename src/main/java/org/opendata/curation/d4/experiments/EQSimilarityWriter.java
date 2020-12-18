@@ -28,13 +28,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.opendata.core.graph.Node;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.sort.IdentifiableObjectSort;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.db.eq.EQIndex;
-import org.opendata.db.eq.Node;
 
 /**
  * Generate a compressed term index where similar equivalence classes are
@@ -46,15 +46,18 @@ public class EQSimilarityWriter {
     
     private class OverlapComputer implements Runnable {
 
+        private final EQIndex _eqIndex;
         private final ConcurrentLinkedQueue<Node> _queue;
         private final List<Node> _nodes;
         private final SynchronizedWriter _writer;
 
         public OverlapComputer(
+                EQIndex eqIndex,
                 ConcurrentLinkedQueue<Node> queue,
                 List<Node> nodes,
                 SynchronizedWriter writer
         ) {
+            _eqIndex = eqIndex;
             _queue = queue;
             _nodes = nodes;
             _writer = writer;
@@ -63,6 +66,8 @@ public class EQSimilarityWriter {
         @Override
         public void run() {
 
+            int[] nodeSizes = _eqIndex.nodeSizes();
+            
             Node nodeI;
             while ((nodeI = _queue.poll()) != null) {
                 BigDecimal maxSim = BigDecimal.ZERO;
@@ -72,7 +77,7 @@ public class EQSimilarityWriter {
                         int overlap = nodeI.overlap(nodeJ);
                         if (overlap > 0) {
                             BigDecimal sim = new JaccardIndex()
-                                    .sim(nodeI.columnCount(), nodeJ.columnCount(), overlap);
+                                    .sim(nodeI.elementCount(), nodeJ.elementCount(), overlap);
                             if (maxSim.compareTo(sim) < 0) {
                                 maxSim = sim;
                             }
@@ -84,8 +89,8 @@ public class EQSimilarityWriter {
                                 "%d\t%s\t%d\t%d",
                                 nodeI.id(),
                                 new FormatedBigDecimal(maxSim).toString(),
-                                nodeI.columnCount(),
-                                nodeI.termCount()
+                                nodeI.elementCount(),
+                                nodeSizes[nodeI.id()]
                         )
                 );
             }
@@ -102,7 +107,7 @@ public class EQSimilarityWriter {
         SynchronizedWriter writer = new SynchronizedWriter(out);
         ExecutorService es = Executors.newCachedThreadPool();
         for (int iThread = 0; iThread < threads; iThread++) {
-            es.execute(new OverlapComputer(queue, nodes, writer));
+            es.execute(new OverlapComputer(eqIndex, queue, nodes, writer));
         }
         es.shutdown();
         try {

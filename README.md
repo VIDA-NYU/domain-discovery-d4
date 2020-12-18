@@ -10,6 +10,13 @@ D4 implements a data-driven domain discovery approach for collections of related
 
 Similar to word embedding methods such as Word2Vec, D4 gathers contextual information for terms. But unlike these methods which aim to build context for terms in unstructured text, we aim to capture context for terms within columns in a set of tables. The intuition is that terms from the same domain frequently occur together in columns or at least with similar sets of terms.
 
+For more information about D4, please have a look at our paper [Data-Driven Domain Discovery for Structured Datasets](http://www.vldb.org/pvldb/vol13/p953-ota.pdf) at VLDB 2020:
+
+*Masayo Ota, Heiko Müller, Juliana Freire, and Divesh Srivastava*.
+**Data-driven domain discovery for structured datasets.**
+Proc. VLDB Endow. 13, 7 (March 2020), 953–967.
+DOI:https://doi.org/10.14778/3384345.3384346
+
 Note: This repository merges the relevant parts of previously separated repositories [urban-data-core](https://github.com/VIDA-NYU/urban-data-core) and [urban-data-db](https://github.com/VIDA-NYU/urban-data-db).
 
 
@@ -58,7 +65,7 @@ The first four commands are required for transforming the input datasets into th
 
 ### Data Preparation
 
-**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. Column files contain a list of distinct values for the respective column. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step the user has the option to convert all column value to upper case (to make the domain-discovery process case-insensitive).
+**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. Column files contain a list of distinct values for the respective column. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step all column values will be converted to upper case (to make the domain-discovery process case-insensitive).
 
 ```
 $> java -jar  /home/user/lib/D4.jar columns --help
@@ -67,8 +74,7 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 columns
   --input=<directory> [default: 'tsv']
   --metadata=<file> [default: 'columns.tsv']
-  --toupper=<boolean> [default: true]
-  --verbose=<boolean> [default: true]
+   --verbose=<boolean> [default: true]
   --output=<directory> [default: 'columns']
 ```
 
@@ -82,6 +88,7 @@ term-index
   --input=<directory | file> [default: 'text-columns.txt']
   --textThreshold=<constraint> [default: 'GT0.5']
   --membuffer=<int> [default: 10000000]
+  --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --output=<file> [default: 'text-columns.txt']
 ```
@@ -110,6 +117,10 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 signatures
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
+  --robustifier=<str> [LIBERAL | COLSUPP]
+  --fullSignatureConstraint=<boolean> [default: true]
+  --ignoreLastDrop=<boolean> [default: false]
+  --ignoreMinorDrop=<boolean> [default: true] 
   --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --signatures=<file> [default: 'signatures.txt.gz']
@@ -136,10 +147,8 @@ expand-columns
 Valid values for the `--trimmer`parameter are:
 
 - CONSERVATIVE
-- CENTRIST{:GT0.X | GEQ0.X}
+- CENTRIST
 - LIBERAL
-
-The centrist trimmer accepts an optional threshold constraint to prune signature blocks with low significance. Some equivalence classes can have very large signature blocks. These block may overlap very small overlap with a column during the trimming process. When expanding with low expand threshold these large signature blocks can lead to thousands of terms being added to an expanded column. To avoid these cases use **CENTRIST:GT0.01**, for example. 
 
 **Local Domains:** This step derives from each column a set of domain candidates, called *local domains*. Local domains are clusters of terms in an (expanded) column that are likely to belong to the same type.
 

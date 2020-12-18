@@ -22,6 +22,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.value.ValueTransformer;
 
 /**
  *
@@ -31,34 +32,32 @@ public class ColumnHandler {
     
     private final PrintWriter _out;
     private final HashMap<String, Counter> _terms;
-    private final boolean _toUpper;
+    private final ValueTransformer _transformer;
 
-    public ColumnHandler(File file, boolean toUpper) throws java.io.IOException {
+    public ColumnHandler(File file, ValueTransformer transformer) throws java.io.IOException {
 
         _out = FileSystem.openPrintWriter(file);
         _terms = new HashMap<>();
-        _toUpper = toUpper;
+        _transformer = transformer;
     }
 
     public ColumnHandler() {
-
+        
         _out = null;
         _terms = null;
-        _toUpper = false;
+        _transformer = null;
     }
-
+    
     public void add(String value) {
 
-        String term = value;
-        if (_toUpper) {
-            term = term.toUpperCase();
-        }
-        
         if (_out != null) {
-            if (!_terms.containsKey(term)) {
-                _terms.put(term, new Counter(1));
-            } else {
-                _terms.get(term).inc();
+            String term = _transformer.transform(value);
+            if (!term.equals("")) {
+                if (!_terms.containsKey(term)) {
+                    _terms.put(term, new Counter(1));
+                } else {
+                    _terms.get(term).inc();
+                }
             }
         }
     }

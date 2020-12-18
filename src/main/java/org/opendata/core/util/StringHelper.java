@@ -101,6 +101,10 @@ public final class StringHelper {
     
     public static String joinStrings(String[] tokens, String delim) {
         
+        if (tokens.length == 0) {
+            return "";
+        }
+        
         StringBuilder buf = new StringBuilder(tokens[0]);
         for (int iToken = 1; iToken < tokens.length; iToken++) {
             buf.append(delim).append(tokens[iToken]);

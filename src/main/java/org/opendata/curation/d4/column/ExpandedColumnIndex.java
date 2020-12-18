@@ -49,8 +49,17 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
         _source = file.getName();
     }
     
+    public ExpandedColumnIndex(ExpandedColumn column) {
+        
+        _source = "Column " + column.id();
+        
+        this.open();
+        this.consume(column);
+        this.close();
+    }
+    
     @Override
-    public void close() {
+    public final void close() {
 
     }
 
@@ -69,7 +78,7 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
     }
     
     @Override
-    public void consume(ExpandedColumn column) {
+    public final void consume(ExpandedColumn column) {
 
         String key = column.originalNodes().toIntString();
         if (!_columnIndex.containsKey(key)) {
@@ -88,7 +97,7 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
     }
 
     @Override
-    public void open() {
+    public final void open() {
 
         _columnIndex = new HashMap<>();
         _columnList = new ArrayList<>();

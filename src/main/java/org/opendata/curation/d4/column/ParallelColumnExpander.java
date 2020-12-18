@@ -39,7 +39,6 @@ import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.column.Column;

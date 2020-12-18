@@ -17,7 +17,9 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
@@ -50,6 +52,18 @@ public class UniqueDomainSet implements DomainStream {
         _domainMapping = new HashObjectSet<>();
         _domainIdFactory = new Counter(0);
     }
+
+    public List<Domain> domains() {
+
+        ArrayList<Domain> result = new ArrayList<>();
+        
+        for (IdentifiableIDSet domain : _domainIndex.values()) {
+            IdentifiableIDSet columns = _domainMapping.get(domain.id());
+            result.add(new Domain(domain.id(), domain, columns));
+        }
+        
+        return result;
+    }
     
     public synchronized void put(int columnId, IDSet nodes) {
         
@@ -72,15 +86,13 @@ public class UniqueDomainSet implements DomainStream {
         }
     }
 
-
     @Override
     public void stream(DomainConsumer consumer) {
 
         consumer.open();
         
-        for (IdentifiableIDSet domain : _domainIndex.values()) {
-            IdentifiableIDSet columns = _domainMapping.get(domain.id());
-            consumer.consume(new Domain(domain.id(), domain, columns));
+        for (Domain domain : this.domains()) {
+            consumer.consume(domain);
         }
         
         consumer.close();

@@ -18,10 +18,10 @@
 package org.opendata.curation.d4.signature;
 
 import java.util.ArrayList;
+import org.opendata.core.graph.Node;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.metric.OverlapSimilarityFunction;
-import org.opendata.db.eq.Node;
 
 
 /**
@@ -57,7 +57,7 @@ public class ContextSignatureGenerator {
                 int overlap =  node.overlap(nodeJ);
                 if (overlap > 0) {
                     double sim = _ovpFunc
-                            .sim(node.columnCount(), nodeJ.columnCount(), overlap)
+                            .sim(node.elementCount(), nodeJ.elementCount(), overlap)
                             .doubleValue();
                     elements.add(new SignatureValue(nodeJ.id(), sim));
                 }

@@ -34,7 +34,7 @@ import org.opendata.core.set.ImmutableIdentifiableIDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class UndirectedConnectedComponents implements ConnectedComponentGenerator {
+public class UndirectedConnectedComponents implements ConnectedComponentGenerator, GraphGenerator {
 
     private final HashMap<Integer, HashSet<Integer>> _components;
     private final Integer[] _componentMap;
