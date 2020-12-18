@@ -307,6 +307,7 @@ public class TermIndexFile {
         
         File file = File.createTempFile("buf", ".tmp", new File("."));
         if (_verbose) {
+            System.out.println();
             System.out.println("WRITE BUFFER TO " + file.getAbsolutePath());
             System.out.println("START @ " + new Date());
         }
@@ -327,6 +328,7 @@ public class TermIndexFile {
 
         if (_verbose) {
             System.out.println("DONE @ " + new Date());
+            System.out.println();
         }
 
         _buffer = new HashMap<>();

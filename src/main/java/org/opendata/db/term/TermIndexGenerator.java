@@ -19,6 +19,7 @@ package org.opendata.db.term;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,6 +35,7 @@ import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
 import org.opendata.core.value.DefaultValueTransformer;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.Support;
+import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.curation.d4.Constants;
 import org.opendata.db.column.ColumnReader;
 import org.opendata.db.column.FlexibleColumnReader;
@@ -74,10 +76,8 @@ public class TermIndexGenerator {
 
             File file = null;
             while ((file = _queue.poll()) != null) {
-                if (_verbose) {
-                    System.out.println(file.getName());
-                }
                 ColumnReader reader = new FlexibleColumnReader(file);
+                Date start = new Date();
                 HashSet<String> columnValues = new HashSet<>();
                 while (reader.hasNext()) {
                     ValueCounter colVal = reader.next();
@@ -97,8 +97,19 @@ public class TermIndexGenerator {
                         textCount++;
                     }
                 }
+                Date end = new Date();
                 BigDecimal textFrac;
                 textFrac = new Support(textCount, columnValues.size()).value();
+                if (_verbose) {
+                    System.out.println(
+                            String.format(
+                                    "%s (%d ms) [%s]",
+                                    file.getName(),
+                                    (end.getTime() - start.getTime()),
+                                    new FormatedBigDecimal(textFrac).toString()
+                            )
+                    );
+                }
                 if (!_textThreshold.isSatisfied(textFrac)) {
                     continue;
                 }
