@@ -80,4 +80,10 @@ public abstract class SignatureRobustifier implements SignatureBlocksConsumer {
         
         _consumer.consume(nodeId, prunedBlocks);
     }
+
+    @Override
+    public String target() {
+
+        return SignatureRobustifier.class.getCanonicalName();
+    }
 }

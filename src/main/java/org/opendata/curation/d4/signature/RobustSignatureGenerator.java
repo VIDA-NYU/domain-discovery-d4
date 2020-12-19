@@ -129,8 +129,8 @@ public class RobustSignatureGenerator {
             boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksWriter writer
-    ) throws java.lang.InterruptedException, java.io.IOException {
+            SignatureBlocksConsumer writer
+    ) throws java.lang.InterruptedException {
 
         if (verbose) {
             System.out.println(

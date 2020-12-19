@@ -17,7 +17,9 @@
  */
 package org.opendata.core.graph;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.util.count.IdentifiableCounterSet;
@@ -29,9 +31,9 @@ import org.opendata.core.util.count.IdentifiableCounterSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class DynamicGraph extends AdjacencyGraph {
+public class DynamicGraph extends AdjacencyGraph implements GraphGenerator {
 
-    private final HashMap<Integer, int[]> _edges;
+    private final HashMap<Integer, List<Integer>> _edges;
     
     public DynamicGraph(IDSet nodes) {
         
@@ -40,11 +42,22 @@ public class DynamicGraph extends AdjacencyGraph {
         _edges = new HashMap<>();
     }
     
-    public void add(int nodeId, int[] edges) {
+    public void add(int nodeId, List<Integer> edges) {
 
         _edges.put(nodeId, edges);
     }
     
+    private void addEdge(int source, int target) {
+        
+        if (_edges.containsKey(source)) {
+            _edges.get(source).add(target);
+        } else {
+            ArrayList<Integer> edges = new ArrayList<>();
+            edges.add(target);
+            _edges.put(source, edges);
+        }
+    }
+
     @Override
     public Iterable<Integer> adjacent(int nodeId) {
 
@@ -54,7 +67,13 @@ public class DynamicGraph extends AdjacencyGraph {
             return new HashIDSet();
         }
     }
+    
+    public void edge(int source, int target) {
 
+        this.addEdge(source, target);
+        this.addEdge(target, source);
+    }
+    
     @Override
     public AdjacencyGraph reverse() {
 
@@ -65,15 +84,15 @@ public class DynamicGraph extends AdjacencyGraph {
             }
         }
         
-        HashMap<Integer, int[]> edges = new HashMap<>();
+        HashMap<Integer, List<Integer>> edges = new HashMap<>();
         for (int nodeId : edgeCounts.keys()) {
-            edges.put(nodeId, new int[edgeCounts.get(nodeId).value()]);
+            edges.put(nodeId, new ArrayList<>());
         }
         
         IdentifiableCounterSet edgeIndex = new IdentifiableCounterSet();
         for (int target : this.nodes()) {
             for (int source : this.adjacent(target)) {
-                edges.get(source)[edgeIndex.get(source).value()] = target;
+                edges.get(source).add(target);
                 edgeIndex.inc(source);
             }
         }

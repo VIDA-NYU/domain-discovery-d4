@@ -19,22 +19,17 @@ package org.opendata.db.eq;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
+import org.opendata.core.graph.ParallelOverlapGraphGenerator;
 import org.opendata.core.graph.UndirectedConnectedComponents;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.sort.IdentifiableObjectSort;
+import org.opendata.core.util.StringHelper;
+import org.opendata.curation.d4.Constants;
 
 /**
  * Generate a compressed term index where similar equivalence classes are
@@ -44,69 +39,31 @@ import org.opendata.core.sort.IdentifiableObjectSort;
  */
 public class SimilarTermIndexGenerator {
     
-    private class OverlapComputer implements Runnable {
-
-        private final UndirectedConnectedComponents _graph;
-        private final ConcurrentLinkedQueue<Node> _queue;
-        private final List<Node> _nodes;
-        private final Threshold _threshold;
-
-        public OverlapComputer(
-                ConcurrentLinkedQueue<Node> queue,
-                List<Node> nodes,
-                Threshold threshold,
-                UndirectedConnectedComponents graph
-        ) {
-            _queue = queue;
-            _nodes = nodes;
-            _threshold = threshold;
-            _graph = graph;
-        }
-        
-        @Override
-        public void run() {
-
-            Node nodeI;
-            while ((nodeI = _queue.poll()) != null) {
-                for (int jNode = 0; jNode < _nodes.size(); jNode++) {
-                    Node nodeJ = _nodes.get(jNode);
-                    if (nodeJ.id() < nodeI.id()) {
-                        int overlap = nodeI.overlap(nodeJ);
-                        if (overlap > 0) {
-                            BigDecimal sim = new JaccardIndex()
-                                    .sim(nodeI.columnCount(), nodeJ.columnCount(), overlap);
-                            if (_threshold.isSatisfied(sim)) {
-                                _graph.edge(nodeI.id(), nodeJ.id());
-                            }
-                        }
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    public void run(EQIndex eqIndex, Threshold threshold, int threads, PrintWriter out) {
+    /**
+     * Naive equivalence class merger for similar equivalence classes. Creates
+     * an undirected graph where edges between nodes exist based on whether they
+     * satisfy the similarity threshold or not. Connected components in this
+     * graph identify the sets of equivalence classes that are being merged.
+     * 
+     * @param eqIndex
+     * @param threshold
+     * @param threads
+     * @param verbose
+     * @param out 
+     */
+    public void runNaive(
+            EQIndex eqIndex,
+            Threshold threshold,
+            int threads,
+            boolean verbose,
+            PrintWriter out
+    ) {
         
         UndirectedConnectedComponents graph;
         graph = new UndirectedConnectedComponents(eqIndex.nodes().keys());
         
-        List<Node> nodes = eqIndex.nodes().toList();
-        ConcurrentLinkedQueue<Node> queue = new ConcurrentLinkedQueue<>(nodes);
-        
-        Collections.sort(nodes, new IdentifiableObjectSort<>());
-        
-        ExecutorService es = Executors.newCachedThreadPool();
-        for (int iThread = 0; iThread < threads; iThread++) {
-            es.execute(new OverlapComputer(queue, nodes, threshold, graph));
-        }
-        es.shutdown();
-        try {
-            es.awaitTermination(threads, TimeUnit.DAYS);
-        } catch (java.lang.InterruptedException ex) {
-            throw new RuntimeException(ex);
-        }
+        new ParallelOverlapGraphGenerator()
+                .run(eqIndex.nodes().toList(), threshold, threads, graph);
         
         for (IdentifiableIDSet comp : graph.getComponents()) {
             if (comp.length() == 1) {
@@ -120,31 +77,68 @@ public class SimilarTermIndexGenerator {
                     terms.add(node.terms());
                 }
                 new EQImpl(comp.id(), terms, columns).write(out);
+                if (verbose) {
+                    ArrayList<String> tokens = new ArrayList<>();
+                    for (int nodeId : comp) {
+                        EQ node = eqIndex.get(nodeId);
+                        tokens.add(
+                                String.format(
+                                        "%d[%d:%d]",
+                                        node.id(),
+                                        node.columns().length(),
+                                        node.terms().length()
+                                )
+                        );
+                    }
+                    System.out.println(comp.id() + "\t" + StringHelper.joinStrings(tokens));
+                }
             }
         }
     }
     
     private final static String COMMAND =
-            "Usage:\n  <eq-file>\n  <threshold>\n  <threads>\n  <output-file>";
+            "Usage:\n" +
+            "  <eq-file>\n" +
+            "  <strategy> [NAIVE]\n" +
+            "  <threshold>\n" +
+            "  <verbose>\n" +
+            "  <threads>\n" +
+            "  <output-file>";
     
     private final static Logger LOGGER = Logger
             .getLogger(SimilarTermIndexGenerator.class.getName());
     
     public static void main(String[] args) {
         
-        if (args.length != 4) {
+        System.out.println(Constants.NAME + " - Similar Term Index Generator - Version (" + Constants.VERSION + ")\n");
+
+        if (args.length != 6) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
         File eqFile = new File(args[0]);
-        Threshold threshold = Threshold.getConstraint(args[1]);
-        int threads = Integer.parseInt(args[2]);
-        File outFile = new File(args[3]);
+        String strategy = args[1].toUpperCase();
+        Threshold threshold = Threshold.getConstraint(args[2]);
+        boolean verbose = Boolean.parseBoolean(args[3]);
+        int threads = Integer.parseInt(args[4]);
+        File outFile = new File(args[5]);
         
         try (PrintWriter out = FileSystem.openPrintWriter(outFile)) {
-            new SimilarTermIndexGenerator()
-                    .run(new EQIndex(eqFile), threshold, threads, out);
+            if (strategy.equals("NAIVE")) {
+                new SimilarTermIndexGenerator()
+                        .runNaive(
+                                new EQIndex(eqFile),
+                                threshold,
+                                threads,
+                                verbose,
+                                out
+                        );
+            } else {
+                throw new IllegalArgumentException(
+                        String.format("Unknown strategy '%s'", strategy)
+                );
+            }
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

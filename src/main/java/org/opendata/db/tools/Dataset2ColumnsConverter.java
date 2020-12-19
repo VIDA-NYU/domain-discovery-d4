@@ -46,10 +46,9 @@ public class Dataset2ColumnsConverter {
     public Dataset2ColumnsConverter(
             File outputDir,
             PrintWriter out,
-            boolean toUpper,
             boolean verbose
     ) {
-        _columnFactory = new ColumnFactory(outputDir, out, toUpper);
+        _columnFactory = new ColumnFactory(outputDir, out);
         _verbose = verbose;
     }
     

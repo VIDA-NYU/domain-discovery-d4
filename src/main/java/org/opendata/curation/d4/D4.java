@@ -329,7 +329,6 @@ public class D4 {
                     new Parameter[] {
                         new Parameter("input", "<directory> [default: 'tsv']"),
                         new Parameter("metadata", "<file> [default: 'columns.tsv']"),
-                        new Parameter("toupper", "<boolean> [default: true]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("output", "<directory> [default: 'columns']")
                     },
@@ -337,13 +336,12 @@ public class D4 {
             );
             File inputDir = params.getAsFile("input", "tsv");
             File outputFile = params.getAsFile("metadata", "columns.tsv");
-            boolean toUpper = params.getAsBool("toupper", true);
             boolean verbose = params.getAsBool("verbose", true);
             File outputDir = params.getAsFile("output", "columns");
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
                 List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
                         .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, toUpper, verbose)
+                new Dataset2ColumnsConverter(outputDir, out, verbose)
                         .run(files);
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
@@ -362,6 +360,7 @@ public class D4 {
                         new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("output", "<file> [default: 'text-columns.txt']")
                     },
                     args
@@ -370,6 +369,7 @@ public class D4 {
             Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
             boolean verbose = params.getAsBool("verbose", true);
+            int threads = params.getAsInt("threads", 6);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
                 new TermIndexGenerator().run(
@@ -377,9 +377,10 @@ public class D4 {
                         threshold,
                         bufferSize,
                         verbose,
+                        threads,
                         outputFile
                 );
-            } catch (java.io.IOException ex) {
+            } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "TERM INDEX", ex);
                 System.exit(-1);
             }

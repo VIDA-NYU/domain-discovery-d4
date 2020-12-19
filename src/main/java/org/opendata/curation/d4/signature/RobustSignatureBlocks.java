@@ -15,33 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.column;
+package org.opendata.curation.d4.signature;
 
-import org.opendata.core.set.MutableIdentifiableIDSet;
+import java.util.List;
 
 /**
- * Set of supporting nodes for a column node during column expansion. This class
- * is used to be able to output the support the individual nodes have during
- * expansion.
+ * Robust signature that wraps a list of signature blocks.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SupportSet extends MutableIdentifiableIDSet {
-    
-    private boolean _added = false;
+public class RobustSignatureBlocks extends RobustSignature {
 
-    public SupportSet(int id) {
+    private final List<SignatureBlock> _blocks;
+    
+    public RobustSignatureBlocks(int id, List<SignatureBlock> blocks) {
         
-        super(id);
+        super(id, blocks.size());
+        
+        _blocks = blocks;
     }
     
-    public void added() {
-        
-        _added = true;
-    }
-    
-    public boolean wasAdded() {
-        
-        return _added;
+    @Override
+    public int[] get(int index) {
+
+        return _blocks.get(index).elements();
     }
 }

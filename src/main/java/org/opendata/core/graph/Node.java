@@ -15,55 +15,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq;
+package org.opendata.core.graph;
 
 import org.opendata.core.object.IdentifiableObjectImpl;
 
 /**
- *
+ * Node in a graph that has a unique identifier and a list of associated
+ * elements. The semantic of the element identifier is not further defined.
+ * The intention for these nodes is to support fast computation of overlap
+ * between the element sets of two nodes.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class Node extends IdentifiableObjectImpl {
 
-    private final int[] _columns;
-    private final int _termCount;
+    private final int[] _elements;
 
-    public Node(int id, int[] columns, int termCount) {
+    public Node(int id, int[] elements) {
 
         super(id);
 
-        _columns = columns;
-        _termCount = termCount;
+        _elements = elements;
     }
 
-    public Node(EQ eq) {
-    
-        this(eq.id(), eq.columns().toArray(), eq.terms().length());
-    }
-    
-    public int columnCount() {
+    public int elementCount() {
 
-        return _columns.length;
+        return _elements.length;
     }
 
-    public int[] columns() {
+    public int[] elements() {
 
-        return _columns;
+        return _elements;
     }
 
     public int overlap(Node node) {
 
-        final int[] colJ = node.columns();
-        final int lenI = _columns.length;
+        final int[] colJ = node.elements();
+        final int lenI = _elements.length;
         final int lenJ = colJ.length;
         int idxI = 0;
         int idxJ = 0;
 
         int overlap = 0;
         while ((idxI < lenI) && (idxJ < lenJ)) {
-            if (_columns[idxI] < colJ[idxJ]) {
+            if (_elements[idxI] < colJ[idxJ]) {
                 idxI++;
-            } else if (_columns[idxI] > colJ[idxJ]) {
+            } else if (_elements[idxI] > colJ[idxJ]) {
                 idxJ++;
             } else {
                 overlap++;
@@ -72,10 +69,5 @@ public class Node extends IdentifiableObjectImpl {
             }
         }
         return overlap;
-    }
-    
-    public int termCount() {
-        
-        return _termCount;
     }
 }
