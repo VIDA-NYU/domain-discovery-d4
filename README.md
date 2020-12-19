@@ -65,7 +65,9 @@ The first four commands are required for transforming the input datasets into th
 
 ### Data Preparation
 
-**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. Column files contain a list of distinct values for the respective column. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step all column values will be converted to upper case (to make the domain-discovery process case-insensitive).
+**Generate Column Files:** The first command converts a set of CSV files into a set of column files, one file for each column in the dataset collection. The resulting column files are tab-delimited and contain a list of distinct terms for the respective column and the frequencies for individual terms. Each column has a unique identifier. Column metadata (i.e., column name and dataset file) are written to a metadata file. During this step all column values will be converted to upper case (to make the domain-discovery process case-insensitive).
+
+The `cacheSize` parameter specifies the size of the memory cache for each column that is used to generate the list of distinct terms and their counts.
 
 ```
 $> java -jar  /home/user/lib/D4.jar columns --help
@@ -74,7 +76,9 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 columns
   --input=<directory> [default: 'tsv']
   --metadata=<file> [default: 'columns.tsv']
-   --verbose=<boolean> [default: true]
+  --cacheSize=<int> [default: 1000]
+  --verbose=<boolean> [default: true]
+  --threads=<int> [default: 6]
   --output=<directory> [default: 'columns']
 ```
 
@@ -85,7 +89,7 @@ $> java -jar /home/user/lib/D4.jar term-index --help
 D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 term-index
-  --input=<directory | file> [default: 'text-columns.txt']
+  --input=<directory | file> [default: 'columns']
   --textThreshold=<constraint> [default: 'GT0.5']
   --membuffer=<int> [default: 10000000]
   --threads=<int> [default: 6]

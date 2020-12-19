@@ -35,13 +35,15 @@ public class ColumnFactory {
     private static final Logger LOGGER = Logger
             .getLogger(ColumnFactory.class.getName());
     
+    private final int _cacheSize;
     private final Counter _counter;
     private final PrintWriter _out;
     private final File _outputDir;
     
-    public ColumnFactory(File outputDir, PrintWriter out) {
+    public ColumnFactory(File outputDir, int cacheSize, PrintWriter out) {
         
         _outputDir = outputDir;
+        _cacheSize = cacheSize;
         _out = out;
 
         _counter = new Counter(0);
@@ -50,7 +52,7 @@ public class ColumnFactory {
         FileSystem.createFolder(outputDir);
     }
     
-    public ColumnHandler getHandler(String dataset, String columnName) {
+    public synchronized ColumnHandler getHandler(String dataset, String columnName) {
 
         int columnId = _counter.inc();
         String name = columnName.replaceAll("[^\\dA-Za-z]", "_");
@@ -61,7 +63,8 @@ public class ColumnFactory {
         try {
             ColumnHandler handler = new ColumnHandler(
                     outputFile,
-                    new DefaultValueTransformer()
+                    new DefaultValueTransformer(),
+                    _cacheSize
             );
             _out.println(columnId + "\t" + name + "\t" + dataset);
             return handler;

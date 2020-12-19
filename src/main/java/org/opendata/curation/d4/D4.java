@@ -329,20 +329,24 @@ public class D4 {
                     new Parameter[] {
                         new Parameter("input", "<directory> [default: 'tsv']"),
                         new Parameter("metadata", "<file> [default: 'columns.tsv']"),
+                        new Parameter("cacheSize", "<int> [default: 1000]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("output", "<directory> [default: 'columns']")
                     },
                     args
             );
             File inputDir = params.getAsFile("input", "tsv");
             File outputFile = params.getAsFile("metadata", "columns.tsv");
+            int cacheSize = params.getAsInt("cacheSize", 1000);
             boolean verbose = params.getAsBool("verbose", true);
+            int threads = params.getAsInt("threads", 6);
             File outputDir = params.getAsFile("output", "columns");
             try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
                 List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
                         .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, verbose)
-                        .run(files);
+                new Dataset2ColumnsConverter(outputDir, out, cacheSize, verbose)
+                        .run(files, threads);
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
                 System.exit(-1);
