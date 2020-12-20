@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 import org.opendata.core.value.DefaultValueTransformer;
 
 /**
@@ -46,7 +47,7 @@ public class ColumnFactory {
         _cacheSize = cacheSize;
         _out = out;
 
-        _counter = new Counter(0);
+        _counter = new SimpleCounter();
 
         // Create output directory if it does not exist
         FileSystem.createFolder(outputDir);

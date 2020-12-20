@@ -17,36 +17,46 @@
  */
 package org.opendata.core.util.count;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
 /**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
- * @param <T>
+ * Basic (un-synchronized) implementation for the counter class.
+ * 
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class CounterSort<T> {
+public class SimpleCounter implements Counter {
+
+    private int _value;
     
-    public List<CounterPair<T>> sort(HashMap<T, Counter> mapping, boolean reverse) {
-    
-        ArrayList<CounterPair<T>> elements = new ArrayList<>();
+    public SimpleCounter(int value) {
         
-        for (T key : mapping.keySet()) {
-            elements.add(new CounterPair<>(key, mapping.get(key)));
-        }
-        
-        Collections.sort(elements);
-        if (reverse) {
-            Collections.reverse(elements);
-        }
-        
-        return elements;
+        _value = value;
     }
     
-    public List<CounterPair<T>> sort(HashMap<T, Counter> mapping) {
+    public SimpleCounter() {
         
-        return this.sort(mapping, false);
+        this(0);
     }
+    
+    @Override
+    public int compareTo(Counter c) {
+
+        return Integer.compare(_value, c.value());
+    }
+
+    @Override
+    public int inc() {
+
+        return _value++;
+    }
+
+    @Override
+    public int inc(int value) {
+
+        return _value += value;
+    }
+
+    @Override
+    public int value() {
+
+        return _value;
+    }    
 }

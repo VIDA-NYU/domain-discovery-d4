@@ -36,7 +36,7 @@ public class IdentifiableCounterSet implements Iterable<IdentifiableCount> {
     
     public final int add(int id, int value) {
         
-        _elements.put(id, new Counter(value));
+        _elements.put(id, new SimpleCounter(value));
         
         return value;
     }
@@ -44,7 +44,7 @@ public class IdentifiableCounterSet implements Iterable<IdentifiableCount> {
     public final Counter get(int id) {
         
         if (!_elements.containsKey(id)) {
-            _elements.put(id, new Counter(0));
+            _elements.put(id, new SimpleCounter());
         }
         return _elements.get(id);
     }
@@ -116,7 +116,7 @@ public class IdentifiableCounterSet implements Iterable<IdentifiableCount> {
         Collections.sort(
                 result,
                 (IdentifiableCount c1, IdentifiableCount c2) -> 
-                        Integer.compare(c1.count(), c2.count())
+                        Integer.compare(c1.value(), c2.value())
         );
         if (reverse) {
             Collections.reverse(result);

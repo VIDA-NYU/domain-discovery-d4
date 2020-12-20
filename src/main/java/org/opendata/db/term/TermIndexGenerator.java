@@ -108,8 +108,7 @@ public class TermIndexGenerator {
                 final int columnId = reader.columnId();
                 reader = new FlexibleColumnReader(file);
                 while (reader.hasNext()) {
-                    ValueCounter colVal = reader.next();
-                    _termIndex.add(colVal.getText(), columnId);
+                    _termIndex.add(columnId, reader.next());
                 }
             }
         }        

@@ -21,6 +21,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermConsumer;
 
@@ -46,7 +47,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
         _out = out;
 
         _eqIndex = new HashMap<>();
-        _counter = new Counter(0);
+        _counter = new SimpleCounter();
         _verbose = verbose;
     }
 

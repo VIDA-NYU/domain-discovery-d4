@@ -18,6 +18,10 @@
 package org.opendata.db.column;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.core.util.count.IdentifiableCount;
 
 /**
  * COllection of helper methods for database column and column files.
@@ -26,6 +30,27 @@ import java.io.File;
  */
 public final class ColumnHelper {
     
+    /**
+     * Static method to convert a list of columnId:frequency pairs into an
+     * immutable identifiable count set.
+     * 
+     * This is the reverse operation from toStringArray.
+     * 
+     * @param value
+     * @return 
+     */
+    public static List<IdentifiableInteger> fromArrayString(String text) {
+        
+        List<IdentifiableInteger> values = new ArrayList<>();
+        for (String pair : text.split(",")) {
+            int pos = pair.indexOf(":");
+            int id = Integer.parseInt(pair.substring(0, pos));
+            int val = Integer.parseInt(pair.substring(pos + 1));
+            values.add(new IdentifiableCount(id, val));
+        }
+        return values;
+    }
+
     /**
      * Get the column identifier from the column name. It is expected that the
      * column identifier is a number at the start of the file name.
@@ -43,4 +68,25 @@ public final class ColumnHelper {
         return Integer.parseInt(tokens[2]);
     }
     
+    /**
+     * Convert a list of column counts into a string representation.
+     * 
+     * @param elements
+     * @return 
+     */
+    public static String toArrayString(List<IdentifiableInteger> elements) {
+        
+	StringBuilder buf = new StringBuilder();
+	
+	if (elements.size() > 0) {
+            IdentifiableInteger el = elements.get(0);
+	    buf.append(el.id()).append(":").append(el.value());
+	    for (int iElement = 1; iElement < elements.size(); iElement++) {
+		el = elements.get(iElement);
+                buf.append(",").append(el.id()).append(":").append(el.value());
+	    }
+	}
+	
+	return buf.toString();
+    }
 }

@@ -37,6 +37,7 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainMember;
@@ -65,7 +66,7 @@ public class ExportStrongDomains {
             for (String token : name.split("[\\s_]")) {
                 token = token.toLowerCase();
                 if ((!tokens.containsKey(token)) && (!token.isEmpty())) {
-                    tokens.put(token, new Counter(0));
+                    tokens.put(token, new SimpleCounter());
                 }
             }
         }

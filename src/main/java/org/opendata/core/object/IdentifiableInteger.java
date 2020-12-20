@@ -22,19 +22,12 @@ package org.opendata.core.object;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class IdentifiableInteger extends IdentifiableObjectImpl {
+public abstract class IdentifiableInteger extends IdentifiableObjectImpl {
     
-    private final int _value;
-    
-    public IdentifiableInteger(int id, int value) {
+    public IdentifiableInteger(int id) {
         
         super(id);
-        
-        _value = value;
     }
     
-    public int value() {
-        
-        return _value;
-    }
+    public abstract int value();
 }

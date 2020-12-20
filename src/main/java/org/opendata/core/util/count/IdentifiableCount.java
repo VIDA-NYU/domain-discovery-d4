@@ -17,15 +17,16 @@
  */
 package org.opendata.core.util.count;
 
-import org.opendata.core.object.IdentifiableObjectImpl;
+import org.opendata.core.object.IdentifiableInteger;
 
 /**
- *
+ * Identifiable counter object.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class IdentifiableCount extends IdentifiableObjectImpl implements Comparable<IdentifiableCount> {
+public class IdentifiableCount extends IdentifiableInteger implements Counter {
     
-    private final int _count;
+    private int _count;
     
     public IdentifiableCount(int id, int count) {
         
@@ -34,34 +35,44 @@ public class IdentifiableCount extends IdentifiableObjectImpl implements Compara
         _count = count;
     }
     
-    public IdentifiableCount(String[] valuePair) {
+    public IdentifiableCount(String[] splitString) {
 	
-	this(Integer.parseInt(valuePair[0]), Integer.parseInt(valuePair[1]));
+	this(Integer.parseInt(splitString[0]), Integer.parseInt(splitString[1]));
     }
     
-    public IdentifiableCount(String pairString) {
+    public IdentifiableCount(String fromString) {
 	
-	this(pairString.split(":"));
-    }
-    
-    public IdentifiableCount add(int value) {
-        
-        return new IdentifiableCount(this.id(), _count + value);
+	this(fromString.split(":"));
     }
 
     @Override
-    public int compareTo(IdentifiableCount c) {
+    public int compareTo(Counter c) {
 
-        return Integer.compare(this.id(), c.id());
+        return Integer.compare(_count, c.value());
     }
     
-    public int count() {
-        
+    @Override
+    public int inc(int value) {
+
+        _count += value;
         return _count;
     }
     
-    public String toPairString() {
+    @Override
+    public int inc() {
+        
+        return this.inc(1);
+    }
+
+    @Override
+    public String toString() {
 	
 	return this.id() + ":" + _count;
+    }
+    
+    @Override
+    public int value() {
+        
+        return _count;
     }
 }

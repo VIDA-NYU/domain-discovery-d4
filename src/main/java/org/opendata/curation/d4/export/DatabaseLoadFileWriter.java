@@ -29,6 +29,7 @@ import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.eq.EQReader;
 import org.opendata.db.term.TermIndexReader;
@@ -97,7 +98,7 @@ public class DatabaseLoadFileWriter {
                         String datasetId = tokens[2];
                         out.println(line + "\t0");
                         if (!datasetFilter.containsKey(datasetId)) {
-                            datasetFilter.put(datasetId, new Counter(1));
+                            datasetFilter.put(datasetId, new SimpleCounter(1));
                         } else {
                             datasetFilter.get(datasetId).inc();
                         }
@@ -237,7 +238,7 @@ public class DatabaseLoadFileWriter {
                         "TRUE"
                 );
             }
-            Counter domIdFact = new Counter(strongDomains.getMaxId() + 1);
+            Counter domIdFact = new SimpleCounter(strongDomains.getMaxId() + 1);
             for (Domain localDomain : localDomains) {
                 IDSet columns = localDomain.columns();
                 for (Domain strongDomain : strongDomains) {

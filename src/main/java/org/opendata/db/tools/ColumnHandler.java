@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 import org.opendata.core.value.ValueTransformer;
 
 /**
@@ -92,7 +93,7 @@ public class ColumnHandler {
             String term = _transformer.transform(value);
             if (!term.equals("")) {
                 if (!_terms.containsKey(term)) {
-                    _terms.put(term, new Counter(1));
+                    _terms.put(term, new SimpleCounter(1));
                     _cache.offer(term);
                     if (_cache.size() > _cacheSize) {
                         // Evict a term from the cache if the maximum cache
@@ -122,7 +123,7 @@ public class ColumnHandler {
                         String term = tokens[0];
                         int count = Integer.parseInt(tokens[1]);
                         if (!_terms.containsKey(term)) {
-                            _terms.put(term, new Counter(count));
+                            _terms.put(term, new SimpleCounter(count));
                         } else {
                             _terms.get(term).inc(count);
                         }

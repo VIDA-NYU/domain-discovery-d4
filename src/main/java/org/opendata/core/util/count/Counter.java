@@ -23,43 +23,11 @@ package org.opendata.core.util.count;
  * 
  * @author Heiko Mueller
  */
-public class Counter implements Comparable<Counter> {
+public interface Counter extends Comparable<Counter> {
    
-    private int _value;
+    public int inc();
     
-    public Counter(int value) {
-	
-	_value = value;
-    }
+    public int inc(int value);
     
-    public Counter() {
-	
-	this(0);
-    }
-
-    @Override
-    public int compareTo(Counter cntr) {
-
-        return Integer.compare(_value, cntr.value());
-    }
-    
-    public synchronized int inc() {
-	
-	return ++_value;
-    }
-    
-    public synchronized int inc(int value) {
-	
-	return _value += value;
-    }
-    
-    public synchronized void setValue(int value) {
-        
-        _value = value;
-    }
-    
-    public synchronized int value() {
-	
-	return _value;
-    }
+    public int value();
 }

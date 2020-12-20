@@ -28,6 +28,7 @@ import org.opendata.core.set.ImmutableIDSet;
 import org.opendata.core.set.ImmutableIdentifiableIDSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.count.SimpleCounter;
 
 /**
  * Create a set of unique database domains for local domains.
@@ -50,7 +51,7 @@ public class UniqueDomainSet implements DomainStream {
         
         _domainIndex = new HashMap<>();
         _domainMapping = new HashObjectSet<>();
-        _domainIdFactory = new Counter(0);
+        _domainIdFactory = new SimpleCounter();
     }
 
     public List<Domain> domains() {

@@ -66,7 +66,7 @@ public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStre
         
         int[] values = new int[columns.getMaxId() + 1];
         for (IdentifiableCount column : columns) {
-            values[column.id()] = column.count();
+            values[column.id()] = column.value();
         }
         return values;
     }
