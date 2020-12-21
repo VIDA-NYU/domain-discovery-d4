@@ -28,6 +28,6 @@ public class DefaultValueTransformer implements ValueTransformer {
     @Override
     public String transform(String value) {
 
-        return value.toUpperCase().replaceAll("\\s+", " ");
+        return value.toUpperCase().replaceAll("\\s+", " ").trim();
     }
 }
