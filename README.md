@@ -92,6 +92,7 @@ term-index
   --input=<directory | file> [default: 'columns']
   --textThreshold=<constraint> [default: 'GT0.5']
   --membuffer=<int> [default: 10000000]
+  --validate=<boolean> [default: false]
   --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --output=<file> [default: 'text-columns.txt']

@@ -19,8 +19,10 @@ package org.opendata.db.column;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.core.set.SortedIDSet;
 import org.opendata.core.util.count.IdentifiableCount;
 
 /**
@@ -31,24 +33,49 @@ import org.opendata.core.util.count.IdentifiableCount;
 public final class ColumnHelper {
     
     /**
-     * Static method to convert a list of columnId:frequency pairs into an
-     * immutable identifiable count set.
+     * Static method to convert a serialization of columnId:frequency pairs
+     * to a list of identifiable integer. The elements in the list are not
+     * necessarily sorted. This method therefore returns a list instead of
+     *  a sorted ID set,
      * 
      * This is the reverse operation from toStringArray.
      * 
-     * @param value
+     * @param text
      * @return 
      */
-    public static List<IdentifiableInteger> fromArrayString(String text) {
+    public static List<IdentifiableInteger> fromArbitraryArrayString(String text) {
         
-        List<IdentifiableInteger> values = new ArrayList<>();
+        List<IdentifiableInteger> elements = new ArrayList<>();
         for (String pair : text.split(",")) {
             int pos = pair.indexOf(":");
             int id = Integer.parseInt(pair.substring(0, pos));
             int val = Integer.parseInt(pair.substring(pos + 1));
-            values.add(new IdentifiableCount(id, val));
+            elements.add(new IdentifiableCount(id, val));
         }
-        return values;
+        return elements;
+    }
+
+    /**
+     * Static method to convert a serialization of columnId:frequency pairs
+     * to a sorted ID set if identifiable integer.
+     * 
+     * This is the reverse operation from toStringArray.
+     * 
+     * @param text
+     * @return 
+     */
+    public static SortedIDSet<IdentifiableInteger> fromSortedArrayString(String text) {
+        
+        String[] tokens = text.split(",");
+        IdentifiableInteger[] elements = new IdentifiableInteger[tokens.length];
+        for (int iToken = 0; iToken < tokens.length; iToken++) {
+            String pair = tokens[iToken];
+            int pos = pair.indexOf(":");
+            int id = Integer.parseInt(pair.substring(0, pos));
+            int val = Integer.parseInt(pair.substring(pos + 1));
+            elements[iToken] = new IdentifiableCount(id, val);
+        }
+        return new SortedIDSet<>(elements);
     }
 
     /**
@@ -71,20 +98,21 @@ public final class ColumnHelper {
     /**
      * Convert a list of column counts into a string representation.
      * 
+     * @param <T>
      * @param elements
      * @return 
      */
-    public static String toArrayString(List<IdentifiableInteger> elements) {
+    public static <T extends IdentifiableInteger> String toArrayString(Iterable<T> elements) {
         
 	StringBuilder buf = new StringBuilder();
 	
-	if (elements.size() > 0) {
-            IdentifiableInteger el = elements.get(0);
+        Iterator<T> iterator = elements.iterator();
+	while (iterator.hasNext()) {
+            IdentifiableInteger el = iterator.next();
+            if (buf.length() > 0) {
+                buf.append(",");
+            }
 	    buf.append(el.id()).append(":").append(el.value());
-	    for (int iElement = 1; iElement < elements.size(); iElement++) {
-		el = elements.get(iElement);
-                buf.append(",").append(el.id()).append(":").append(el.value());
-	    }
 	}
 	
 	return buf.toString();

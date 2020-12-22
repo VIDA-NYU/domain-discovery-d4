@@ -363,6 +363,7 @@ public class D4 {
                         ),
                         new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
+                        new Parameter("validate", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("output", "<file> [default: 'text-columns.txt']")
@@ -372,6 +373,7 @@ public class D4 {
             File inputDir = params.getAsFile("input", "columns");
             Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
+            boolean validate = params.getAsBool("validate", false);
             boolean verbose = params.getAsBool("verbose", true);
             int threads = params.getAsInt("threads", 6);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
@@ -380,8 +382,9 @@ public class D4 {
                         new FileListReader(".txt").listFiles(inputDir),
                         threshold,
                         bufferSize,
-                        verbose,
+                        validate,
                         threads,
+                        verbose,
                         outputFile
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {

@@ -15,16 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.db.eq;
+
+import java.util.List;
+import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.core.set.SortedIDSet;
 
 /**
- * D4 constant declarations.
+ * Writer for generated equivalence classes.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
-    
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.30.0.dev08";
+public interface EQWriter {
+   
+    public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedIDSet<T> columns);
 }

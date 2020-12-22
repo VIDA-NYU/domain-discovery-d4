@@ -82,7 +82,7 @@ public class TermIndexFile {
             _out = out;
         }
         
-        public void merge(List<TermSetIterator> readers) throws java.io.IOException {
+        public int merge(List<TermSetIterator> readers) throws java.io.IOException {
 
             OrderedLinkedList<TermSetIterator> activeReaders;
             activeReaders = new OrderedLinkedList<>();
@@ -137,6 +137,8 @@ public class TermIndexFile {
                     reader.next();
                 }
             }
+            
+            return _termId;
         }
         
         private void write(IOTerm term) {
@@ -198,9 +200,13 @@ public class TermIndexFile {
             
             if (line != null) {
                 String[] tokens = line.split("\t");
+                List<IdentifiableInteger> columns = new ArrayList<>();
+                for (IdentifiableInteger el : ColumnHelper.fromArbitraryArrayString(tokens[1])) {
+                    columns.add(el);
+                }
                 _term = new IOTerm(
                         tokens[0],
-                        ColumnHelper.fromArrayString(tokens[1])
+                        columns
                 );
             } else {
                 _term = null;
@@ -292,7 +298,7 @@ public class TermIndexFile {
         }
     }
     
-    public void write(File outputFile) throws java.io.IOException {
+    public void write(File outputFile, boolean validate) throws java.io.IOException {
         
         List<TermSetIterator> readers = new ArrayList<>();
         if (!_buffer.isEmpty()) {
@@ -303,12 +309,42 @@ public class TermIndexFile {
             readers.add(new TermFileReader(file));
         }
 
+        if (_verbose) {
+            System.out.println(String.format("MERGE %d FILES.", readers.size()));
+        }
+        
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new TermFileMerger(out).merge(readers);
+            int count = new TermFileMerger(out).merge(readers);
+            if (_verbose) {
+                System.out.println(String.format("RESULTING FILE HAS %d TERMS.", count));
+            }
         }
         
         for (File file : _files) {
             file.delete();
+        }
+        
+        if (validate) {
+            if (_verbose) {
+                System.out.println("VALIDATE @ " + new Date());
+            }
+            try (BufferedReader in = FileSystem.openReader(outputFile)) {
+                String line = in.readLine();
+                if (line == null) {
+                    return;
+                }
+                String prevTerm = line.split("\t")[1];
+                while ((line = in.readLine()) != null) {
+                    String term = line.split("\t")[1];
+                    if (prevTerm.compareTo(term) >= 0) {
+                        throw new RuntimeException(String.format("%s before %s", prevTerm, term));
+                    }
+                    prevTerm = term;
+                }
+            }
+            if (_verbose) {
+                System.out.println("DONE @ " + new Date());
+            }
         }
     }
     

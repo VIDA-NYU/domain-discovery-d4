@@ -19,6 +19,7 @@ package org.opendata.curation.d4.export;
 
 import java.io.PrintWriter;
 import org.apache.commons.text.StringEscapeUtils;
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.object.filter.AnyObjectFilter;
 import org.opendata.core.object.filter.ObjectFilter;
 import org.opendata.db.term.Term;
@@ -70,9 +71,9 @@ public class TermFileWriter implements TermConsumer {
 	    return;
 	}
         
-        for (int columnId : term.columns()) {
+        for (IdentifiableInteger column : term.columns()) {
             _outColumntermMap.println(
-                    columnId + "\t" +
+                    column.id() + "\t" +
                     term.id()
             );
         }
