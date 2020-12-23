@@ -34,6 +34,7 @@ import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
+import org.opendata.curation.d4.D4Config;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.column.MutableExpandedColumn;
@@ -122,6 +123,7 @@ public class LocalDomainFinder {
             LOGGER.log(Level.SEVERE, "EQ", ex);
             System.exit(-1);
         }
+        D4Config config = new D4Config(eqIndex);
         
         IdentifiableObjectSet<IdentifiableIDSet> columns = eqIndex.columns();
         IdentifiableIDSet column = columns.get(columnId);
@@ -135,13 +137,12 @@ public class LocalDomainFinder {
                     eqIndex,
                     new ConcurrentLinkedQueue<>(column.toList()),
                     new JISimilarity(eqIndex.nodes()),
-                    robustifierSpec,
                     fullSignatureConstraint,
                     ignoreLastDrop,
                     ignoreMinorDrops,
                     threads,
                     true,
-                    signatures
+                    config.getSignatureRobustifier(robustifierSpec, signatures)
             );
         } catch (java.lang.InterruptedException ex) {
             LOGGER.log(Level.SEVERE, "SIGNATURES", ex);
@@ -179,13 +180,12 @@ public class LocalDomainFinder {
                         eqIndex,
                         new ConcurrentLinkedQueue<>(expandedColumn.expandedNodes().toList()),
                         new JISimilarity(eqIndex.nodes()),
-                        robustifierSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,
                         ignoreMinorDrops,
                         threads,
                         true,
-                        signatures
+                        config.getSignatureRobustifier(robustifierSpec, signatures)
                 );
             } catch (java.lang.InterruptedException ex) {
                 LOGGER.log(Level.SEVERE, "EXPANSION SIGNATURES", ex);

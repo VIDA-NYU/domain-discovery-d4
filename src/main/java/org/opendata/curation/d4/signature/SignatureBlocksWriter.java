@@ -21,14 +21,13 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.io.prov.DataSink;
 import org.opendata.core.util.StringHelper;
 
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksWriter implements DataSink, SignatureBlocksConsumer {
+public class SignatureBlocksWriter implements SignatureBlocksConsumer {
 
     private final File _file;
     private int _openCount = 0;
@@ -77,11 +76,5 @@ public class SignatureBlocksWriter implements DataSink, SignatureBlocksConsumer 
             }
         }
         _openCount++;
-    }
-
-    @Override
-    public String target() {
-
-        return _file.getName();
     }
 }

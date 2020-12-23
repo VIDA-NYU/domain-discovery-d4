@@ -73,16 +73,4 @@ public class SignatureBlocksIndex implements RobustSignatureStream, SignatureBlo
         }
         consumer.close();
     }
-
-    @Override
-    public String source() {
-
-        return SignatureBlocksIndex.class.getCanonicalName();
-    }
-
-    @Override
-    public String target() {
-
-        return SignatureBlocksIndex.class.getCanonicalName();
-    }
 }

@@ -77,7 +77,7 @@ public class SignatureBlocksReader extends FileSetReader implements RobustSignat
     
     public RobustSignatureIndex read() throws java.io.IOException {
         
-        RobustSignatureIndex buffer = new RobustSignatureIndex(this.source());
+        RobustSignatureIndex buffer = new RobustSignatureIndex();
         this.stream(buffer);
         return buffer;
     }
@@ -127,11 +127,5 @@ public class SignatureBlocksReader extends FileSetReader implements RobustSignat
         }
 
         consumer.close();
-    }
-
-    @Override
-    public String source() {
-
-        return _file.getName();
     }
 }

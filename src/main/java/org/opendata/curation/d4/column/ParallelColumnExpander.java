@@ -38,7 +38,6 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
-import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
@@ -234,25 +233,9 @@ public class ParallelColumnExpander {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "EXPAND %d COLUMNS IN %d GROUPS USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --signatures=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --expandThreshold=%s\n" +
-                            "  --decrease=%s\n" +
-                            "  --iterations=%d\n" +
-                            "  --threads=%d\n" +
-                            "  --columns=%s",
+                            "EXPAND %d COLUMNS IN %d GROUPS",
                             db.length(),
-                            columnList.size(),
-                            nodes.source(),
-                            signatures.source(),
-                            trimmer,
-                            threshold.toPlainString(),
-                            decreaseFactor.toPlainString(),
-                            numberOfIterations,
-                            threads,
-                            outputFile.getName()
+                            columnList.size()
                     )
             );
             LOGGER.log(Level.INFO, String.format("START @ %s", start));

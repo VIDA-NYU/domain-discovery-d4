@@ -152,12 +152,6 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
 
         this.print(new PrintWriter(System.out));
     }
-
-    @Override
-    public String target() {
-
-        return SignatureBlocksStats.class.getCanonicalName();
-    }
     
     private static final String COMMAND =
             "Usage:\n" +

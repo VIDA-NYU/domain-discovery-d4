@@ -30,12 +30,6 @@ import org.opendata.core.set.IDSet;
 public class RobustSignatureIndex implements Iterable<RobustSignature>, RobustSignatureConsumer, RobustSignatureStream {
 
     private final HashObjectSet<RobustSignature> _signatures = new HashObjectSet<>();
-    private final String _source;
-    
-    public RobustSignatureIndex(String source) {
-        
-        _source = source;
-    }
     
     public void clear() {
         
@@ -97,12 +91,6 @@ public class RobustSignatureIndex implements Iterable<RobustSignature>, RobustSi
         }
         
         consumer.close();
-    }
-
-    @Override
-    public String source() {
-
-        return _source;
     }
     
     public List<RobustSignature> toList() {

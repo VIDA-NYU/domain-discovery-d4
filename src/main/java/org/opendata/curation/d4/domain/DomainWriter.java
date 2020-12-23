@@ -66,10 +66,4 @@ public class DomainWriter implements DomainConsumer {
             throw new RuntimeException(ex);
         }
     }    
-
-    @Override
-    public String target() {
-
-        return _file.getName();
-    }
 }

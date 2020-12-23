@@ -108,49 +108,28 @@ public class RobustSignatureGenerator {
      * @param eqIndex
      * @param queue
      * @param simFunc
-     * @param robustifierSpec
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
      * @param ignoreMinorDrop
      * @param threads
      * @param verbose
-     * @param writer
+     * @param consumer
      * @throws java.lang.InterruptedException
      */
     public void run(
             EQIndex eqIndex,
             ConcurrentLinkedQueue<Integer> queue,
             EQSimilarity simFunc,
-            String robustifierSpec,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumer writer
+            SignatureBlocksConsumer consumer
     ) throws java.lang.InterruptedException {
 
         if (verbose) {
-            System.out.println(
-                    String.format(
-                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --robustifier=%s\n" +
-                            "  --fullSignatureConstraint=%s\n" +
-                            "  --ignoreLastDrop=%s\n" +
-                            "  --ignoreMinorDrop=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --signatures=%s",
-                            queue.size(),
-                            eqIndex.source(),
-                            robustifierSpec,
-                            Boolean.toString(fullSignatureConstraint),
-                            Boolean.toString(ignoreLastDrop),
-                            Boolean.toString(ignoreMinorDrop),
-                            threads,
-                            writer.target()
-                    )
-            );
+            System.out.println(String.format("SIGNATURE BLOCKS FOR %d EQs", queue.size()));
         }
         
 
@@ -161,17 +140,6 @@ public class RobustSignatureGenerator {
                 ignoreLastDrop
         );
 
-        SignatureRobustifier consumer;
-        if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.COLSUPP)) {
-            consumer = new ColumnSupportBlockFilter(eqIndex, writer);
-        } else if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.LIBERAL)) {
-            consumer = new LiberalRobustifier(eqIndex.nodeSizes(), writer);
-        } else {
-            throw new IllegalArgumentException(
-                    String.format("Unknown robustifier '%s'", robustifierSpec)
-            );
-        }
-        
         ContextSignatureGenerator sigFact;
         sigFact = new ContextSignatureGenerator(eqIndex.nodes().keys().toList(), simFunc);
 

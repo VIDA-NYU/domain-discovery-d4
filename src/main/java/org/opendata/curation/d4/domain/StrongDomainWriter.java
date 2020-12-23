@@ -105,10 +105,4 @@ public class StrongDomainWriter implements StrongDomainConsumer {
             throw new RuntimeException(ex);
         }
     }    
-
-    @Override
-    public String target() {
-
-        return _file.getName();
-    }
 }

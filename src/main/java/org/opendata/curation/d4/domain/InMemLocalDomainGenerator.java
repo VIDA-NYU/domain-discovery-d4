@@ -165,23 +165,8 @@ public class InMemLocalDomainGenerator {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "LOCAL DOMAINS (IN MEMORY) FOR %d COLUMN GROUPS USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --columns=%s\n" +
-                            "  --signatures=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --originalonly=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --inmem=true\n" +
-                            "  --localdomains=%s",
-                            columnList.size(),
-                            nodes.source(),
-                            columnIndex.source(),
-                            signatures.source(),
-                            trimmer,
-                            Boolean.toString(originalOnly),
-                            threads,
-                            consumer.target()
+                            "LOCAL DOMAINS (IN MEMORY) FOR %d COLUMN GROUPS",
+                            columnList.size()
                     )
             );
             System.out.println(String.format("START @ %s", start));

@@ -29,12 +29,6 @@ import java.util.List;
 public class RobustSignatureBuffer implements Iterable<RobustSignature>, RobustSignatureConsumer, RobustSignatureStream {
 
     private final List<RobustSignature> _signatures = new ArrayList<>();
-    private final String _source;
-    
-    public RobustSignatureBuffer(String source) {
-        
-        _source = source;
-    }
     
     @Override
     public void close() {
@@ -79,11 +73,5 @@ public class RobustSignatureBuffer implements Iterable<RobustSignature>, RobustS
         }
         
         consumer.close();
-    }
-
-    @Override
-    public String source() {
-
-        return _source;
     }
 }

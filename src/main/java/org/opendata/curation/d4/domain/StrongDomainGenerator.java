@@ -256,22 +256,8 @@ public class StrongDomainGenerator {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "STRONG DOMAINS FOR %d LOCAL DOMAINS USING:\n" +
-                            "  --eqs=%s\n" +                            
-                            "  --localdomains=%s\n" +
-                            "  --domainOverlap=%s\n" +
-                            "  --minSupport=%s\n" +
-                            "  --supportFraction=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --strongdomains=%s",
-                            localDomains.length(),
-                            nodes.source(),
-                            domainReader.source(),
-                            domainOverlapConstraint.toPlainString(),
-                            minSupportConstraint.toPlainString(),
-                            supportFraction.toPlainString(),
-                            threads,
-                            outputFile.getName()
+                            "STRONG DOMAINS FOR %d LOCAL DOMAINS",
+                            localDomains.length()
                     )
             );
         }

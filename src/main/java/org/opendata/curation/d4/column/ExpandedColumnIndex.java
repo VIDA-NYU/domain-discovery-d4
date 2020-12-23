@@ -17,11 +17,9 @@
  */
 package org.opendata.curation.d4.column;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
@@ -37,21 +35,17 @@ import org.opendata.core.set.IdentifiableObjectSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsumer {
+public class ExpandedColumnIndex implements ExpandedColumnConsumer {
 
     private HashMap<String, Integer> _columnIndex;
     private List<ExpandedColumn> _columnList = null;
     private HashMap<Integer, HashIDSet> _columnMapping;
-    private final String _source;
     
-    public ExpandedColumnIndex(File file) {
+    public ExpandedColumnIndex() {
         
-        _source = file.getName();
     }
     
     public ExpandedColumnIndex(ExpandedColumn column) {
-        
-        _source = "Column " + column.id();
         
         this.open();
         this.consume(column);
@@ -121,11 +115,5 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
         }
         
         return result;
-    }
-
-    @Override
-    public String source() {
-
-        return _source;
     }
 }

@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import org.opendata.core.graph.Node;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.prune.SizeFunction;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableIDSet;
@@ -36,7 +35,7 @@ import org.opendata.db.column.Column;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStream, SizeFunction {
+public class EQIndex extends HashObjectSet<EQ> implements EQStream, SizeFunction {
 
     private final File _file;
     private int[] _nodeSizes = null;
@@ -104,12 +103,6 @@ public class EQIndex extends HashObjectSet<EQ> implements DataCollection, EQStre
             }
         }
         return _nodeSizes;
-    }
-
-    @Override
-    public String source() {
-        
-        return _file.getName();
     }
     
     /**

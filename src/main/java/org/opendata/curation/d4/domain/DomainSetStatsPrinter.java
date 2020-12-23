@@ -85,12 +85,6 @@ public class DomainSetStatsPrinter implements DomainConsumer {
             System.out.println("AVG. COLUMNS PER DOMAIN: " + new FormatedBigDecimal((double)_domainColumnCount/(double)_domainCount));
         }
     }
-
-    @Override
-    public String target() {
-
-        return "System.out";
-    }
     
     private static final String COMMAND =
             "Usage:\n" +
