@@ -59,6 +59,7 @@ import org.opendata.db.term.TermIndexReader;
 import org.opendata.db.tools.Dataset2ColumnsConverter;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
+import org.opendata.db.eq.similarity.JISimilarity;
 
 /**
  * Complete D4 pipeline.
@@ -183,6 +184,7 @@ public class D4 {
         new RobustSignatureGenerator(telemetry).run(
                 nodeIndex,
                 new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
+                new JISimilarity(nodeIndex.nodes()),
                 trimmerSpec,
                 fullSignatureConstraint,
                 ignoreLastDrop,

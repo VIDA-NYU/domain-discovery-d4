@@ -49,6 +49,7 @@ import org.opendata.curation.d4.signature.SignatureBlocksIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.db.eq.similarity.JISimilarity;
 
 /**
  * Find local domains for a given column. Allows to provide parameters for
@@ -133,6 +134,7 @@ public class LocalDomainFinder {
             new RobustSignatureGenerator().run(
                     eqIndex,
                     new ConcurrentLinkedQueue<>(column.toList()),
+                    new JISimilarity(eqIndex.nodes()),
                     robustifierSpec,
                     fullSignatureConstraint,
                     ignoreLastDrop,
@@ -176,6 +178,7 @@ public class LocalDomainFinder {
                 new RobustSignatureGenerator().run(
                         eqIndex,
                         new ConcurrentLinkedQueue<>(expandedColumn.expandedNodes().toList()),
+                        new JISimilarity(eqIndex.nodes()),
                         robustifierSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,

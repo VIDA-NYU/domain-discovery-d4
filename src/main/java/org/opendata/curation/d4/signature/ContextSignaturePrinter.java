@@ -26,10 +26,12 @@ import java.util.logging.Logger;
 import org.opendata.curation.d4.Arguments;
 import org.opendata.curation.d4.Constants;
 import org.opendata.core.constraint.GreaterThanConstraint;
+import org.opendata.core.graph.Node;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.db.eq.EQIndex;
+import org.opendata.db.eq.similarity.JISimilarity;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;
 
@@ -55,8 +57,10 @@ public class ContextSignaturePrinter {
                 ignoreLastDrop
         );
 
+        IdentifiableObjectSet<Node> nodes = eqIndex.nodes();
+        
         List<SignatureValue> sig;
-        sig = new ContextSignatureGenerator(eqIndex.nodes())
+        sig = new ContextSignatureGenerator(nodes.keys().toList(), new JISimilarity(nodes))
                 .getSignature(nodeId)
                 .rankedElements();
         

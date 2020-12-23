@@ -15,16 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.core.metric;
+package org.opendata.db.eq.similarity;
 
 import java.math.BigDecimal;
 
 /**
- * Similarity function for object overlaps.
+ * Similarity function for two equivalence classes. This interface abstracts
+ * from the function as well as the representation of equivalence classes.
+ * Therefore, equivalence classes are referenced by their unique identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface OverlapSimilarityFunction {
-    
-    public BigDecimal sim(int size1, int size2, int overlap);
+public interface EQSimilarity {
+   
+    /**
+     * Compute similarity between two equivalence classes. The equivalence
+     * classes are referenced by their unique identifier.
+     * 
+     * @param eq1
+     * @param eq2
+     * @return 
+     */
+    public BigDecimal sim(int eq1, int eq2);
 }
