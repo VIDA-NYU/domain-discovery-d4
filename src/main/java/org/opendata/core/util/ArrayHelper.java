@@ -18,6 +18,7 @@
 package org.opendata.core.util;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -110,7 +111,7 @@ public final class ArrayHelper {
         return false;
     }
 
-    public static int overlap(int[] list1, int[] list2, int[] size) {
+    public static int overlap(int[] list1, int[] list2, Integer[] size) {
         
         final int len1 = list1.length;
         final int len2 = list2.length;

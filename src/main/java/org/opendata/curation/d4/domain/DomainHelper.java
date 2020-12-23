@@ -23,7 +23,6 @@ import java.util.HashMap;
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.ArrayHelper;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Collection of helper methods for domains.
@@ -33,17 +32,17 @@ import org.opendata.db.eq.EQIndex;
 public class DomainHelper {
     
     private final HashMap<Integer, Integer> _domainSizes;
-    private final int[] _nodeSizes;
+    private final Integer[] _eqTermCounts;
     
-    public DomainHelper(EQIndex nodes, IdentifiableObjectSet<Domain> domains) {
+    public DomainHelper(Integer[] eqTermCounts, IdentifiableObjectSet<Domain> domains) {
         
-        _nodeSizes = nodes.nodeSizes();
+        _eqTermCounts = eqTermCounts;
         
         _domainSizes = new HashMap<>();
         for (Domain domain : domains) {
             int size = 0;
             for (int nodeId : domain) {
-                size += _nodeSizes[nodeId];
+                size += _eqTermCounts[nodeId];
             }
             _domainSizes.put(domain.id(), size);
         }
@@ -51,7 +50,7 @@ public class DomainHelper {
     
     public BigDecimal termOverlap(Domain domI, Domain domJ) {
         
-        int overlap = ArrayHelper.overlap(domI.nodes(), domJ.nodes(), _nodeSizes);
+        int overlap = ArrayHelper.overlap(domI.nodes(), domJ.nodes(), _eqTermCounts);
 
         int sizeI = _domainSizes.get(domI.id());
         int sizeJ = _domainSizes.get(domJ.id());

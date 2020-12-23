@@ -17,10 +17,10 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
+import java.util.HashMap;
+import org.opendata.core.set.HashIDSet;
+import org.opendata.core.set.SortedIDList;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Factory for signature trimmers.
@@ -29,18 +29,18 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
-    private final IdentifiableObjectSet<IdentifiableIDSet> _columns;
-    private final EQIndex _nodes;
+    private final HashMap<Integer, SortedIDList> _columns;
+    private final Integer[] _eqTermCounts;
     private PrecisionScore _scoreFunc = null;
     private final String _trimmerSpec;
     
     public SignatureTrimmerFactory(
-            EQIndex nodes,
-            IdentifiableObjectSet<IdentifiableIDSet> columns,
+            HashMap<Integer, SortedIDList> columns,
+            Integer[] eqTermCounts,
             String trimmerSpec
     ) {
-        _nodes = nodes;
         _columns = columns;
+        _eqTermCounts = eqTermCounts;
         _trimmerSpec = trimmerSpec;
     }
     
@@ -54,16 +54,16 @@ public class SignatureTrimmerFactory {
      */
     public SignatureTrimmer getTrimmer(int columnId, RobustSignatureConsumer consumer) {
         
-        IdentifiableIDSet column = _columns.get(columnId);
+        HashIDSet filter = new HashIDSet(_columns.get(columnId));
         if (_trimmerSpec.equals(SignatureTrimmer.CONSERVATIVE)) {
-            return new ConservativeTrimmer(column, consumer);
+            return new ConservativeTrimmer(filter, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
             if (_scoreFunc == null) {
-                _scoreFunc = new PrecisionScore(_nodes, _columns);
+                _scoreFunc = new PrecisionScore(_columns, _eqTermCounts);
             }
-            return new CentristTrimmer(column, _scoreFunc, consumer);
+            return new CentristTrimmer(columnId, filter, _scoreFunc, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {
-            return new NonTrimmer(column, consumer);
+            return new NonTrimmer(filter, consumer);
         }
         throw new IllegalArgumentException(String.format("Invalid trimmer: %s", _trimmerSpec));
     }

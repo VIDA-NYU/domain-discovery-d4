@@ -17,8 +17,6 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
@@ -26,16 +24,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.curation.d4.signature.trim.ColumnSupportBlockFilter;
-import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
-import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Generate output file containing robust context signature blocks.
@@ -108,53 +100,27 @@ public class RobustSignatureGenerator {
     /**
      * Generate signature blocks using consecutive steepest drops.
      * 
-     * @param eqIndex
-     * @param queue
-     * @param robustifierSpec
+     * @param equivalenceClasses
+     * @param sigFact
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
      * @param ignoreMinorDrop
      * @param threads
      * @param verbose
-     * @param writer
+     * @param consumer
      * @throws java.lang.InterruptedException
-     * @throws java.io.IOException 
+     * @throws java.io.IOException
      */
     public void run(
-            EQIndex eqIndex,
-            ConcurrentLinkedQueue<Integer> queue,
-            String robustifierSpec,
+            List<Integer> equivalenceClasses,
+            ContextSignatureGenerator sigFact,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             boolean ignoreMinorDrop,
             int threads,
             boolean verbose,
-            SignatureBlocksConsumer writer
-    ) throws java.lang.InterruptedException {
-
-        if (verbose) {
-            System.out.println(
-                    String.format(
-                            "SIGNATURE BLOCKS FOR %d EQs USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --robustifier=%s\n" +
-                            "  --fullSignatureConstraint=%s\n" +
-                            "  --ignoreLastDrop=%s\n" +
-                            "  --ignoreMinorDrop=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --signatures=%s",
-                            queue.size(),
-                            eqIndex.source(),
-                            robustifierSpec,
-                            Boolean.toString(fullSignatureConstraint),
-                            Boolean.toString(ignoreLastDrop),
-                            Boolean.toString(ignoreMinorDrop),
-                            threads,
-                            writer.target()
-                    )
-            );
-        }
-        
+            SignatureBlocksConsumer consumer
+    ) throws java.lang.InterruptedException, java.io.IOException {
 
         MaxDropFinder<SignatureValue> candidateFinder;
         candidateFinder = new MaxDropFinder<>(
@@ -163,20 +129,9 @@ public class RobustSignatureGenerator {
                 ignoreLastDrop
         );
 
-        SignatureRobustifier consumer;
-        if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.COLSUPP)) {
-            consumer = new ColumnSupportBlockFilter(eqIndex, writer);
-        } else if (robustifierSpec.equalsIgnoreCase(SignatureRobustifier.LIBERAL)) {
-            consumer = new LiberalRobustifier(eqIndex.nodeSizes(), writer);
-        } else {
-            throw new IllegalArgumentException(
-                    String.format("Unknown robustifier '%s'", robustifierSpec)
-            );
-        }
+        ConcurrentLinkedQueue<Integer> queue;
+        queue = new ConcurrentLinkedQueue<>(equivalenceClasses);
         
-        ContextSignatureGenerator sigFact;
-        sigFact = new ContextSignatureGenerator(eqIndex.nodes());
-
         Date start = new Date();
         if (verbose) {
             System.out.println("START @ " + start);
@@ -215,55 +170,6 @@ public class RobustSignatureGenerator {
         if (verbose) {
             long execTime = end.getTime() - start.getTime();
             _telemetry.add(TELEMETRY_ID, execTime);
-        }
-    }
-    
-    private static final String COMMAND =
-            "Usage:\n" +
-            "  <eq-file>\n" +
-            "  <trimmer> [LIBERAL | COLSUPP]\n" +
-            "  <full-signature-constraint>\n" +
-            "  <ignore-last-drop>\n" +
-            "  <ignore-minor-drop>\n" +
-            "  <node-id>\n" +
-            "  <output-file>";
-    
-    private static final Logger LOGGER = Logger
-            .getLogger(RobustSignatureGenerator.class.getName());
-    
-    public static void main(String[] args) throws IOException {
-        
-        if (args.length != 7) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        File eqFile = new File(args[0]);
-        String trimmerSpec = args[1].toUpperCase();
-        boolean fullSignatureConstraint = Boolean.parseBoolean(args[2]);
-        boolean ignoreLastDrop = Boolean.parseBoolean(args[3]);
-        boolean ignoreMinorDrop = Boolean.parseBoolean(args[4]);
-        int nodeId = Integer.parseInt(args[5]);
-        File outputFile = new File(args[6]);
-        
-        ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
-        queue.add(nodeId);
-        
-        try {
-            new RobustSignatureGenerator().run(
-                    new EQIndex(eqFile),
-                    queue,
-                    trimmerSpec,
-                    fullSignatureConstraint,
-                    ignoreLastDrop,
-                    ignoreMinorDrop,
-                    1,
-                    true,
-                    new SignatureBlocksWriter(outputFile)
-            );
-        } catch (java.lang.InterruptedException | java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
         }
     }
 }

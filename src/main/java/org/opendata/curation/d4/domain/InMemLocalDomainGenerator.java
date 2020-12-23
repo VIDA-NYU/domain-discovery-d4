@@ -35,8 +35,8 @@ import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.db.eq.EQReader;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -57,7 +57,7 @@ public class InMemLocalDomainGenerator {
         private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
         private final int _id;
-        private final EQIndex _nodes;
+        private final EQReader _eqReader;
         private final RobustSignatureStream _signatures;
         private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
@@ -65,7 +65,7 @@ public class InMemLocalDomainGenerator {
         
         public DomainGeneratorTask(
                 int id,
-                EQIndex nodes,
+                EQReader eqReader,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
                 RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
@@ -74,7 +74,7 @@ public class InMemLocalDomainGenerator {
                 boolean verbose
        ) {
             _id = id;
-            _nodes = nodes;
+            _eqReader = eqReader;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
@@ -133,7 +133,7 @@ public class InMemLocalDomainGenerator {
     }
     
     public void run(
-            EQIndex nodes,
+            EQReader eqReader,
             ExpandedColumnIndex columnIndex,
             RobustSignatureStream signatures,
             String trimmer,
@@ -162,7 +162,7 @@ public class InMemLocalDomainGenerator {
         
         SignatureTrimmerFactory trimmerFactory;
         trimmerFactory = new SignatureTrimmerFactory(
-                nodes,
+                eqReader,
                 columnIndex.toColumns(originalOnly),
                 trimmer
         );
@@ -181,7 +181,7 @@ public class InMemLocalDomainGenerator {
                             "  --inmem=true\n" +
                             "  --localdomains=%s",
                             columnList.size(),
-                            nodes.source(),
+                            eqReader.source(),
                             columnIndex.source(),
                             signatures.source(),
                             trimmer,

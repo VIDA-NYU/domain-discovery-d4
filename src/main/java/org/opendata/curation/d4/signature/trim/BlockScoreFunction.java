@@ -19,9 +19,7 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.core.set.SortedIDList;
 
 /**
  * Score function for signature blocks.
@@ -30,50 +28,28 @@ import org.opendata.db.eq.EQIndex;
  */
 public abstract class BlockScoreFunction {
     
-    private final HashMap<Integer, int[]> _columns;
+    private final HashMap<Integer, SortedIDList> _columns;
     private final HashMap<Integer, Integer> _columnSize;
-    private final int[] _nodeSize;
+    private final Integer[] _eqTermCounts;
     
     public BlockScoreFunction(
-            EQIndex eqIndex,
-            IdentifiableObjectSet<IdentifiableIDSet> columns
+            HashMap<Integer, SortedIDList> columns,
+            Integer[] eqTermCounts
     ) {
         
-        _nodeSize = eqIndex.nodeSizes();
+        _eqTermCounts = eqTermCounts;
         
-        _columns = new HashMap<>();
+        _columns = columns;
         _columnSize = new HashMap<>();
         
-        for (IdentifiableIDSet column : columns) {
-            _columns.put(column.id(), column.toArray());
+        for (Integer columnId : columns.keySet()) {
             int size = 0;
-            for (int nodeId : column) {
-                size += _nodeSize[nodeId];
+            for (int nodeId : columns.get(columnId)) {
+                size += _eqTermCounts[nodeId];
             }
-            _columnSize.put(column.id(), size);
+            _columnSize.put(columnId, size);
         }
         
-    }
-    
-    /**
-     * Get the maximum score of a signature block over all columns.
-     * 
-     * @param block
-     * @param columns
-     * @return 
-     */
-    public BigDecimal maxScore(int[] block, Iterable<Integer> columns) {
-    
-        BigDecimal max = BigDecimal.ZERO;
-        
-        for (int columnId : columns) {
-            BigDecimal score = this.score(block, columnId);
-            if (score.compareTo(max) > 0) {
-                max = score;
-            }
-        }
-        
-        return max;
     }
     
     public abstract BigDecimal relevance(int columnSize, int blockSize, int overlap);
@@ -85,25 +61,25 @@ public abstract class BlockScoreFunction {
      * @param columnId
      * @return 
      */
-    public BigDecimal score(int[] block, int columnId) {
+    public BigDecimal score(SortedIDList block, int columnId) {
         
-        final int[] column = _columns.get(columnId);
-        final int len1 = block.length;
-        final int len2 = column.length;
+        final SortedIDList column = _columns.get(columnId);
+        final int len1 = block.length();
+        final int len2 = column.length();
         int idx1 = 0;
         int idx2 = 0;
         int blSize = 0;
         int overlap = 0;
         while ((idx1 < len1) && (idx2 < len2)) {
-            final int nodeId = block[idx1];
-            int comp = Integer.compare(nodeId, column[idx2]);
+            final Integer nodeId = block.get(idx1);
+            int comp = Integer.compare(nodeId, column.get(idx2));
             if (comp < 0) {
-                blSize += _nodeSize[nodeId];
+                blSize += _eqTermCounts[nodeId];
                 idx1++;
             } else if (comp > 0) {
                 idx2++;
             } else {
-                int nodeSize = _nodeSize[nodeId];
+                int nodeSize = _eqTermCounts[nodeId];
                 blSize += nodeSize;
                 overlap += nodeSize;
                 idx1++;
@@ -112,7 +88,7 @@ public abstract class BlockScoreFunction {
         }
         if (overlap > 0) {
             while (idx1 < len1) {
-                blSize += _nodeSize[block[idx1++]];
+                blSize += _eqTermCounts[block.get(idx1++)];
             }
             return this.relevance(_columnSize.get(columnId), blSize, overlap);
         } else {

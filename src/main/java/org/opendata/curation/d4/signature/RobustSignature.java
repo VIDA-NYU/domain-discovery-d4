@@ -18,6 +18,7 @@
 package org.opendata.curation.d4.signature;
 
 import org.opendata.core.object.IdentifiableObjectImpl;
+import org.opendata.core.set.SortedIDList;
 
 /**
  * List of blocks for a robust context signature. The robust signature contains
@@ -42,7 +43,7 @@ public abstract class RobustSignature extends IdentifiableObjectImpl {
      * @param index
      * @return 
      */
-    public abstract int[] get(int index);
+    public abstract SortedIDList get(int index);
     
     /**
      * Test if the signature is empty (has no blocks).

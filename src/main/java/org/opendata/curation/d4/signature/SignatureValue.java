@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import org.opendata.core.object.IdentifiableDouble;
 
 /**
@@ -27,6 +28,11 @@ import org.opendata.core.object.IdentifiableDouble;
 public class SignatureValue extends IdentifiableDouble {
     
     public SignatureValue(int id, double value) {
+
+        super(id, value);
+    }
+    
+    public SignatureValue(int id, BigDecimal value) {
 
         super(id, value);
     }

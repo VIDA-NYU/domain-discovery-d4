@@ -18,9 +18,7 @@
 package org.opendata.core.object;
 
 /**
- * A named object with unique identifier.
- * 
- * We refer to identifiable names as entities.
+ * An entity is simply a named object with an unique identifier.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */

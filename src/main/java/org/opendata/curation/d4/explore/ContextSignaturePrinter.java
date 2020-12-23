@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
+package org.opendata.curation.d4.explore;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -29,6 +29,8 @@ import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.curation.d4.signature.ContextSignatureGenerator;
+import org.opendata.curation.d4.signature.SignatureValue;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermIndexReader;

@@ -36,7 +36,7 @@ public abstract class SignatureRobustifier implements SignatureBlocksConsumer {
     /**
      * Global variables for trimmer types
      */
-    public final static String COLSUPP = "COLSUPP";
+    public final static String COLSUPP = "COLUMN-SUPPORT";
     public final static String LIBERAL = "LIBERAL";
     
     private final SignatureBlocksConsumer _consumer;
@@ -79,11 +79,5 @@ public abstract class SignatureRobustifier implements SignatureBlocksConsumer {
         }
         
         _consumer.consume(nodeId, prunedBlocks);
-    }
-
-    @Override
-    public String target() {
-
-        return SignatureRobustifier.class.getCanonicalName();
     }
 }

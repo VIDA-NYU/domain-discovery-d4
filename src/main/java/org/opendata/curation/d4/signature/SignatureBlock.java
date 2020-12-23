@@ -17,6 +17,8 @@
  */
 package org.opendata.curation.d4.signature;
 
+import org.opendata.core.set.SortedIDArray;
+
 /**
  * Block in the robust signature for an equivalence class. Each block maintains
  * the similarity for the first and last entry in the blocks as well as the list
@@ -24,22 +26,17 @@ package org.opendata.curation.d4.signature;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlock {
+public class SignatureBlock extends SortedIDArray {
    
-    private final int[] _elements;
     private final double _firstValue;
     private final double _lastValue;
     
-    public SignatureBlock(int[] elements, double firstValue, double lastValue) {
+    public SignatureBlock(Integer[] elements, double firstValue, double lastValue) {
         
-        _elements = elements;
+        super(elements);
+
         _firstValue = firstValue;
         _lastValue = lastValue;
-    }
-    
-    public int[] elements() {
-        
-        return _elements;
     }
     
     public double firstValue() {
@@ -50,10 +47,5 @@ public class SignatureBlock {
     public double lastValue() {
         
         return _lastValue;
-    }
-    
-    public int length() {
-        
-        return _elements.length;
     }
 }

@@ -18,6 +18,7 @@
 package org.opendata.curation.d4.signature;
 
 import java.util.List;
+import org.opendata.core.set.SortedIDList;
 
 /**
  * Use two-dimensional array to represent signature blocks.
@@ -26,19 +27,19 @@ import java.util.List;
  */
 public class RobustSignatureImpl extends RobustSignature {
 
-    private final int[][] _blocks;
+    private final SortedIDList[] _blocks;
 
-    public RobustSignatureImpl(int id, List<int[]> blocks) {
+    public RobustSignatureImpl(int id, List<SortedIDList> blocks) {
         
         super(id, blocks.size());
         
-        _blocks = new int[blocks.size()][];
+        _blocks = new SortedIDList[blocks.size()];
         for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
             _blocks[iBlock] = blocks.get(iBlock);
         }
     }
     
-    public RobustSignatureImpl(int id, int[][] blocks) {
+    public RobustSignatureImpl(int id, SortedIDList[] blocks) {
         
         super(id, blocks.length);
         
@@ -46,7 +47,7 @@ public class RobustSignatureImpl extends RobustSignature {
     }
 
     @Override
-    public int[] get(int index) {
+    public SortedIDList get(int index) {
 
         return _blocks[index];
     }

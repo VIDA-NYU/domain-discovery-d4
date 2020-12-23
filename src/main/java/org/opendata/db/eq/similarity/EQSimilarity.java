@@ -15,19 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq;
+package org.opendata.db.eq.similarity;
 
-import java.io.File;
+import java.math.BigDecimal;
 
 /**
- * Equivalence class index for lazy parse classes.
+ * Interface that represents a similarity function for equivalence classes.
+ * Allows to compute the similarity between two equivalence classes
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class LazyParseEQIndex extends EQIndex {
+public interface EQSimilarity {
     
-    public LazyParseEQIndex(File eqFile) throws java.io.IOException {
-        
-        super(eqFile, new LazyParseEQFactory());
-    }
+    public static final String JI = "JI";
+    
+    /**
+     * Compute similarity two equivalence classes. The equivalence classes are
+     * specified by their unique identifier.
+     * 
+     * @param eq1
+     * @param eq2
+     * @return 
+     */
+    public BigDecimal sim(int eq1, int eq2);
 }

@@ -30,12 +30,13 @@ import org.opendata.curation.d4.signature.SignatureBlock;
  */
 public class LiberalRobustifier extends SignatureRobustifier {
 
-    private final int[] _nodeSizes;
+    private final Integer[] _eqTermCounts;
     
-    public LiberalRobustifier(int[] nodeSizes, SignatureBlocksConsumer consumer) {
+    public LiberalRobustifier(Integer[] eqTermCounts, SignatureBlocksConsumer consumer) {
+        
         super(consumer);
         
-        _nodeSizes = nodeSizes;
+        _eqTermCounts = eqTermCounts;
     }
 
     @Override
@@ -46,8 +47,8 @@ public class LiberalRobustifier extends SignatureRobustifier {
         int maxSize = -1;
         for (SignatureBlock block : blocks) {
             int size = 0;
-            for (int memberId : block.elements()) {
-                size += _nodeSizes[memberId];
+            for (int memberId : block) {
+                size += _eqTermCounts[memberId];
             }
             if (size > maxSize) {
                 maxSize = size;

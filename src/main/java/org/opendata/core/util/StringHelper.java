@@ -210,4 +210,17 @@ public final class StringHelper {
         
         return result;
     }
+    
+    public static int splitSize(String text, char delim) {
+        
+        int count = 1;
+        
+        for (char c : text.toCharArray()) {
+            if (c == delim) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
 }

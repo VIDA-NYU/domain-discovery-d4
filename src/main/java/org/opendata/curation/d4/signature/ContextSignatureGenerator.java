@@ -18,11 +18,8 @@
 package org.opendata.curation.d4.signature;
 
 import java.util.ArrayList;
-import org.opendata.core.graph.Node;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.metric.JaccardIndex;
-import org.opendata.core.metric.OverlapSimilarityFunction;
-
+import java.util.List;
+import org.opendata.db.eq.similarity.EQSimilarity;
 
 /**
  * Generate context signatures for equivalence classes (column elements).
@@ -31,16 +28,15 @@ import org.opendata.core.metric.OverlapSimilarityFunction;
  */
 public class ContextSignatureGenerator {
 
-    private final OverlapSimilarityFunction _ovpFunc;
-    private final IdentifiableObjectSet<Node> _nodes;
+    private final List<Integer> _equivalenceClasses;
+    private final EQSimilarity _simFunc;
     
-    public ContextSignatureGenerator(IdentifiableObjectSet<Node> nodes) {
-
-        _nodes = nodes;
+    public ContextSignatureGenerator(List<Integer> equivalenceClasses, EQSimilarity simFunc) {
         
-        _ovpFunc =  new JaccardIndex();
+        _equivalenceClasses = equivalenceClasses;
+        _simFunc = simFunc;
     }
-
+    
     /**
      * Compute signature for element with given identifier.
      * 
@@ -48,22 +44,15 @@ public class ContextSignatureGenerator {
      * @return 
      */
     public ContextSignature getSignature(int id) {
-        
-        Node node = _nodes.get(id);
+
         
         ArrayList<SignatureValue> elements = new ArrayList<>();        
-        for (Node nodeJ : _nodes) {
-            if (node.id() != nodeJ.id()) {
-                int overlap =  node.overlap(nodeJ);
-                if (overlap > 0) {
-                    double sim = _ovpFunc
-                            .sim(node.elementCount(), nodeJ.elementCount(), overlap)
-                            .doubleValue();
-                    elements.add(new SignatureValue(nodeJ.id(), sim));
-                }
+        for (Integer eqJ : _equivalenceClasses) {
+            if (id != eqJ) {
+                elements.add(new SignatureValue(eqJ, _simFunc.sim(id, eqJ)));
             }
         }
         
-        return new ContextSignature(node.id(), elements);
-    }
+        return new ContextSignature(id, elements);
+    }  
 }

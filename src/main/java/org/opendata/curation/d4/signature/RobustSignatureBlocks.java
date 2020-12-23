@@ -36,8 +36,8 @@ public class RobustSignatureBlocks extends RobustSignature {
     }
     
     @Override
-    public int[] get(int index) {
+    public SignatureBlock get(int index) {
 
-        return _blocks.get(index).elements();
+        return _blocks.get(index);
     }
 }

@@ -19,7 +19,7 @@ package org.opendata.curation.d4.column;
 
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.IdentifiableIDSet;
+import org.opendata.db.column.Column;
 
 /**
  *
@@ -53,7 +53,7 @@ public class MutableExpandedColumn extends ExpandedColumn {
         }
     }
 
-    public MutableExpandedColumn(IdentifiableIDSet column) {
+    public MutableExpandedColumn(Column column) {
         
         this(column.id(), column, new HashIDSet());
     }

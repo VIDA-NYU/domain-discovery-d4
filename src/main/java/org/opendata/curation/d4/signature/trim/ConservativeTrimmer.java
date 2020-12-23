@@ -20,6 +20,7 @@ package org.opendata.curation.d4.signature.trim;
 import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.curation.d4.signature.RobustSignatureImpl;
 import org.opendata.core.set.IDSet;
+import org.opendata.core.set.SortedIDList;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**
@@ -40,7 +41,7 @@ public class ConservativeTrimmer extends SignatureTrimmer {
     @Override
     public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
 
-        int[][] block = new int[1][];
+        SortedIDList[] block = new SortedIDList[1];
         block[0] = sig.get(0);
         consumer.consume(new RobustSignatureImpl(sig.id(), block));
     }

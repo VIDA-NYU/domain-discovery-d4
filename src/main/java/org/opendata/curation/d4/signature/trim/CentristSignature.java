@@ -20,6 +20,7 @@ package org.opendata.curation.d4.signature.trim;
 import java.util.List;
 import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.set.SortedIDList;
 
 /**
  * Trimmed signature is a wrapper around a signature blocks object. Instead of
@@ -45,7 +46,7 @@ public class CentristSignature extends RobustSignature {
     }
     
     @Override
-    public int[] get(int index) {
+    public SortedIDList get(int index) {
 
         return _sig.get(_elements.get(index).id());
     }

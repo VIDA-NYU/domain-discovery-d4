@@ -28,10 +28,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
+import org.opendata.core.set.SortedIDList;
 import org.opendata.curation.d4.Constants;
-import org.opendata.db.Database;
-import org.opendata.db.column.Column;
-import org.opendata.db.eq.EQReader;
+import org.opendata.db.eq.EQFileReader;
 
 /**
  * Compute overlap between database columns. Uses multiple threads to compute
@@ -47,13 +46,13 @@ public class ParallelColumnOverlapComputer {
      */
     private class OverlapComputer implements Runnable {
 
-        private final HashMap<Integer, int[]> _columns;
+        private final HashMap<Integer, SortedIDList> _columns;
         private final ColumnOverlapConsumer _consumer;
         private final ConcurrentLinkedQueue<Integer> _queue;
         
         public OverlapComputer(
                 ConcurrentLinkedQueue<Integer> queue,
-                HashMap<Integer, int[]> columns,
+                HashMap<Integer, SortedIDList> columns,
                 ColumnOverlapConsumer consumer
         ) {
             _queue = queue;
@@ -66,27 +65,14 @@ public class ParallelColumnOverlapComputer {
             
             Integer iColumn;
             while ((iColumn = _queue.poll()) != null) {
-                final int[] colI = _columns.get(iColumn);
+                final SortedIDList colI = _columns.get(iColumn);
                 for (int jColumn : _columns.keySet()) {
                     if (iColumn < jColumn) {
-                        final int[] colJ = _columns.get(jColumn);
-                        final int lenI = colI.length;
-                        final int lenJ = colJ.length;
-                        int idxI = 0;
-                        int idxJ = 0;
-                        int overlap = 0;
-                        while ((idxI < lenI) && (idxJ < lenJ)) {
-                            if (colI[idxI] < colJ[idxJ]) {
-                                idxI++;
-                            } else if (colI[idxI] > colJ[idxJ]) {
-                                idxJ++;
-                            } else {
-                                overlap++;
-                                idxI++;
-                                idxJ++;
-                            }
-                        }
-                        _consumer.consume(iColumn, jColumn, overlap);
+                        _consumer.consume(
+                                iColumn,
+                                jColumn,
+                                colI.overlap(_columns.get(jColumn))
+                        );
                     }
                 }
             }
@@ -94,20 +80,13 @@ public class ParallelColumnOverlapComputer {
     }
     
     public void run(
-            File eqFile,
+            HashMap<Integer, SortedIDList> columns,
             int threads,
             File outputFile
     ) throws java.io.IOException {
         
-        Database db = new Database(new EQReader(eqFile));
-        
-        ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
-        
-        HashMap<Integer, int[]> columns = new HashMap<>();
-        for (Column column : db.columns()) {
-            columns.put(column.id(), column.toArray());
-            queue.add(column.id());
-        }
+        ConcurrentLinkedQueue<Integer> queue;
+        queue = new ConcurrentLinkedQueue<>(columns.keySet());
         
         ExecutorService es = Executors.newCachedThreadPool();
         
@@ -158,7 +137,7 @@ public class ParallelColumnOverlapComputer {
         
         try {
             new ParallelColumnOverlapComputer()
-                    .run(eqFile, threads, outputFile);
+                    .run(new EQFileReader(eqFile).getEQColumns(), threads, outputFile);
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

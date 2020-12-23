@@ -34,7 +34,6 @@ import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**

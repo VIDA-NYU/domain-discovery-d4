@@ -19,7 +19,6 @@ package org.opendata.core.set;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -95,23 +94,6 @@ public class ImmutableIDSet extends IDSetImpl implements IDSet {
         this(values, false);
     }
 
-    public ImmutableIDSet(IDSetIterator iter) {
-        
-        ArrayList<Integer> values = new ArrayList<>();
-        while (iter.hasNext()) {
-            values.add(iter.next());
-        }
-        Integer[] arr = new Integer[values.size()];
-        _values = values.toArray(arr);
-        if (_values.length > 1) {
-            for (int iPos = 1; iPos < _values.length; iPos++) {
-                if (_values[iPos - 1].compareTo(_values[iPos]) == 0) {
-                    throw new IllegalArgumentException("Duplicate ID: " + _values[iPos]);
-                }
-            }
-        }
-    }
-    
     public ImmutableIDSet(String values) {
 
         if (values.equals("")) {

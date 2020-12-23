@@ -27,7 +27,6 @@ import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.sort.DoubleValueDescSort;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * A strong domain is a set of local domains. Each member node in the strong
@@ -75,7 +74,7 @@ public class StrongDomain extends IdentifiableObjectImpl {
      * @param eqIndex
      * @return 
      */
-    public List<List<IdentifiableDouble>> getBlocksWithWeights(EQIndex eqIndex) {
+    public List<List<IdentifiableDouble>> getBlocksWithWeights() {
         
         List<IdentifiableDouble> nodes = new ArrayList<>();
         for (StrongDomainMember node : this.members()) {
@@ -114,7 +113,7 @@ public class StrongDomain extends IdentifiableObjectImpl {
      * @param eqIndex
      * @return 
      */
-    public List<IDSet> getNodeBlocks(EQIndex eqIndex) {
+    public List<IDSet> getNodeBlocks() {
         
         List<IdentifiableDouble> nodes = new ArrayList<>();
         for (StrongDomainMember node : this.members()) {
