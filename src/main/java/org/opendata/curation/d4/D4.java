@@ -49,8 +49,6 @@ import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.export.PrimaryDomainWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSizeSketchFactory;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.db.Database;
 import org.opendata.db.column.Column;
@@ -60,7 +58,6 @@ import org.opendata.db.term.TermIndexGenerator;
 import org.opendata.db.term.TermIndexReader;
 import org.opendata.db.tools.Dataset2ColumnsConverter;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksNoSketchFactory;
 import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 
 /**
@@ -74,7 +71,6 @@ public class D4 {
             EQIndex nodeIndex,
             RobustSignatureStream signatures,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             Threshold expandThreshold,
             int numberOfIterations,
             BigDecimal decreaseFactor,
@@ -89,7 +85,6 @@ public class D4 {
                 nodeIndex,
                 signatures,
                 trimmer,
-                sketchFactory,
                 db,
                 db.keys(),
                 expandThreshold,
@@ -126,36 +121,11 @@ public class D4 {
         );
     }
     
-    /**
-     * Factory for sketch factories. Create the instance of the sketch factory
-     * from the given specification.
-     * 
-     * If the specification is null the non-sketch factory is returned that does
-     * not modify the signature blocks.
-     * 
-     * The only other sketch specification that is currently supported is
-     * 'Nn' which returns a size threshold sketch generator using n as the
-     * size threshold.
-     * 
-     * @param spec
-     * @return 
-     */
-    private static SignatureBlocksSketchFactory getSketchFactory(String spec) {
-        
-        if (spec == null) {
-            return new SignatureBlocksNoSketchFactory();
-        } else if ((spec.toUpperCase().startsWith("N")) && (spec.length() > 1)) {
-            return new SignatureBlocksSizeSketchFactory(Integer.parseInt(spec.substring(1)));
-        }
-        throw new IllegalArgumentException(String.format("Invalid sketch specification '%s", spec));
-    }
-    
     public void localDomains(
             EQIndex nodeIndex,
             File columnsFile,
             SignatureBlocksReader signatures,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,
             int threads,
             boolean inMem,
@@ -172,7 +142,6 @@ public class D4 {
                 columnIndex,
                 signatures.read(),
                 trimmer,
-                sketchFactory,
                 originalOnly,
                 threads,
                 verbose,
@@ -184,7 +153,6 @@ public class D4 {
                     columnIndex,
                     signatures,
                     trimmer,
-                    sketchFactory,
                     originalOnly,
                     threads,
                     verbose,
@@ -475,7 +443,6 @@ public class D4 {
                                 "trimmer",
                                 "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
-                        new Parameter("sketch", "<string> [default: null]"),
                         new Parameter("expandThreshold", "<constraint> [default: 'GT0.25']"),
                         new Parameter("decrease", "<double> [default: 0.05]"),
                         new Parameter("iterations", "<int> [default: 5]"),
@@ -488,7 +455,6 @@ public class D4 {
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
-            String sketch = params.getAsString("sketch", null);
             Threshold expandThreshold = params.getAsConstraint("expandThreshold", "GT0.25");
             BigDecimal decreaseFactor = params
                     .getAsBigDecimal("decrease", new BigDecimal("0.05"));
@@ -501,7 +467,6 @@ public class D4 {
                         new EQIndex(eqFile),
                         new SignatureBlocksReader(signatureFile),
                         trimmer,
-                        getSketchFactory(sketch),
                         expandThreshold,
                         numberOfIterations,
                         decreaseFactor,
@@ -530,7 +495,6 @@ public class D4 {
                                 "trimmer",
                                 "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
                         ),
-                        new Parameter("sketch", "<string> [default: null]"),
                         new Parameter("originalonly", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("inmem", "<boolean> [default: false]"),
@@ -546,7 +510,6 @@ public class D4 {
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
             String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
-            String sketch = params.getAsString("sketch", null);
             boolean originalOnly = params.getAsBool("originalonly", false);
             int threads = params.getAsInt("threads", 6);
             boolean inMem = params.getAsBool("inmem", false);
@@ -558,7 +521,6 @@ public class D4 {
                         columnsFile,
                         new SignatureBlocksReader(signatureFile),
                         trimmer,
-                        getSketchFactory(sketch),
                         originalOnly,
                         threads,
                         inMem,

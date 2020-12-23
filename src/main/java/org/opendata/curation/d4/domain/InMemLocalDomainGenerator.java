@@ -34,7 +34,6 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 
@@ -59,7 +58,6 @@ public class InMemLocalDomainGenerator {
         private final int _id;
         private final EQIndex _nodes;
         private final RobustSignatureStream _signatures;
-        private final SignatureBlocksSketchFactory _sketchFactory;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -69,7 +67,6 @@ public class InMemLocalDomainGenerator {
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
                 RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
@@ -78,7 +75,6 @@ public class InMemLocalDomainGenerator {
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
-            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -102,7 +98,7 @@ public class InMemLocalDomainGenerator {
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
                 Date runStart = new Date();
                 try {
-                    _signatures.stream(_sketchFactory.getConsumer(trimmer));
+                    _signatures.stream(trimmer);
                 } catch (java.io.IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -137,7 +133,6 @@ public class InMemLocalDomainGenerator {
             ExpandedColumnIndex columnIndex,
             RobustSignatureStream signatures,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,
             int threads,
             boolean verbose,
@@ -175,7 +170,6 @@ public class InMemLocalDomainGenerator {
                             "  --columns=%s\n" +
                             "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
-                            "  --sketch=%s\n" +
                             "  --originalonly=%s\n" +
                             "  --threads=%d\n" +
                             "  --inmem=true\n" +
@@ -185,7 +179,6 @@ public class InMemLocalDomainGenerator {
                             columnIndex.source(),
                             signatures.source(),
                             trimmer,
-                            sketchFactory.toDocString(),
                             Boolean.toString(originalOnly),
                             threads,
                             consumer.target()
@@ -202,7 +195,6 @@ public class InMemLocalDomainGenerator {
                     queue,
                     signatures,
                     trimmerFactory,
-                    sketchFactory,
                     domains,
                     verbose
             );

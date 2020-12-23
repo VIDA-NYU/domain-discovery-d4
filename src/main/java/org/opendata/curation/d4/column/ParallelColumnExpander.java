@@ -40,7 +40,6 @@ import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
@@ -68,7 +67,6 @@ public class ParallelColumnExpander {
         private final EQIndex _nodes;
         private final int _numberOfIterations;
         private final RobustSignatureStream _signatures;
-        private final SignatureBlocksSketchFactory _sketchFactory;
         private final Threshold _threshold;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
@@ -79,7 +77,6 @@ public class ParallelColumnExpander {
                 List<ExpandedColumn> columns,
                 RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                SignatureBlocksSketchFactory sketchFactory,
                 Threshold threshold,
                 BigDecimal decreaseFactor,
                 int numberOfIterations,
@@ -91,7 +88,6 @@ public class ParallelColumnExpander {
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
-            _sketchFactory = sketchFactory;
             _threshold = threshold;
             _decreaseFactor = decreaseFactor;
             _numberOfIterations = numberOfIterations;
@@ -144,10 +140,8 @@ public class ParallelColumnExpander {
                             )
                     );
                 }
-                RobustSignatureConsumer consumer;
-                consumer = _sketchFactory.getConsumer(dispatcher);
                 try {
-                    _signatures.stream(consumer);
+                    _signatures.stream(dispatcher);
                 } catch (java.io.IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -198,7 +192,6 @@ public class ParallelColumnExpander {
             EQIndex nodes,
             RobustSignatureStream signatures,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             IdentifiableObjectSet<Column> db,
             IDSet columnFilter,
             Threshold threshold,
@@ -245,7 +238,6 @@ public class ParallelColumnExpander {
                             "  --eqs=%s\n" +
                             "  --signatures=%s\n" +
                             "  --trimmer=%s\n" +
-                            "  --sketch=%s\n" +
                             "  --expandThreshold=%s\n" +
                             "  --decrease=%s\n" +
                             "  --iterations=%d\n" +
@@ -256,7 +248,6 @@ public class ParallelColumnExpander {
                             nodes.source(),
                             signatures.source(),
                             trimmer,
-                            sketchFactory.toDocString(),
                             threshold.toPlainString(),
                             decreaseFactor.toPlainString(),
                             numberOfIterations,
@@ -288,7 +279,6 @@ public class ParallelColumnExpander {
                     taskColumns,
                     signatures,
                     trimmerFactory,
-                    sketchFactory,
                     threshold,
                     decreaseFactor,
                     numberOfIterations,
