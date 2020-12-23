@@ -21,7 +21,7 @@ import java.io.File;
 import org.opendata.core.io.EntityBuffer;
 import org.opendata.core.io.EntitySetReader;
 import org.opendata.core.object.Entity;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.db.eq.EQIndex;
 
 /**

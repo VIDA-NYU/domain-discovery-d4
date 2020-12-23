@@ -30,7 +30,7 @@ import org.opendata.core.io.FileSystem;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.sort.IdentifiableObjectSort;
 import org.opendata.core.util.OrderedLinkedList;
-import org.opendata.core.util.count.IdentifiableCount;
+import org.opendata.core.util.IdentifiableCount;
 import org.opendata.core.value.ValueCounter;
 import org.opendata.db.column.ColumnHelper;
 

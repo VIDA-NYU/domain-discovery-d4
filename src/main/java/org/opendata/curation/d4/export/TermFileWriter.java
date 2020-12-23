@@ -20,8 +20,8 @@ package org.opendata.curation.d4.export;
 import java.io.PrintWriter;
 import org.apache.commons.text.StringEscapeUtils;
 import org.opendata.core.object.IdentifiableInteger;
-import org.opendata.core.object.filter.AnyObjectFilter;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.AnyObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermConsumer;
 

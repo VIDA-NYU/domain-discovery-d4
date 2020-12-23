@@ -20,7 +20,7 @@ package org.opendata.core.graph;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Iterator;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.MutableIDSet;

@@ -27,8 +27,8 @@ import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.ImmutableIDSet;
 import org.opendata.core.set.ImmutableIdentifiableIDSet;
 import org.opendata.core.set.MutableIdentifiableIDSet;
-import org.opendata.core.util.count.Counter;
-import org.opendata.core.util.count.SimpleCounter;
+import org.opendata.core.util.Counter;
+import org.opendata.core.util.SimpleCounter;
 
 /**
  * Create a set of unique database domains for local domains.

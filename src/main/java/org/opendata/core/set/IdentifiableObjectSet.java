@@ -19,7 +19,7 @@ package org.opendata.core.set;
 
 import java.util.List;
 import org.opendata.core.object.IdentifiableObject;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 
 /**
  * A set of identifiable object indexed by their identifier.

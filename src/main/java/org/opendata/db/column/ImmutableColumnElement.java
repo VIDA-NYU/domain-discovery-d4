@@ -17,7 +17,7 @@
  */
 package org.opendata.db.column;
 
-import org.opendata.core.util.count.IdentifiableCount;
+import org.opendata.core.util.IdentifiableCount;
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.set.ImmutableObjectSet;

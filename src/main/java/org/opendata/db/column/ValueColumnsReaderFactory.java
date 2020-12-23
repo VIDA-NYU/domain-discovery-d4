@@ -20,8 +20,8 @@ package org.opendata.db.column;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
-import org.opendata.core.object.filter.AnyObjectFilter;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.AnyObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.core.value.ValueCounter;
 
 /**

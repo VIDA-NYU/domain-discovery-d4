@@ -19,8 +19,8 @@ package org.opendata.db.term;
 
 import org.opendata.core.object.Entity;
 import org.opendata.core.object.IdentifiableInteger;
-import org.opendata.core.profiling.datatype.label.DataType;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.profiling.datatype.DataType;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
 import org.opendata.core.set.SortedIDSet;
 
 /**

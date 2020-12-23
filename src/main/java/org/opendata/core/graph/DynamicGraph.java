@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.util.count.IdentifiableCounterSet;
+import org.opendata.core.util.IdentifiableCounterSet;
 
 /**
  * Implementation of adjacency graph that allows to add edges.

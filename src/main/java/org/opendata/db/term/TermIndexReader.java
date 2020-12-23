@@ -20,8 +20,8 @@ package org.opendata.db.term;
 import java.io.BufferedReader;
 import java.io.File;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.object.filter.AnyObjectFilter;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.AnyObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.db.column.ColumnHelper;
 

@@ -35,7 +35,7 @@ import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.util.count.IdentifiableCounterSet;
+import org.opendata.core.util.IdentifiableCounterSet;
 import org.opendata.db.eq.EQIndex;
 
 /**

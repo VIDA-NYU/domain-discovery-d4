@@ -24,7 +24,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import org.opendata.core.util.count.LongCounter;
 
 /**
  * Create a histogram from a stream of similarity values.

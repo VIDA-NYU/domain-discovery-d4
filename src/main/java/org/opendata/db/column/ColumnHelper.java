@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.SortedIDSet;
-import org.opendata.core.util.count.IdentifiableCount;
+import org.opendata.core.util.IdentifiableCount;
 
 /**
  * COllection of helper methods for database column and column files.

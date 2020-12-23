@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.util.FormatedBigDecimal;
-import org.opendata.core.util.count.IdentifiableCounterSet;
+import org.opendata.core.util.IdentifiableCounterSet;
 
 /**
  * Print statistics for a set of domains.

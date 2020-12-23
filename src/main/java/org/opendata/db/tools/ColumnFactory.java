@@ -22,8 +22,8 @@ import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.count.Counter;
-import org.opendata.core.util.count.SimpleCounter;
+import org.opendata.core.util.Counter;
+import org.opendata.core.util.SimpleCounter;
 import org.opendata.core.value.DefaultValueTransformer;
 
 /**

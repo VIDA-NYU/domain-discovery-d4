@@ -18,7 +18,7 @@
 package org.opendata.curation.d4.signature.trim;
 
 import org.opendata.curation.d4.signature.RobustSignature;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 
 /**

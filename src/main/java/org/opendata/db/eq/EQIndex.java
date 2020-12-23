@@ -25,8 +25,8 @@ import org.opendata.core.prune.SizeFunction;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.util.count.IdentifiableCount;
-import org.opendata.core.util.count.IdentifiableCounterSet;
+import org.opendata.core.util.IdentifiableCount;
+import org.opendata.core.util.IdentifiableCounterSet;
 import org.opendata.db.Database;
 import org.opendata.db.column.Column;
 

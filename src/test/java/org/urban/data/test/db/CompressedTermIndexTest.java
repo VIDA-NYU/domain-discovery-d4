@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.SortedIDSet;
 import org.opendata.core.util.StringHelper;
-import org.opendata.core.util.count.IdentifiableCount;
+import org.opendata.core.util.IdentifiableCount;
 import org.opendata.db.column.ColumnHelper;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.eq.EQWriter;

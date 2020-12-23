@@ -24,6 +24,7 @@ import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 import org.opendata.db.eq.EQIndex;
 import org.opendata.db.eq.similarity.EQSimilarity;
 import org.opendata.db.eq.similarity.JISimilarity;
+import org.opendata.db.eq.similarity.LogJISimilarity;
 
 /**
  * Helper class to create instances of D4 components based on configuration
@@ -37,6 +38,7 @@ public class D4Config {
      * Identifier for equivalence class similarity functions.
      */
     public static final String EQSIM_JI = "JI";
+    public static final String EQSIM_LOGJI = "LOGJI";
     
     /**
      * Identifier for signature robustifier.
@@ -67,6 +69,8 @@ public class D4Config {
         
         if (identifier.equalsIgnoreCase(EQSIM_JI)) {
             return new JISimilarity(_eqIndex.nodes());
+        } else if (identifier.equalsIgnoreCase(EQSIM_LOGJI)) {
+            return new LogJISimilarity(_eqIndex.nodes());
         }
         throw new IllegalArgumentException(
                 String.format("Unknown similarity function '%s'", identifier)

@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 import org.opendata.curation.d4.Constants;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.util.count.Counter;
+import org.opendata.core.util.Counter;
 
 /**
  * Write load files for the datasets and columns table.

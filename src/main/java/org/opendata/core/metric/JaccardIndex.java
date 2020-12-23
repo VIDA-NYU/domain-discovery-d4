@@ -26,7 +26,7 @@ import java.math.MathContext;
  */
 public class JaccardIndex {
 
-	private final static MathContext MC = MathContext.DECIMAL64;
+    private final static MathContext MC = MathContext.DECIMAL64;
 	
     public BigDecimal logSim(int size1, int size2, int overlap) {
 
@@ -42,9 +42,8 @@ public class JaccardIndex {
 
     	int divisor = (size1 + size2) - overlap;
     	if (overlap == divisor) {
-    		return BigDecimal.ONE;
+            return BigDecimal.ONE;
     	}
-        return new BigDecimal(overlap)
-        		.divide(new BigDecimal(divisor), MC);
+        return new BigDecimal(overlap).divide(new BigDecimal(divisor), MC);
     }
 }
