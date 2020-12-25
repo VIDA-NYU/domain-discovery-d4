@@ -28,24 +28,13 @@ import org.opendata.core.util.StringHelper;
  */
 public class EQImpl extends IdentifiableObjectImpl implements EQ {
     
-    private final Integer[] _columns;
-    private final int _terms;
+    private final String[] _tokens;
     
-    public EQImpl(int id, int terms, Integer[] columns) {
-        
-        super(id);
-        
-        _terms = terms;
-        _columns = columns;
-    }
-
     public EQImpl(String[] tokens) {
-
-        this(
-                Integer.parseInt(tokens[0]),
-                StringHelper.splitSize(tokens[1], ','),
-                parseColumnList(tokens[2])
-        );
+        
+        super(Integer.parseInt(tokens[0]));
+        
+        _tokens = tokens;
     }
     
     public EQImpl(String line) {
@@ -56,18 +45,7 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     @Override
     public Integer[] columns() {
         
-        return _columns;
-    }
-    
-    @Override
-    public int columnCount() {
-        
-        return _columns.length;
-    }
-    
-    public static Integer[] parseColumnList(String list) {
-    
-        String[] tokens = list.split(",");
+        String[] tokens = _tokens[2].split(",");
         Integer[] columns = new Integer[tokens.length];
         for (int iToken = 0; iToken < tokens.length; iToken++) {
             String token = tokens[iToken];
@@ -83,8 +61,14 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     }
     
     @Override
+    public int columnCount() {
+        
+        return StringHelper.splitSize(_tokens[2], ',');
+    }
+    
+    @Override
     public int termCount() {
         
-        return _terms;
+        return StringHelper.splitSize(_tokens[1], ',');
     }
 }

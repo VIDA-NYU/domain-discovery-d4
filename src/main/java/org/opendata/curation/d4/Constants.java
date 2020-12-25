@@ -26,5 +26,5 @@ public final class Constants {
     
     public static final String NAME = "D4 - Data-Driven Domain Discovery";
     
-    public static final String VERSION = "0.30.0.dev11";
+    public static final String VERSION = "0.30.0.dev12";
 }
