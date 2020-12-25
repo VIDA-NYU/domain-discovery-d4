@@ -34,13 +34,13 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
     
     private final ExpandedColumn _column;
     private boolean _isDone = false;
-    private final int[] _nodeSizes;
+    private final Integer[] _nodeSizes;
     private final UniqueDomainSet _resultSet;
 
     public UndirectedDomainGenerator(
             ExpandedColumn column,
             UniqueDomainSet resultSet,
-            int[] nodeSizes
+            Integer[] nodeSizes
     ) {
         super(column.nodes());
 

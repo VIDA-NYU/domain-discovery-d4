@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.db.column.Column;
 
 /**
  * Score function for signature blocks.
@@ -32,14 +32,14 @@ public abstract class BlockScoreFunction {
     
     private final HashMap<Integer, int[]> _columns;
     private final HashMap<Integer, Integer> _columnSize;
-    private final int[] _nodeSize;
+    private final Integer[] _eqTermCounts;
     
     public BlockScoreFunction(
-            EQIndex eqIndex,
-            IdentifiableObjectSet<IdentifiableIDSet> columns
+            Integer[] eqTermCounts,
+            IdentifiableObjectSet<Column> columns
     ) {
         
-        _nodeSize = eqIndex.nodeSizes();
+        _eqTermCounts = eqTermCounts;
         
         _columns = new HashMap<>();
         _columnSize = new HashMap<>();
@@ -48,7 +48,7 @@ public abstract class BlockScoreFunction {
             _columns.put(column.id(), column.toArray());
             int size = 0;
             for (int nodeId : column) {
-                size += _nodeSize[nodeId];
+                size += _eqTermCounts[nodeId];
             }
             _columnSize.put(column.id(), size);
         }
@@ -98,12 +98,12 @@ public abstract class BlockScoreFunction {
             final int nodeId = block[idx1];
             int comp = Integer.compare(nodeId, column[idx2]);
             if (comp < 0) {
-                blSize += _nodeSize[nodeId];
+                blSize += _eqTermCounts[nodeId];
                 idx1++;
             } else if (comp > 0) {
                 idx2++;
             } else {
-                int nodeSize = _nodeSize[nodeId];
+                int nodeSize = _eqTermCounts[nodeId];
                 blSize += nodeSize;
                 overlap += nodeSize;
                 idx1++;
@@ -112,7 +112,7 @@ public abstract class BlockScoreFunction {
         }
         if (overlap > 0) {
             while (idx1 < len1) {
-                blSize += _nodeSize[block[idx1++]];
+                blSize += _eqTermCounts[block[idx1++]];
             }
             return this.relevance(_columnSize.get(columnId), blSize, overlap);
         } else {

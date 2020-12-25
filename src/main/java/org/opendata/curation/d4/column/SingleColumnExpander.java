@@ -18,17 +18,13 @@
 package org.opendata.curation.d4.column;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.util.HashMap;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Iterative expander for a single column.
@@ -44,21 +40,21 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
     private final int _columnSize;
     private final BigDecimal _decreaseFactor;
     private boolean _done = false;
+    private final Integer[] _eqTermCounts;
     private int _expansionSize;
     private int _iteration;
-    private final int[] _nodeSizes;
     private final int _numberOfIterations;
     private HashMap<Integer, SupportCounter> _support;
     private final Threshold _threshold;
         
     public SingleColumnExpander(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             ExpandedColumn column,
             Threshold threshold,
             BigDecimal decreaseFactor,
             int numberOfIterations
     ) {
-        _nodeSizes = nodes.nodeSizes();
+        _eqTermCounts = eqTermCounts;
         _column = column;
         _numberOfIterations = numberOfIterations;
         _decreaseFactor = decreaseFactor;
@@ -69,7 +65,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
         
         int size = 0;
         for (int nodeId : column.originalNodes()) {
-            size += _nodeSizes[nodeId];
+            size += _eqTermCounts[nodeId];
         }
 
         if (size == 0) {
@@ -134,7 +130,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
                 }
                 if (_threshold.isSatisfied(overallSup)) {
                     expansionNodes.add(nodeId);
-                    expansionSize += _nodeSizes[nodeId];
+                    expansionSize += _eqTermCounts[nodeId];
                 }
             }
         }
@@ -156,7 +152,7 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
     public void consume(RobustSignature sig) {
 
         boolean isOriginalNode = _column.isColumnNode(sig.id());
-        int weight = _nodeSizes[sig.id()];
+        int weight = _eqTermCounts[sig.id()];
         for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
             for (int nodeId : sig.get(iBlock)) {
                 if (!_column.contains(nodeId)) {

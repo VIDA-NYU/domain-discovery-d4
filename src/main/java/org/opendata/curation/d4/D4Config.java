@@ -17,22 +17,12 @@
  */
 package org.opendata.curation.d4;
 
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.trim.ColumnSupportBlockFilter;
-import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
-import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
-import org.opendata.db.eq.EQIndex;
-import org.opendata.db.eq.similarity.EQSimilarity;
-import org.opendata.db.eq.similarity.JISimilarity;
-import org.opendata.db.eq.similarity.LogJISimilarity;
-
 /**
- * Helper class to create instances of D4 components based on configuration
- * parameters.
+ * Definition of permitted values for D4 parameters.
  * 
  * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class D4Config {
+public final class D4Config {
     
     /**
      * Identifier for equivalence class similarity functions.
@@ -43,63 +33,7 @@ public class D4Config {
     /**
      * Identifier for signature robustifier.
      */
-    public final static String COLSUPP = "COLSUPP";
-    public final static String LIBERAL = "LIBERAL";
-    
-    private final EQIndex _eqIndex;
-    
-    public D4Config(EQIndex eqIndex) {
-        
-        _eqIndex = eqIndex;
-    }
-    
-    /**
-     * Get the similarity function for equivalence classes that is referenced
-     * by the given identifier. The following identifier are currently
-     * recognized:
-     * 
-     * - JI
-     * 
-     * If an unknown identifier is given an exception is raised.
-     * 
-     * @param identifier
-     * @return 
-     */
-    public EQSimilarity getEQSimilarityFunction(String identifier) {
-        
-        if (identifier.equalsIgnoreCase(EQSIM_JI)) {
-            return new JISimilarity(_eqIndex.nodes());
-        } else if (identifier.equalsIgnoreCase(EQSIM_LOGJI)) {
-            return new LogJISimilarity(_eqIndex.nodes());
-        }
-        throw new IllegalArgumentException(
-                String.format("Unknown similarity function '%s'", identifier)
-        );
-    }
-    
-    /**
-     * Get signature robustifier that is referenced by the given identifier. The
-     * following identifier are currently recognized:
-     * 
-     * - COLUMN-SUPPORT
-     * - LIBERAL
-     * 
-     * @param identifier
-     * @param consumer
-     * @return 
-     */
-    public SignatureRobustifier getSignatureRobustifier(
-            String identifier,
-            SignatureBlocksConsumer consumer
-    ) {
-        
-        if (identifier.equalsIgnoreCase(COLSUPP)) {
-            return new ColumnSupportBlockFilter(_eqIndex, consumer);
-        } else if (identifier.equalsIgnoreCase(LIBERAL)) {
-            return new LiberalRobustifier(_eqIndex.nodeSizes(), consumer);
-        }
-        throw new IllegalArgumentException(
-                String.format("Unknown robustifier '%s'", identifier)
-        );
-    }
+    public final static String ROBUST_COMMONCOL = "COMMON-COLUMN";
+    public final static String ROBUST_IGNORELAST = "IGNORE-LAST";
+    public final static String ROBUST_LIBERAL = "LIBERAL";
 }

@@ -19,6 +19,7 @@ package org.opendata.curation.d4.column;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
@@ -35,7 +36,7 @@ import org.opendata.core.set.IdentifiableObjectSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ExpandedColumnIndex implements ExpandedColumnConsumer {
+public class ExpandedColumnIndex implements ExpandedColumnConsumer, Iterable<ExpandedColumn> {
 
     private HashMap<String, Integer> _columnIndex;
     private List<ExpandedColumn> _columnList = null;
@@ -52,6 +53,11 @@ public class ExpandedColumnIndex implements ExpandedColumnConsumer {
         this.close();
     }
     
+    public List<ExpandedColumn> asList() {
+        
+        return _columnList;
+    }
+    
     @Override
     public final void close() {
 
@@ -64,11 +70,6 @@ public class ExpandedColumnIndex implements ExpandedColumnConsumer {
         } else {
             return new HashIDSet(id);
         }
-    }
-    
-    public List<ExpandedColumn> columns() {
-        
-        return _columnList;
     }
     
     @Override
@@ -88,6 +89,12 @@ public class ExpandedColumnIndex implements ExpandedColumnConsumer {
                 _columnMapping.get(columnId).add(column.id());
             }
         }
+    }
+    
+    @Override
+    public Iterator<ExpandedColumn> iterator() {
+        
+        return _columnList.iterator();
     }
 
     @Override

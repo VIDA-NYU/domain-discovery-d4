@@ -15,11 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq.similarity;
+package org.opendata.performance.overlap;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.math.BigDecimal;
+import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.util.ArrayHelper;
+import org.opendata.db.eq.similarity.EQSimilarity;
 
 /**
  * Similarity function for equivalence classes based on the similarity of their
@@ -28,19 +32,42 @@ import org.opendata.core.util.ArrayHelper;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class JISimilarity implements EQSimilarity {
+public class JISimilarityArray implements EQSimilarity {
 
     private final JaccardIndex _ji;
     private final Integer[][] _nodes;
     
-    public JISimilarity(Integer[][] nodes) {
+    public JISimilarityArray(Integer[][] nodes) {
         
         _nodes = nodes;
         
         _ji = new JaccardIndex();
     }
     
-    @Override
+    public static JISimilarityArray load(File eqFile, int maxId) throws java.io.IOException {
+        
+        // Load column lists for each node.
+        Integer[][] nodes = new Integer[maxId + 1][];
+        try (BufferedReader in = FileSystem.openReader(eqFile)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                String[] tokens = line.split("\t");
+                int eqId = Integer.parseInt(tokens[0]);
+                tokens = tokens[2].split(",");
+                nodes[eqId] = new Integer[tokens.length];
+                for (int iToken = 0; iToken < tokens.length; iToken++) {
+                    String col = tokens[iToken];
+                    nodes[eqId][iToken] = Integer.parseInt(col.substring(0, col.indexOf(":")));
+                }
+                if (eqId > maxId) {
+                    maxId = eqId;
+                }
+            }
+        }
+        return new JISimilarityArray(nodes);
+    }
+    
+    @Override    
     public BigDecimal sim(int eq1, int eq2) {
 
         final Integer[] nodeI = _nodes[eq1];

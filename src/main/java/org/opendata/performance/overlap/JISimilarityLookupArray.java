@@ -15,11 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq.similarity;
+package org.opendata.performance.overlap;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.math.BigDecimal;
+import java.util.HashMap;
+import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.util.ArrayHelper;
+import org.opendata.db.eq.similarity.EQSimilarity;
 
 /**
  * Similarity function for equivalence classes based on the similarity of their
@@ -28,23 +33,44 @@ import org.opendata.core.util.ArrayHelper;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class JISimilarity implements EQSimilarity {
+public class JISimilarityLookupArray implements EQSimilarity {
 
     private final JaccardIndex _ji;
-    private final Integer[][] _nodes;
+    private final HashMap<Integer, Integer[]> _nodes;
     
-    public JISimilarity(Integer[][] nodes) {
+    public JISimilarityLookupArray(HashMap<Integer, Integer[]> nodes) {
         
         _nodes = nodes;
         
         _ji = new JaccardIndex();
     }
     
-    @Override
+    public static JISimilarityLookupArray load(File eqFile) throws java.io.IOException {
+        
+        // Load column lists for each node.
+        HashMap<Integer, Integer[]> nodes = new HashMap<>();
+        try (BufferedReader in = FileSystem.openReader(eqFile)) {
+            String line;
+            while ((line = in.readLine()) != null) {
+                String[] tokens = line.split("\t");
+                int eqId = Integer.parseInt(tokens[0]);
+                tokens = tokens[2].split(",");
+                Integer[] columns = new Integer[tokens.length];
+                for (int iToken = 0; iToken < tokens.length; iToken++) {
+                    String col = tokens[iToken];
+                    columns[iToken] = Integer.parseInt(col.substring(0, col.indexOf(":")));
+                }
+                nodes.put(eqId, columns);
+            }
+        }
+        return new JISimilarityLookupArray(nodes);
+    }
+    
+    @Override    
     public BigDecimal sim(int eq1, int eq2) {
 
-        final Integer[] nodeI = _nodes[eq1];
-        final Integer[] nodeJ = _nodes[eq2];
+        final Integer[] nodeI = _nodes.get(eq1);
+        final Integer[] nodeJ = _nodes.get(eq2);
         
         int overlap = ArrayHelper.overlap(nodeI, nodeJ);
         if (overlap > 0) {

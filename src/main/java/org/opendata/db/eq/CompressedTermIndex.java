@@ -18,13 +18,11 @@
 package org.opendata.db.eq;
 
 /**
- * Stream of equivalence classes. The equivalence classes in the stream are
- * output to a given consumer for processing. Allows to build pipelines for
- * equivalence class processing.
+ * Interface for classes that provide access to the equivalence classes in a
+ * compressed term index.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface EQStream {
-    
-    public void stream(EQConsumer consumer);
+public interface CompressedTermIndex extends Iterable<EQ> {
+
 }

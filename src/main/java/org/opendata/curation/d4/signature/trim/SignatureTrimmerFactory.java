@@ -20,7 +20,7 @@ package org.opendata.curation.d4.signature.trim;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.db.column.Column;
 
 /**
  * Factory for signature trimmers.
@@ -29,17 +29,17 @@ import org.opendata.db.eq.EQIndex;
  */
 public class SignatureTrimmerFactory {
     
-    private final IdentifiableObjectSet<IdentifiableIDSet> _columns;
-    private final EQIndex _nodes;
+    private final IdentifiableObjectSet<Column> _columns;
+    private final Integer[] _eqTermCounts;
     private PrecisionScore _scoreFunc = null;
     private final String _trimmerSpec;
     
     public SignatureTrimmerFactory(
-            EQIndex nodes,
-            IdentifiableObjectSet<IdentifiableIDSet> columns,
+            Integer[] eqTermCounts,
+            IdentifiableObjectSet<Column> columns,
             String trimmerSpec
     ) {
-        _nodes = nodes;
+        _eqTermCounts = eqTermCounts;
         _columns = columns;
         _trimmerSpec = trimmerSpec;
     }
@@ -59,7 +59,7 @@ public class SignatureTrimmerFactory {
             return new ConservativeTrimmer(column, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.CENTRIST)) {
             if (_scoreFunc == null) {
-                _scoreFunc = new PrecisionScore(_nodes, _columns);
+                _scoreFunc = new PrecisionScore(_eqTermCounts, _columns);
             }
             return new CentristTrimmer(column, _scoreFunc, consumer);
         } else if (_trimmerSpec.equals(SignatureTrimmer.LIBERAL)) {

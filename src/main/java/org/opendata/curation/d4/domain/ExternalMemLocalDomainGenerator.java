@@ -33,7 +33,6 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
@@ -56,15 +55,15 @@ public class ExternalMemLocalDomainGenerator {
 
         private final List<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
+        private final Integer[] _eqTermCounts;
         private final int _id;
-        private final EQIndex _nodes;
         private final RobustSignatureStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
         public DomainGeneratorTask(
                 int id,
-                EQIndex nodes,
+                Integer[] eqTermCounts,
                 List<ExpandedColumn> columns,
                 RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
@@ -72,7 +71,7 @@ public class ExternalMemLocalDomainGenerator {
                 boolean verbose
        ) {
             _id = id;
-            _nodes = nodes;
+            _eqTermCounts = eqTermCounts;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
@@ -93,7 +92,7 @@ public class ExternalMemLocalDomainGenerator {
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
-                        _nodes.nodeSizes()
+                        _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
@@ -131,11 +130,10 @@ public class ExternalMemLocalDomainGenerator {
     }
     
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
             RobustSignatureStream signatures,
-            String trimmer,
-            boolean originalOnly,
+            SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -146,7 +144,7 @@ public class ExternalMemLocalDomainGenerator {
         Date start = new Date();
 
         // Sort column in decreasing number of nodes
-        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
+        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.asList());
         Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
@@ -164,12 +162,6 @@ public class ExternalMemLocalDomainGenerator {
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
-                nodes,
-                columnIndex.toColumns(originalOnly),
-                trimmer
-        );
-
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
@@ -177,7 +169,7 @@ public class ExternalMemLocalDomainGenerator {
             }
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
-                    nodes,
+                    eqTermCounts,
                     columns,
                     signatures,
                     trimmerFactory,

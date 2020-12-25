@@ -40,19 +40,19 @@ import org.opendata.curation.d4.signature.SignatureBlocksStats;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.set.HashObjectSet;
+import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
-import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.SignatureBlocksWriter;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.db.Database;
+import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.column.Column;
+import org.opendata.db.eq.CompressedTermIndexFile;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.TermIndexGenerator;
 import org.opendata.db.term.TermIndexReader;
 import org.opendata.db.tools.Dataset2ColumnsConverter;
@@ -163,15 +163,13 @@ public class D4 {
             );
         }
 
-        EQIndex eqIndex = new EQIndex(eqFile);
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
 
-        IdentifiableObjectSet<Column> db = new Database(eqIndex).columns();
         new ParallelColumnExpander(telemetry).run(
-                eqIndex,
+                db.getEQTermCounts(),
                 new SignatureBlocksReader(signatureFile),
-                trimmer,
-                db,
-                db.keys(),
+                db.getSignatureTrimmerFactory(trimmer),
+                db.getColumns(),
                 expandThreshold,
                 decreaseFactor,
                 numberOfIterations,
@@ -218,14 +216,14 @@ public class D4 {
             );
         }
 
-        new ExportStrongDomains().run(
+        /*new ExportStrongDomains().run(
                 eqFile,
                 termFile,
                 columnFile,
                 strongDomainFile,
                 sampleSize,
                 outputDir
-        );
+        );*/
     }
     
     public void localDomains(
@@ -266,7 +264,7 @@ public class D4 {
             );
         }
         
-        EQIndex eqIndex = new EQIndex(eqFile);
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
 
         ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
         new ExpandedColumnReader(columnsFile).stream(columnIndex);
@@ -274,24 +272,33 @@ public class D4 {
         SignatureBlocksReader signatures;
         signatures = new SignatureBlocksReader(signatureFile);
         
+        SignatureTrimmerFactory trimmerFactory;
+        if (originalOnly) {
+            trimmerFactory = db.getSignatureTrimmerFactory(trimmer);
+        } else {
+            HashObjectSet<Column> columns = new HashObjectSet<>();
+            for (ExpandedColumn column : columnIndex) {
+                columns.add(column.asColumn());
+            }
+            trimmerFactory = db.getSignatureTrimmerFactory(trimmer, columns);
+        }
+        
         if (inMem) {
             new InMemLocalDomainGenerator(telemetry).run(
-                eqIndex,
+                db.getEQTermCounts(),
                 columnIndex,
                 signatures.read(),
-                trimmer,
-                originalOnly,
+                trimmerFactory,
                 threads,
                 verbose,
                 new DomainWriter(outputFile)
             );
         } else {
             new ExternalMemLocalDomainGenerator(telemetry).run(
-                    eqIndex,
+                    db.getEQTermCounts(),
                     columnIndex,
                     signatures,
-                    trimmer,
-                    originalOnly,
+                    trimmerFactory,
                     threads,
                     verbose,
                     new DomainWriter(outputFile)
@@ -318,8 +325,7 @@ public class D4 {
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        EQIndex eqIndex = new EQIndex(eqFile);
-        D4Config config = new D4Config(eqIndex);
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
         
         if (verbose) {
             System.out.println(
@@ -348,15 +354,14 @@ public class D4 {
 
         SignatureBlocksWriter sigWriter = new SignatureBlocksWriter(outputFile);
         new RobustSignatureGenerator(telemetry).run(
-                eqIndex,
-                new ConcurrentLinkedQueue<>(eqIndex.keys().toList()),
-                config.getEQSimilarityFunction(sigSimSpec),
+                db.getEQIdentifiers(),
+                db.getEQSimilarityFunction(sigSimSpec),
                 fullSignatureConstraint,
                 ignoreLastDrop,
                 ignoreMinorDrop,
                 threads,
                 verbose,
-                config.getSignatureRobustifier(trimmerSpec, sigWriter)
+                db.getSignatureRobustifier(trimmerSpec, sigWriter)
         );
 
         if (verbose) {
@@ -401,10 +406,10 @@ public class D4 {
             );
         }
 
-        EQIndex eqIndex = new EQIndex(eqFile);
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
 
         new StrongDomainGenerator(telemetry).run(
-                eqIndex,
+                db.getEQTermCounts(),
                 new DomainReader(localDomainFile),
                 domainOverlapConstraint,
                 minSupportConstraint,
@@ -636,7 +641,7 @@ public class D4 {
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
                         new Parameter("sim", String.format("<string> [default: %s]", D4Config.EQSIM_JI)),
-                        new Parameter("robustifier", String.format("<string> [default: %s]", D4Config.LIBERAL)),
+                        new Parameter("robustifier", String.format("<string> [default: %s]", D4Config.ROBUST_LIBERAL)),
                         new Parameter("fullSignatureConstraint", "<boolean> [default: true]"),
                         new Parameter("ignoreLastDrop", "<boolean> [default: false]"),
                         new Parameter("ignoreMinorDrop", "<boolean> [default: true]"),
@@ -648,7 +653,7 @@ public class D4 {
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             String sigSimSpec = params.getAsString("sim", D4Config.EQSIM_JI);
-            String robustifierSpec = params.getAsString("robustifier", D4Config.LIBERAL);
+            String robustifierSpec = params.getAsString("robustifier", D4Config.ROBUST_LIBERAL);
             int threads = params.getAsInt("threads", 6);
             boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     

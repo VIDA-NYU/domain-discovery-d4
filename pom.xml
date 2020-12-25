@@ -77,7 +77,8 @@
                             <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
-                            <!--mainClass>org.opendata.curation.d4.experiments.SignatureDropStatsExperiment</mainClass-->
+                            <!--mainClass>org.opendata.curation.d4.experiments.performance.EQRepresentationExperiment</mainClass-->
+                            <!--mainClass>org.opendata.performance.overlap.OverlapComputationExperiment</mainClass-->
                             <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.experiments.SignatureDropStatsExperiment</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.experiments.EQSimilarityWriter</mainClass-->

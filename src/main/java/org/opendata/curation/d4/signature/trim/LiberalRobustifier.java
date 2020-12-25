@@ -30,9 +30,9 @@ import org.opendata.curation.d4.signature.SignatureBlock;
  */
 public class LiberalRobustifier extends SignatureRobustifier {
 
-    private final int[] _nodeSizes;
+    private final Integer[] _nodeSizes;
     
-    public LiberalRobustifier(int[] nodeSizes, SignatureBlocksConsumer consumer) {
+    public LiberalRobustifier(Integer[] nodeSizes, SignatureBlocksConsumer consumer) {
         super(consumer);
         
         _nodeSizes = nodeSizes;

@@ -22,7 +22,6 @@ import org.opendata.core.io.EntityBuffer;
 import org.opendata.core.io.EntitySetReader;
 import org.opendata.core.object.Entity;
 import org.opendata.core.object.ObjectFilter;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Set of identifiable entities.
@@ -42,15 +41,6 @@ public class EntitySet extends HashObjectSet<Entity> {
     
     public EntitySet(File file, ObjectFilter<Integer> filter) throws java.io.IOException {
 	
-        new EntitySetReader(file).read(filter, new EntityBuffer(this));
-    }
-    
-    public EntitySet(File file, EQIndex eqIndex, IDSet nodes) throws java.io.IOException {
-        
-        HashIDSet filter = new HashIDSet();
-        for (int nodeId : nodes) {
-            filter.add(eqIndex.get(nodeId).terms());
-        }
         new EntitySetReader(file).read(filter, new EntityBuffer(this));
     }
 }

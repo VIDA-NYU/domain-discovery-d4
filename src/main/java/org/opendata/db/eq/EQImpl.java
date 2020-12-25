@@ -17,24 +17,21 @@
  */
 package org.opendata.db.eq;
 
-import java.io.PrintWriter;
 import org.opendata.core.object.IdentifiableObjectImpl;
-import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
-import org.opendata.core.set.ImmutableIDSet;
+import org.opendata.core.util.StringHelper;
 
 /**
- * An equivalence class is an identifiable set of terms. All terms in the
- * equivalence class always occur in the same set of columns.
+ * Default implementation for an equivalence class. Maintain all information
+ * in memory.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class EQImpl extends IdentifiableObjectImpl implements EQ {
     
-    private final IDSet _columns;
-    private final IDSet _terms;
+    private final Integer[] _columns;
+    private final int _terms;
     
-    public EQImpl(int id, IDSet terms, IDSet columns) {
+    public EQImpl(int id, int terms, Integer[] columns) {
         
         super(id);
         
@@ -46,44 +43,48 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
 
         this(
                 Integer.parseInt(tokens[0]),
-                new ImmutableIDSet(tokens[1]),
+                StringHelper.splitSize(tokens[1], ','),
                 parseColumnList(tokens[2])
         );
     }
     
+    public EQImpl(String line) {
+        
+        this(line.split("\t"));
+    }
+    
     @Override
-    public IDSet columns() {
+    public Integer[] columns() {
         
         return _columns;
     }
     
-    public static IDSet parseColumnList(String list) {
-    
-        HashIDSet columns = new HashIDSet();
+    @Override
+    public int columnCount() {
         
-        for (String token : list.split(",")) {
+        return _columns.length;
+    }
+    
+    public static Integer[] parseColumnList(String list) {
+    
+        String[] tokens = list.split(",");
+        Integer[] columns = new Integer[tokens.length];
+        for (int iToken = 0; iToken < tokens.length; iToken++) {
+            String token = tokens[iToken];
+            Integer columnId;
             if (token.contains(":")) {
-                columns.add(Integer.parseInt(token.substring(0, token.indexOf(":"))));
+                columnId = Integer.parseInt(token.substring(0, token.indexOf(":")));
             } else {
-                columns.add(Integer.parseInt(token));
+                columnId = Integer.parseInt(token);
             }
+            columns[iToken] = columnId;
         }
         return columns;
     }
     
     @Override
-    public IDSet terms() {
+    public int termCount() {
         
         return _terms;
-    }
-    
-    @Override
-    public void write(PrintWriter out) {
-        
-        out.println(
-                this.id() + "\t" +
-                this.terms().toIntString() + "\t" +
-                this.columns().toIntString()
-        );
     }
 }

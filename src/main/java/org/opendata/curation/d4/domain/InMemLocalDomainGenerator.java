@@ -34,7 +34,6 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
@@ -55,15 +54,15 @@ public class InMemLocalDomainGenerator {
 
         private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
+        private final Integer[] _eqTermCounts;
         private final int _id;
-        private final EQIndex _nodes;
         private final RobustSignatureStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
         public DomainGeneratorTask(
                 int id,
-                EQIndex nodes,
+                Integer[] eqTermCounts,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
                 RobustSignatureStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
@@ -71,7 +70,7 @@ public class InMemLocalDomainGenerator {
                 boolean verbose
        ) {
             _id = id;
-            _nodes = nodes;
+            _eqTermCounts = eqTermCounts;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
@@ -92,7 +91,7 @@ public class InMemLocalDomainGenerator {
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
-                        _nodes.nodeSizes()
+                        _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
@@ -129,11 +128,10 @@ public class InMemLocalDomainGenerator {
     }
     
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
             RobustSignatureStream signatures,
-            String trimmer,
-            boolean originalOnly,
+            SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -145,7 +143,7 @@ public class InMemLocalDomainGenerator {
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        List<ExpandedColumn> columnList = columnIndex.columns();
+        List<ExpandedColumn> columnList = columnIndex.asList();
         Collections.sort(columnList, new Comparator<ExpandedColumn>(){
             @Override
             public int compare(ExpandedColumn col1, ExpandedColumn col2) {
@@ -155,13 +153,6 @@ public class InMemLocalDomainGenerator {
         ConcurrentLinkedQueue<ExpandedColumn> queue;
         queue = new ConcurrentLinkedQueue<>(columnList);
         
-        SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(
-                nodes,
-                columnIndex.toColumns(originalOnly),
-                trimmer
-        );
-
         if (verbose) {
             System.out.println(
                     String.format(
@@ -176,7 +167,7 @@ public class InMemLocalDomainGenerator {
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
-                    nodes,
+                    eqTermCounts,
                     queue,
                     signatures,
                     trimmerFactory,

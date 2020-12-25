@@ -19,6 +19,7 @@ package org.opendata.curation.d4.column;
 
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.set.IDSet;
+import org.opendata.db.column.Column;
 
 /**
  * Expanded column maintains a list of nodes that were in the original column
@@ -39,6 +40,15 @@ public abstract class ExpandedColumn extends IdentifiableObjectImpl {
         
         _nodes = nodes;
         _expansion = expansion;
+    }
+
+    public Column asColumn() {
+        
+        if (_expansion.isEmpty()) {
+            return new Column(this.id(), _nodes);
+        } else {
+            return new Column(this.id(), this.nodes());
+        }
     }
 
     public abstract boolean contains(int id);

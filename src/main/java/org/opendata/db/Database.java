@@ -25,7 +25,7 @@ import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.EQ;
-import org.opendata.db.eq.EQReader;
+import org.opendata.db.eq.CompressedTermIndexFile;
 
 /**
  * A database is a set of columns. Each columns contains a list of node
@@ -55,14 +55,9 @@ public class Database implements Iterable<Column> {
         }
     }
     
-    public Database(EQReader reader) throws java.io.IOException {
-	
-        this(reader.read());
-    }
-    
     public Database(File file) throws java.io.IOException {
         
-        this(new EQReader(file));
+        this(new CompressedTermIndexFile(file));
     }
     
     public IDSet columnIds() {

@@ -153,6 +153,11 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
         this.print(new PrintWriter(System.out));
     }
     
+    public long sum() {
+        
+        return _nodeStats.sum();
+    }
+    
     private static final String COMMAND =
             "Usage:\n" +
             "  <signature-blocks-file>";

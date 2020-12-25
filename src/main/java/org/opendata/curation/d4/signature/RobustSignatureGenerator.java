@@ -18,8 +18,8 @@
 package org.opendata.curation.d4.signature;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,10 +28,6 @@ import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.curation.d4.signature.trim.ColumnSupportBlockFilter;
-import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
-import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.db.eq.similarity.EQSimilarity;
 
 /**
@@ -52,44 +48,6 @@ public class RobustSignatureGenerator {
     
     public static final String TELEMETRY_ID = "SIGNATURE BLOCKS";
     
-    /**
-     * Worker for generating signature blocks for equivalence classes.
-     * 
-     */
-    private class BlockGeneratorTask implements Runnable {
-
-        private final SignatureBlocksGenerator _blockGenerator;
-        private final SignatureBlocksConsumer _consumer;
-        private final ConcurrentLinkedQueue<Integer> _queue;
-        private final ContextSignatureGenerator _sigFact;
-        
-        public BlockGeneratorTask(
-                ConcurrentLinkedQueue<Integer> queue,
-                ContextSignatureGenerator sigFact,
-                SignatureBlocksGenerator blockGenerator,
-                SignatureBlocksConsumer consumer
-        ) {
-            
-            _queue = queue;
-            _sigFact = sigFact;
-            _blockGenerator = blockGenerator;
-            _consumer = consumer;
-        }
-        
-        @Override
-        public void run() {
-
-            Integer nodeId;
-            while ((nodeId = _queue.poll()) != null) {
-                List<SignatureBlock> blocks = _blockGenerator
-                        .toBlocks(_sigFact.getSignature(nodeId).rankedElements());
-                if (!blocks.isEmpty()) {
-                    _consumer.consume(nodeId, blocks);
-                }
-            }
-        }
-    }
-
     private final TelemetryCollector _telemetry;
     
     public RobustSignatureGenerator(TelemetryCollector telemetry) {
@@ -105,8 +63,7 @@ public class RobustSignatureGenerator {
     /**
      * Generate signature blocks using consecutive steepest drops.
      * 
-     * @param eqIndex
-     * @param queue
+     * @param eqIdentifiers
      * @param simFunc
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
@@ -117,8 +74,7 @@ public class RobustSignatureGenerator {
      * @throws java.lang.InterruptedException
      */
     public void run(
-            EQIndex eqIndex,
-            ConcurrentLinkedQueue<Integer> queue,
+            Collection<Integer> eqIdentifiers,
             EQSimilarity simFunc,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
@@ -129,10 +85,11 @@ public class RobustSignatureGenerator {
     ) throws java.lang.InterruptedException {
 
         if (verbose) {
-            System.out.println(String.format("SIGNATURE BLOCKS FOR %d EQs", queue.size()));
+            System.out.println(String.format(
+                    "SIGNATURE BLOCKS FOR %d EQs", eqIdentifiers.size())
+            );
         }
         
-
         MaxDropFinder<SignatureValue> candidateFinder;
         candidateFinder = new MaxDropFinder<>(
                 new GreaterThanConstraint(BigDecimal.ZERO),
@@ -141,8 +98,11 @@ public class RobustSignatureGenerator {
         );
 
         ContextSignatureGenerator sigFact;
-        sigFact = new ContextSignatureGenerator(eqIndex.nodes().keys().toList(), simFunc);
+        sigFact = new ContextSignatureGenerator(eqIdentifiers, simFunc);
 
+        ConcurrentLinkedQueue queue;
+        queue = new ConcurrentLinkedQueue<>(eqIdentifiers);
+        
         Date start = new Date();
         if (verbose) {
             System.out.println("START @ " + start);

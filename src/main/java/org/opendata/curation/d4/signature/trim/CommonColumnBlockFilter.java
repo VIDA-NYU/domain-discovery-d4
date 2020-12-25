@@ -18,12 +18,10 @@
 package org.opendata.curation.d4.signature.trim;
 
 import java.util.List;
+import org.opendata.core.set.HashIDSet;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.core.constraint.Threshold;
-import org.opendata.core.constraint.ZeroThreshold;
 import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.signature.SignatureBlock;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Filter signature blocks based on column support. Includes only those blocks
@@ -31,50 +29,40 @@ import org.opendata.db.eq.EQIndex;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnSupportBlockFilter extends SignatureRobustifier {
+public class CommonColumnBlockFilter extends SignatureRobustifier {
 
-    private final EQIndex _eqIndex;
+    private final Integer[][] _columns;
     private final int _minStart;
     
-    public ColumnSupportBlockFilter(
-            EQIndex eqIndex,
+    public CommonColumnBlockFilter(
+            Integer[][] columns,
             int minStart,
-            Threshold nonEmptyConstraint,
             SignatureBlocksConsumer consumer
     ) {
         super(consumer);
         
-        _eqIndex = eqIndex;
+        _columns = columns;
         _minStart = minStart;
     }
 
-    public ColumnSupportBlockFilter(
-            EQIndex eqIndex,
-            int minStart,
+    public CommonColumnBlockFilter(
+            Integer[][] columns,
             SignatureBlocksConsumer consumer
     ) {
         
-        this(eqIndex, minStart, new ZeroThreshold(), consumer);
-    }
-
-    public ColumnSupportBlockFilter(
-            EQIndex eqIndex,
-            SignatureBlocksConsumer consumer
-    ) {
-        
-        this(eqIndex, 0, new ZeroThreshold(), consumer);
+        this(columns, 0, consumer);
     }
 
     @Override
     public void consume(int nodeId, List<SignatureBlock> blocks) {
 
-        IDSet nodeColumns = _eqIndex.get(nodeId).columns();
+        IDSet nodeColumns = new HashIDSet(_columns[nodeId]);
         
         int lastIndex = 0;
         for (SignatureBlock block : blocks) {
             IDSet columns = nodeColumns;
             for (int memberId : block.elements()) {
-                columns = columns.intersect(_eqIndex.get(memberId).columns());
+                columns = columns.intersect(new HashIDSet(_columns[memberId]));
                 if (columns.isEmpty()) {
                     break;
                 }

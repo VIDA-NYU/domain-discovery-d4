@@ -18,16 +18,30 @@
 package org.opendata.db.eq;
 
 import java.io.File;
+import java.util.Iterator;
 
 /**
- * Equivalence class index for lazy parse classes.
+ * Collection of equivalence classes that are maintained in a file on disk.
+ * Reads the list of identifier and only keeps them in memory.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class LazyParseEQIndex extends EQIndex {
+public class CompressedTermIndexFile implements CompressedTermIndex {
+   
+    private final File _file;
     
-    public LazyParseEQIndex(File eqFile) throws java.io.IOException {
+    public CompressedTermIndexFile(File file) {
         
-        super(eqFile, new LazyParseEQFactory());
+        _file = file;
+    }
+
+    @Override
+    public Iterator<EQ> iterator() {
+
+        try {
+            return new CompressedTermIndexIterator(_file);
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

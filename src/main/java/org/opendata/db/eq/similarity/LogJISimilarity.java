@@ -18,9 +18,8 @@
 package org.opendata.db.eq.similarity;
 
 import java.math.BigDecimal;
-import org.opendata.core.graph.Node;
 import org.opendata.core.metric.JaccardIndex;
-import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.util.ArrayHelper;
 
 /**
  * Similarity function for equivalence classes based on the similarity of their
@@ -32,9 +31,9 @@ import org.opendata.core.set.IdentifiableObjectSet;
 public class LogJISimilarity implements EQSimilarity {
 
     private final JaccardIndex _ji;
-    private final IdentifiableObjectSet<Node> _nodes;
+    private final Integer[][] _nodes;
     
-    public LogJISimilarity(IdentifiableObjectSet<Node> nodes) {
+    public LogJISimilarity(Integer[][] nodes) {
         
         _nodes = nodes;
         
@@ -44,12 +43,12 @@ public class LogJISimilarity implements EQSimilarity {
     @Override
     public BigDecimal sim(int eq1, int eq2) {
 
-        Node nodeI = _nodes.get(eq1);
-        Node nodeJ = _nodes.get(eq2);
+        final Integer[] nodeI = _nodes[eq1];
+        final Integer[] nodeJ = _nodes[eq2];
         
-        int overlap = nodeI.overlap(nodeJ);
+        int overlap = ArrayHelper.overlap(nodeI, nodeJ);
         if (overlap > 0) {
-            return _ji.logSim(nodeI.elementCount(), nodeJ.elementCount(), overlap);
+            return _ji.logSim(nodeI.length, nodeJ.length, overlap);
         } else {
             return BigDecimal.ZERO;
         }

@@ -25,7 +25,6 @@ import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.curation.d4.signature.RobustSignatureStream;
 
 /**
@@ -35,11 +34,11 @@ import org.opendata.curation.d4.signature.RobustSignatureStream;
  */
 public class ColumnExpander implements Runnable {
     
-    private final BigDecimal _decreaseFactor;
     private final List<ExpandedColumn> _columns;
     private final ExpandedColumnConsumer _consumer;
+    private final BigDecimal _decreaseFactor;
+    private final Integer[] _eqTermCounts;
     private final int _id;
-    private final EQIndex _nodes;
     private final int _numberOfIterations;
     private final RobustSignatureStream _signatures;
     private final Threshold _threshold;
@@ -47,7 +46,7 @@ public class ColumnExpander implements Runnable {
               
     public ColumnExpander(
             int id,
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             List<ExpandedColumn> columns,
             RobustSignatureStream signatures,
             SignatureTrimmerFactory trimmerFactory,
@@ -57,7 +56,7 @@ public class ColumnExpander implements Runnable {
             ExpandedColumnConsumer consumer
     ) {
         _id = id;
-        _nodes = nodes;
+        _eqTermCounts = eqTermCounts;
         _columns = columns;
         _signatures = signatures;
         _trimmerFactory = trimmerFactory;
@@ -78,7 +77,7 @@ public class ColumnExpander implements Runnable {
         for (ExpandedColumn column : _columns) {
             SingleColumnExpander columnExpander;
             columnExpander = new SingleColumnExpander(
-                    _nodes,
+                    _eqTermCounts,
                     column,
                     _threshold,
                     _decreaseFactor,

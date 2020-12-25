@@ -32,7 +32,7 @@ import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.curation.d4.Constants;
 import org.opendata.db.Database;
 import org.opendata.db.column.Column;
-import org.opendata.db.eq.EQReader;
+import org.opendata.db.eq.CompressedTermIndexFile;
 
 /**
  * Compute overlap between database columns. Uses multiple threads to compute
@@ -102,7 +102,7 @@ public class ParallelColumnOverlapComputer {
             File outputFile
     ) throws java.io.IOException {
         
-        Database db = new Database(new EQReader(eqFile));
+        Database db = new Database(new CompressedTermIndexFile(eqFile));
         
         ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
         

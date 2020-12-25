@@ -19,9 +19,8 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.db.column.Column;
 
 /**
  *
@@ -29,9 +28,12 @@ import org.opendata.db.eq.EQIndex;
  */
 public class PrecisionScore extends BlockScoreFunction {
 
-    public PrecisionScore(EQIndex eqIndex, IdentifiableObjectSet<IdentifiableIDSet> columns) {
+    public PrecisionScore(
+            Integer[] eqTermCounts,
+            IdentifiableObjectSet<Column> columns
+    ) {
         
-        super(eqIndex, columns);
+        super(eqTermCounts, columns);
     }
     
     @Override

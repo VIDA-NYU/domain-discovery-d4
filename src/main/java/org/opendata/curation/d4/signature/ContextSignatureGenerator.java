@@ -19,7 +19,7 @@ package org.opendata.curation.d4.signature;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import org.opendata.db.eq.similarity.EQSimilarity;
 
 
@@ -30,10 +30,10 @@ import org.opendata.db.eq.similarity.EQSimilarity;
  */
 public class ContextSignatureGenerator {
 
-    private final List<Integer> _nodes;
+    private final Collection<Integer> _nodes;
     private final EQSimilarity _simFunc;
     
-    public ContextSignatureGenerator(List<Integer> nodes, EQSimilarity simFunc) {
+    public ContextSignatureGenerator(Collection<Integer> nodes, EQSimilarity simFunc) {
 
         _nodes = nodes;
         _simFunc = simFunc;

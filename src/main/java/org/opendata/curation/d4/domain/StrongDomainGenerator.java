@@ -36,7 +36,6 @@ import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.IdentifiableCounterSet;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Identify domains that have support by at least n other domains. Support
@@ -227,7 +226,7 @@ public class StrongDomainGenerator {
     /**
      * Compute set local domains that have sufficient support.
      * 
-     * @param nodes
+     * @param eqTermCounts
      * @param domainReader
      * @param domainOverlapConstraint
      * @param minSupportConstraint
@@ -239,7 +238,7 @@ public class StrongDomainGenerator {
      * @throws java.io.IOException 
      */
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             DomainReader domainReader,
             Threshold domainOverlapConstraint,
             Threshold minSupportConstraint,
@@ -262,7 +261,7 @@ public class StrongDomainGenerator {
             );
         }
         
-        DomainHelper helper = new DomainHelper(nodes, localDomains);
+        DomainHelper helper = new DomainHelper(eqTermCounts, localDomains);
         
         // For each local domain we first estimate the frequency of the semantic
         // type that the domain represents in the database. The estimate is
