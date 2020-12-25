@@ -26,6 +26,7 @@ import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.trim.CommonColumnBlockFilter;
+import org.opendata.curation.d4.signature.trim.IgnoreLastBlockRobustifier;
 import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
 import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
@@ -204,6 +205,8 @@ public class DataManager {
             return new CommonColumnBlockFilter(this.getColumnsArray(), consumer);
         } else if (identifier.equalsIgnoreCase(D4Config.ROBUST_LIBERAL)) {
             return new LiberalRobustifier(_eqTermCounts, consumer);
+        } else if (identifier.equalsIgnoreCase(D4Config.ROBUST_IGNORELAST)) {
+            return new IgnoreLastBlockRobustifier(consumer);
         }
         throw new IllegalArgumentException(
                 String.format("Unknown robustifier '%s'", identifier)

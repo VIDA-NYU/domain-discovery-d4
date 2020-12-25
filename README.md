@@ -122,7 +122,8 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 signatures
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
-  --robustifier=<str> [LIBERAL | COLSUPP]
+  --sim=<str> [default: JI | LOGJI]
+  --robustifier=<str> [default: LIBERAL | COMMON-COLUMN | IGNORE-LAST]
   --fullSignatureConstraint=<boolean> [default: true]
   --ignoreLastDrop=<boolean> [default: false]
   --ignoreMinorDrop=<boolean> [default: true] 
@@ -130,6 +131,13 @@ signatures
   --verbose=<boolean> [default: true]
   --signatures=<file> [default: 'signatures.txt.gz']
 ```
+
+The robust signature step starts by computing context signatures for each term. A *context signature* is a vector containing similarities of a term with all other terms in the dataset. Elements in the context signature are sorted in decreasing order of similarity. For signature robustification the context signature is first divided into blocks of elements based on the idea of consecutive steepest drop , i.e., the maximum difference between consecutive elements in the sorted context signature. We then prune all blocks starting from *noisy block* and only retain blocks that occur before that noisy block. There are three different strategies to identify the noisy block (controlled via the `--robustifier` parameter):
+
+- COMMON-COLUMN: The noisy block is the first block where **NOT** all terms in the block occur together in at least one column. The motivation here is that blocks are supposed to represent subsets of domains that a term belongs to. A block that contains terms that never occur to gether in at least one column is likely to contains terms that do not belong to the same domain.
+- IGNORE-LAST: Keeps all blocks except the last block. The only exception is if the context signature contains only a single block. This pruning strategy is particularly intended to be used in combination with `--ignireMinorDrop=true`. If a minor drop is detected all remaining elements in the context signature are placed in a single (final) block.
+- LIBERAL: Default setting considers the number of terms in each block. The larges block is then considered as the noisy block for pruning.
+
 
 **Expanded Columns:** The *column expansion* step addresses the challenge of incomplete columns by adding terms to a column that are likely to belong to the same domain as the majority of terms in the column. D4 makes use of robust signatures to expand columns: it adds a term only if it has sufficient support (controlled by `expandThreshold`) from the robust signatures of terms in the column. This leads to high accuracy in domain discovery. We take an iterative approach to column expansion. The idea is that adding a term to a column may provide additional support for other terms to be added as well (controlled by `iterations` and `decrease`).
 

@@ -15,16 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4;
+package org.opendata.curation.d4.signature.trim;
+
+import java.util.List;
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
- * D4 constant declarations.
+ * Robustifier for context signatures that retains all but the last block. If
+ * the signature only contains a single block that block is retained and no
+ * pruning occurs.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public final class Constants {
-    
-    public static final String NAME = "D4 - Data-Driven Domain Discovery";
-    
-    public static final String VERSION = "0.30.0.dev13";
+public class IgnoreLastBlockRobustifier extends SignatureRobustifier {
+
+    public IgnoreLastBlockRobustifier(SignatureBlocksConsumer consumer) {
+        
+        super(consumer);
+    }
+
+    @Override
+    public void consume(int nodeId, List<SignatureBlock> blocks) {
+
+        this.push(nodeId, blocks, Math.max(1, blocks.size() - 1));
+    }
 }
