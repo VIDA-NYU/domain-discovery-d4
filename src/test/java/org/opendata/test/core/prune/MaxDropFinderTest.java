@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.urban.data.test.prune;
+package org.opendata.test.core.prune;
 
 import java.util.ArrayList;
 import org.junit.After;

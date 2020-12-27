@@ -17,11 +17,13 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.ContextSignatureValue;
 
 /**
  * Filter signature blocks based on column support. Includes only those blocks
@@ -37,7 +39,7 @@ public class CommonColumnBlockFilter extends SignatureRobustifier {
     public CommonColumnBlockFilter(
             Integer[][] columns,
             int minStart,
-            SignatureBlocksConsumer consumer
+            ContextSignatureBlocksConsumer consumer
     ) {
         super(consumer);
         
@@ -47,22 +49,23 @@ public class CommonColumnBlockFilter extends SignatureRobustifier {
 
     public CommonColumnBlockFilter(
             Integer[][] columns,
-            SignatureBlocksConsumer consumer
+            ContextSignatureBlocksConsumer consumer
     ) {
         
         this(columns, 0, consumer);
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks) {
 
         IDSet nodeColumns = new HashIDSet(_columns[nodeId]);
         
         int lastIndex = 0;
-        for (SignatureBlock block : blocks) {
+        for (ContextSignatureBlock block : blocks) {
             IDSet columns = nodeColumns;
-            for (int memberId : block.elements()) {
-                columns = columns.intersect(new HashIDSet(_columns[memberId]));
+            for (int iValue = 0; iValue < block.objectCount(); iValue++) {
+                ContextSignatureValue member = block.objectAt(iValue);
+                columns = columns.intersect(new HashIDSet(_columns[member.id()]));
                 if (columns.isEmpty()) {
                     break;
                 }
@@ -72,6 +75,6 @@ public class CommonColumnBlockFilter extends SignatureRobustifier {
             }
             lastIndex++;
         }
-        this.push(nodeId, blocks, Math.max(_minStart, lastIndex));
+        this.push(nodeId, sim, blocks, Math.max(_minStart, lastIndex));
     }
 }

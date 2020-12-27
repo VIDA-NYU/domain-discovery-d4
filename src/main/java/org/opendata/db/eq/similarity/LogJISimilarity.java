@@ -41,16 +41,17 @@ public class LogJISimilarity implements EQSimilarity {
     }
     
     @Override
-    public BigDecimal sim(int eq1, int eq2) {
+    public SimilarityScore sim(int eq1, int eq2) {
 
         final Integer[] nodeI = _nodes[eq1];
         final Integer[] nodeJ = _nodes[eq2];
         
         int overlap = ArrayHelper.overlap(nodeI, nodeJ);
         if (overlap > 0) {
-            return _ji.logSim(nodeI.length, nodeJ.length, overlap);
+            BigDecimal sim = _ji.logSim(nodeI.length, nodeJ.length, overlap);
+            return new SimilarityScore(overlap, sim);
         } else {
-            return BigDecimal.ZERO;
+            return new SimilarityScore(0, BigDecimal.ZERO);
         }
     }
 }

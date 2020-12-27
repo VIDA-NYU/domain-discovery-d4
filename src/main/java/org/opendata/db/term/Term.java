@@ -21,7 +21,7 @@ import org.opendata.core.object.Entity;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.profiling.datatype.DataType;
 import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
-import org.opendata.core.set.SortedIDSet;
+import org.opendata.core.set.SortedObjectSet;
 
 /**
  * A term in a database. Each term has a unique identifier and a unique name.
@@ -32,9 +32,9 @@ import org.opendata.core.set.SortedIDSet;
  */
 public class Term extends Entity {
     
-    private final SortedIDSet<IdentifiableInteger> _columns;
+    private final SortedObjectSet<IdentifiableInteger> _columns;
     
-    public Term(int id, String value, SortedIDSet<IdentifiableInteger> columns) {
+    public Term(int id, String value, SortedObjectSet<IdentifiableInteger> columns) {
         
         super(id, value);
         
@@ -47,7 +47,7 @@ public class Term extends Entity {
      * 
      * @return 
      */
-    public SortedIDSet<IdentifiableInteger> columns() {
+    public SortedObjectSet<IdentifiableInteger> columns() {
         
         return _columns;
     }

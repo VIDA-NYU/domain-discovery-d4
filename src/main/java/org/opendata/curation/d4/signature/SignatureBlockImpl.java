@@ -15,27 +15,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
-import java.math.BigDecimal;
-import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import org.opendata.core.set.SortedIDArray;
 
 /**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * Default implementation for signature blocks that are simply lists of
+ * integers.
+ * 
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore extends BlockScoreFunction {
+public class SignatureBlockImpl extends SortedIDArray implements SignatureBlock {
 
-    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
+    private final int _termCount;
     
-        super(column, eqTermCounts);
+    public SignatureBlockImpl(Integer[] elements, int termCount) {
+        
+        super(elements);
+        
+        _termCount = termCount;
     }
-
+    
     @Override
-    public BigDecimal score(SignatureBlock block) {
-
-        return new Precision(this.overlap(block), block.termCount()).value();
+    public int termCount() {
+        
+        return _termCount;
     }
 }

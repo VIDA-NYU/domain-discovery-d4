@@ -19,17 +19,15 @@ package org.opendata.curation.d4;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.trim.CommonColumnBlockFilter;
 import org.opendata.curation.d4.signature.trim.IgnoreLastBlockRobustifier;
 import org.opendata.curation.d4.signature.trim.LiberalRobustifier;
 import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndex;
 import org.opendata.db.eq.EQ;
@@ -103,6 +101,17 @@ public class DataManager {
         }
         return _columns;
     }
+
+    /**
+     * Get the list of all identifier for the equivalence classes in the
+     * compressed term index.
+     * 
+     * @return 
+     */
+    public Collection<Integer> getEQIdentifiers() {
+        
+        return _eqIdentifiers;
+    }
     
     /**
      * Get the similarity function for equivalence classes that is referenced
@@ -155,35 +164,6 @@ public class DataManager {
         
         return _eqColumns;
     }
-
-    /**
-     * Get the list of all identifier for the equivalence classes in the
-     * compressed term index.
-     * 
-     * @return 
-     */
-    public Collection<Integer> getEQIdentifiers() {
-        
-        return _eqIdentifiers;
-    }
-    
-    public SignatureTrimmerFactory getSignatureTrimmerFactory(String identifier) {
-       
-        return this.getSignatureTrimmerFactory(identifier, this.getColumns());
-    }
-    
-    public SignatureTrimmerFactory getSignatureTrimmerFactory(
-            String identifier,
-            IdentifiableObjectSet<Column> columns
-    ) {
-       
-        return new SignatureTrimmerFactory(
-                _eqTermCounts,
-                columns,
-                identifier
-        );
-
-    }
     
     /**
      * Get signature robustifier that is referenced by the given identifier. The
@@ -198,18 +178,26 @@ public class DataManager {
      */
     public SignatureRobustifier getSignatureRobustifier(
             String identifier,
-            SignatureBlocksConsumer consumer
+            ContextSignatureBlocksConsumer consumer
     ) {
         
         if (identifier.equalsIgnoreCase(D4Config.ROBUST_COMMONCOL)) {
             return new CommonColumnBlockFilter(this.getColumnsArray(), consumer);
         } else if (identifier.equalsIgnoreCase(D4Config.ROBUST_LIBERAL)) {
-            return new LiberalRobustifier(_eqTermCounts, consumer);
+            return new LiberalRobustifier(consumer);
         } else if (identifier.equalsIgnoreCase(D4Config.ROBUST_IGNORELAST)) {
             return new IgnoreLastBlockRobustifier(consumer);
         }
         throw new IllegalArgumentException(
                 String.format("Unknown robustifier '%s'", identifier)
         );
+    }
+    
+    public SignatureTrimmerFactory getSignatureTrimmerFactory(
+            String identifier,
+            boolean originalOnly
+    ) {
+        
+        return new SignatureTrimmerFactory(identifier, _eqTermCounts, originalOnly);
     }
 }

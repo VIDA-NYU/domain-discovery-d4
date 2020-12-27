@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -27,6 +28,6 @@ import java.util.List;
 public interface SignatureBlocksConsumer {
    
     public void close();
-    public void consume(int nodeId, List<SignatureBlock> blocks);
+    public void consume(int nodeId, BigDecimal sim, List<SignatureBlock> blocks);
     public void open();
 }

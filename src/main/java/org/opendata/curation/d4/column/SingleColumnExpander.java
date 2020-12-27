@@ -153,21 +153,19 @@ public class SingleColumnExpander implements RobustSignatureConsumer {
 
         boolean isOriginalNode = _column.isColumnNode(sig.id());
         int weight = _eqTermCounts[sig.id()];
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            for (int nodeId : sig.get(iBlock)) {
-                if (!_column.contains(nodeId)) {
-                    SupportCounter sup;
-                    if (_support.containsKey(nodeId)) {
-                        sup = _support.get(nodeId);
-                    } else {
-                        sup = new SupportCounter();
-                        _support.put(nodeId, sup);
-                    }
-                    if (isOriginalNode) {
-                        sup.incOriginalSupport(weight);
-                    } else {
-                        sup.incExpansionSupport(weight);
-                    }
+        for (int nodeId : sig) {
+            if (!_column.contains(nodeId)) {
+                SupportCounter sup;
+                if (_support.containsKey(nodeId)) {
+                    sup = _support.get(nodeId);
+                } else {
+                    sup = new SupportCounter();
+                    _support.put(nodeId, sup);
+                }
+                if (isOriginalNode) {
+                    sup.incOriginalSupport(weight);
+                } else {
+                    sup.incExpansionSupport(weight);
                 }
             }
         }

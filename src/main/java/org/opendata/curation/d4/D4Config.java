@@ -36,4 +36,12 @@ public final class D4Config {
     public final static String ROBUST_COMMONCOL = "COMMON-COLUMN";
     public final static String ROBUST_IGNORELAST = "IGNORE-LAST";
     public final static String ROBUST_LIBERAL = "LIBERAL";
+
+    /**
+     * Global variables for trimmer types
+     */
+    public final static String TRIMMER_CENTRIST = "CENTRIST";
+    public final static String TRIMMER_CONSERVATIVE = "CONSERVATIVE";
+    public final static String TRIMMER_LIBERAL = "LIBERAL";
+    
 }

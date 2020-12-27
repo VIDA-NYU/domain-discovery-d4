@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.urban.data.test.db;
+package org.opendata.test.db;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +27,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.opendata.core.object.IdentifiableInteger;
-import org.opendata.core.set.SortedIDSet;
+import org.opendata.core.set.SortedObjectSet;
+import org.opendata.core.set.SortedObjectSetIterator;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.IdentifiableCount;
 import org.opendata.db.column.ColumnHelper;
@@ -52,11 +53,14 @@ public class CompressedTermIndexTest {
         }
         
         @Override
-        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedIDSet<T> columns) {
+        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedObjectSet<T> columns) {
             
             Collections.sort(terms);
             
-            _buffer.put(StringHelper.joinIntegers(terms), ColumnHelper.toArrayString(columns));
+            _buffer.put(
+                    StringHelper.joinIntegers(terms),
+                    ColumnHelper.toArrayString(new SortedObjectSetIterator<>(columns))
+            );
         }
         
         public int size() {
@@ -95,7 +99,7 @@ public class CompressedTermIndexTest {
         Term term1 = new Term(
                 0,
                 "A",
-                new SortedIDSet<>(new IdentifiableInteger[]{
+                new SortedObjectSet<>(new IdentifiableInteger[]{
                     new IdentifiableCount(0, 1),
                     new IdentifiableCount(1, 2)
                 })
@@ -103,7 +107,7 @@ public class CompressedTermIndexTest {
         Term term2 = new Term(
                 1,
                 "B",
-                new SortedIDSet<>(new IdentifiableInteger[]{
+                new SortedObjectSet<>(new IdentifiableInteger[]{
                     new IdentifiableCount(0, 1),
                     new IdentifiableCount(2, 2)
                 })
@@ -111,7 +115,7 @@ public class CompressedTermIndexTest {
         Term term3 = new Term(
                 2,
                 "C",
-                new SortedIDSet<>(new IdentifiableInteger[]{
+                new SortedObjectSet<>(new IdentifiableInteger[]{
                     new IdentifiableCount(0, 2),
                     new IdentifiableCount(1, 4)
                 })

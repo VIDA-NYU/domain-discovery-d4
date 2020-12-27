@@ -19,21 +19,22 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.StringHelper;
 
 /**
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksWriter implements SignatureBlocksConsumer {
+public class ContextSignatureBlocksWriter implements ContextSignatureBlocksConsumer {
 
     private final File _file;
     private int _openCount = 0;
     private PrintWriter _out = null;
     
-    public SignatureBlocksWriter(File file) {
+    public ContextSignatureBlocksWriter(File file) {
         
         _file = file;
     }
@@ -49,19 +50,21 @@ public class SignatureBlocksWriter implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks) {
 
-        String line = Integer.toString(nodeId);
-        for (SignatureBlock block : blocks) {
-            line += String.format(
-                    "\t%.6f-%.6f:%s",
-                    block.firstValue(),
-                    block.lastValue(),
-                    StringHelper.joinIntegers(block.elements())
-            );
+        StringBuilder line = new StringBuilder()
+                .append(nodeId)
+                .append("\t")
+                .append(sim.setScale(8, RoundingMode.HALF_DOWN).toPlainString());
+        for (ContextSignatureBlock block : blocks) {
+            line.append("\t").append(block.termCount());
+            for (int iValue = 0; iValue < block.elementCount(); iValue++) {
+                ContextSignatureValue value = block.objectAt(iValue);
+                line.append(",").append(value.id()).append(":").append(value.overlap());
+            }
         }
         synchronized(this) {
-            _out.println(line);
+            _out.println(line.toString());
         }
     }
 

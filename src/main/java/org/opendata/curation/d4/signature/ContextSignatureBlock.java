@@ -17,27 +17,40 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.util.List;
+import org.opendata.core.set.SortedObjectSet;
 
 /**
- * Robust signature that wraps a list of signature blocks.
+ * Block of elements in a context signature. Context signature blocks are
+ * generated as part of the signature robustification process.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class RobustSignatureBlocks extends RobustSignature {
-
-    private final List<SignatureBlock> _blocks;
+public class ContextSignatureBlock extends SortedObjectSet<ContextSignatureValue> implements SignatureBlock {
     
-    public RobustSignatureBlocks(int id, List<SignatureBlock> blocks) {
+    private final int _termCount;
+    
+    public ContextSignatureBlock(ContextSignatureValue[] elements, int termCount) {
         
-        super(id, blocks.size());
+        super(elements);
         
-        _blocks = blocks;
+        _termCount = termCount;
+    }
+
+    @Override
+    public Integer elementAt(int index) {
+
+        return this.objectAt(index).id();
+    }
+
+    @Override
+    public int elementCount() {
+
+        return this.objectCount();
     }
     
     @Override
-    public int[] get(int index) {
-
-        return _blocks.get(index).elements();
+    public int termCount() {
+        
+        return _termCount;
     }
 }

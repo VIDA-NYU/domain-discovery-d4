@@ -15,27 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
-import java.math.BigDecimal;
-import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import java.util.Iterator;
 
 /**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * Robust signature that contains the elements from a single signature block.
+ * 
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore extends BlockScoreFunction {
-
-    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
+public class SingleBlockSignature extends RobustSignature {
     
-        super(column, eqTermCounts);
+    private final SignatureBlock _block;
+    
+    public SingleBlockSignature(int id, SignatureBlock block) {
+        
+        super(id);
+        
+        _block = block;
     }
 
     @Override
-    public BigDecimal score(SignatureBlock block) {
+    public Iterator<Integer> iterator() {
 
-        return new Precision(this.overlap(block), block.termCount()).value();
+        return _block.iterator();
     }
 }

@@ -15,38 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
-import java.util.List;
-import org.opendata.curation.d4.signature.RobustSignature;
+import java.math.BigDecimal;
 import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.db.eq.similarity.SimilarityScore;
 
 /**
- * Trimmed signature is a wrapper around a signature blocks object. Instead of
- * creating a copy of the blocks only a list of block indexes is maintained that
- * references the non-pruned blocks.
+ * Element in a context signature. Maintains the overlap between the column sets
+ * of two equivalence classes and their similarity.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class CentristSignature extends RobustSignature {
+public class ContextSignatureValue extends IdentifiableDouble {
+    
+    private final int _overlap;
+    
+    public ContextSignatureValue(int id, int overlap, double value) {
 
-    private final List<IdentifiableDouble> _elements;
-    private final RobustSignature _sig;
-                    
-    public CentristSignature(
-            RobustSignature sig,
-            List<IdentifiableDouble> elements,
-            int dropIndex
-    ) {
-        super(sig.id(), dropIndex);
+        super(id, value);
         
-        _sig = sig;
-        _elements = elements;
+        _overlap = overlap;
     }
     
-    @Override
-    public int[] get(int index) {
+    public ContextSignatureValue(int id, int overlap, BigDecimal value) {
 
-        return _sig.get(_elements.get(index).id());
+        this(id, overlap, value.doubleValue());
+    }
+    
+    public ContextSignatureValue(int id, SimilarityScore sim) {
+    
+        this(id, sim.overlap(), sim.score());
+    }
+    
+    public int overlap() {
+        
+        return _overlap;
     }
 }

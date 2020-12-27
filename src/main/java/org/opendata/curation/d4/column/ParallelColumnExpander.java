@@ -32,15 +32,14 @@ import java.util.logging.Logger;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
-import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.column.Column;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Expand columns using multiple threads. Each thread expands a single columns
@@ -64,7 +63,7 @@ public class ParallelColumnExpander {
         private final Integer[] _eqTermCounts;
         private final int _id;
         private final int _numberOfIterations;
-        private final RobustSignatureStream _signatures;
+        private final SignatureBlocksStream _signatures;
         private final Threshold _threshold;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
@@ -73,7 +72,7 @@ public class ParallelColumnExpander {
                 int id,
                 Integer[] eqTermCounts,
                 List<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 Threshold threshold,
                 BigDecimal decreaseFactor,
@@ -115,15 +114,12 @@ public class ParallelColumnExpander {
             }
             int round = 0;
             while (!columns.isEmpty()) {
-                RobustSignatureDispatcher dispatcher;
-                dispatcher = new RobustSignatureDispatcher();
+                SignatureBlocksDispatcher dispatcher;
+                dispatcher = new SignatureBlocksDispatcher();
                 for (SingleColumnExpander expander : columns) {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(
-                                    expander.column().id(),
-                                    expander
-                            );
+                            .getSignatureTrimmer(expander.column(), expander);
                     dispatcher.add(trimmer);
                 }
                 round++;
@@ -138,11 +134,7 @@ public class ParallelColumnExpander {
                             )
                     );
                 }
-                try {
-                    _signatures.stream(dispatcher);
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
-                }
+                _signatures.stream(dispatcher);
                 List<SingleColumnExpander> candidates = new ArrayList<>();
                 for (SingleColumnExpander expander : columns) {
                     if (expander.isDone()) {
@@ -188,7 +180,7 @@ public class ParallelColumnExpander {
     
     public void run(
             Integer[] eqTermCounts,
-            RobustSignatureStream signatures,
+            SignatureBlocksStream signatures,
             SignatureTrimmerFactory trimmerFactory,
             IdentifiableObjectSet<Column> columns,
             Threshold threshold,

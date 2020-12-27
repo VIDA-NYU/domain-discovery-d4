@@ -19,9 +19,8 @@ package org.opendata.curation.d4.signature;
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.opendata.core.util.Avg;
 import org.opendata.core.util.SimilarityHistogram;
 
@@ -80,8 +79,6 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     }
     
     private StatsCollector _blockStats;
-    private SimilarityHistogram _firstDropHistogram = null;
-    private SimilarityHistogram _lastDropHistogram = null;
     private StatsCollector _nodeStats;
     private SimilarityHistogram _similarityHistogram = null;
     
@@ -91,16 +88,14 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<SignatureBlock> blocks) {
 
         _blockStats.add(blocks.size());
-        _firstDropHistogram.add(blocks.get(0).lastValue());
-        _lastDropHistogram.add(blocks.get(blocks.size() - 1).lastValue());
-        _similarityHistogram.add(blocks.get(0).firstValue());
+        _similarityHistogram.add(sim);
         
         int nodeCount = 0;
         for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
-            nodeCount += blocks.get(iBlock).length();
+            nodeCount += blocks.get(iBlock).elementCount();
         }
         
         _nodeStats.add(nodeCount);
@@ -110,8 +105,6 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     public void open() {
 
         _blockStats = new StatsCollector();
-        _firstDropHistogram = new SimilarityHistogram();
-        _lastDropHistogram = new SimilarityHistogram();
         _similarityHistogram = new SimilarityHistogram();
         _nodeStats = new StatsCollector();
     }
@@ -123,11 +116,9 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
         for (String key : _similarityHistogram.keys()) {
             out.println(
                     String.format(
-                            "%s\t%d\t%d\t%d",
+                            "%s\t%d",
                             key,
-                            _similarityHistogram.get(key),
-                           _firstDropHistogram.get(key),
-                            _lastDropHistogram.get(key)
+                            _similarityHistogram.get(key)
                     )
             );
         }
@@ -162,9 +153,6 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
             "Usage:\n" +
             "  <signature-blocks-file>";
     
-    private static final Logger LOGGER = Logger
-            .getLogger(SignatureBlocksStats.class.getName());
-    
     public static void main(String[] args) {
         
         if (args.length != 1) {
@@ -179,9 +167,6 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
         try (PrintWriter out = new PrintWriter(System.out)) {
             new SignatureBlocksReader(signatureFile).stream(consumer);
             consumer.print(out);
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
-            System.exit(-1);
         }
     }
 }

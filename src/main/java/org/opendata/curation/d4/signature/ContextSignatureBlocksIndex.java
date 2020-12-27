@@ -17,19 +17,43 @@
  */
 package org.opendata.curation.d4.signature;
 
-import org.opendata.core.object.IdentifiableObjectImpl;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 /**
- * A robust signature is an identifiable list of integers. Signature elements
- * are identifier of equivalence classes. The elements in the signature are
- * not assumed to be sorted.
+ * In-memory buffer for context signature blocks.
  * 
  * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public abstract class RobustSignature extends IdentifiableObjectImpl implements Iterable<Integer> {
+public class ContextSignatureBlocksIndex implements ContextSignatureBlocksConsumer {
+
+    private HashMap<Integer, List<ContextSignatureBlock>> _elements = null;
     
-    public RobustSignature(int id) {
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks) {
+
+        _elements.put(nodeId, blocks);
+    }
+    
+    public List<ContextSignatureBlock> get(int id) {
         
-        super(id);
+        if (_elements.containsKey(id)) {
+            return _elements.get(id);
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    public void open() {
+
+        _elements = new HashMap<>();
     }
 }

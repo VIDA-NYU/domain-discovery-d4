@@ -19,8 +19,8 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
+import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Block score function that uses the smaller of the column size and block size
@@ -30,25 +30,31 @@ import org.opendata.db.column.Column;
  */
 public class MinJIScore extends BlockScoreFunction {
 
-    public MinJIScore(
-            Integer[] eqTermCounts,
-            IdentifiableObjectSet<Column> columns
-    ) {
+    private final int _columnSize;
+    
+    public MinJIScore(IDSet column, Integer[] eqTermCounts) {
         
-        super(eqTermCounts, columns);
+        super(column, eqTermCounts);
+        
+        int termCount = 0;
+        for (int eqId : column) {
+            termCount += eqTermCounts[eqId];
+        }
+        _columnSize = termCount;
     }
     
     @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+    public BigDecimal score(SignatureBlock block) {
 
+        int overlap = this.overlap(block);
         if (overlap > 0) {
             return new BigDecimal(overlap)
                     .divide(
-			    new BigDecimal(Math.min(columnSize, blockSize)),
+			    new BigDecimal(Math.min(_columnSize, block.termCount())),
 			    MathContext.DECIMAL64
 		    );
         } else {
             return BigDecimal.ZERO;
         }
-    }    
+    }
 }

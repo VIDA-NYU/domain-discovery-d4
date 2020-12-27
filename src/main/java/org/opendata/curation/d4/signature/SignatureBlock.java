@@ -17,43 +17,21 @@
  */
 package org.opendata.curation.d4.signature;
 
+import org.opendata.core.set.SortedIDList;
+
 /**
  * Block in the robust signature for an equivalence class. Each block maintains
- * the similarity for the first and last entry in the blocks as well as the list
- * of all node identifier for the equivalence classes in the block.
+ * a list of block elements and the size of the block in the number of terms
+ * for all equivalence classes in the block.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlock {
-   
-    private final int[] _elements;
-    private final double _firstValue;
-    private final double _lastValue;
+public interface SignatureBlock extends SortedIDList {
     
-    public SignatureBlock(int[] elements, double firstValue, double lastValue) {
-        
-        _elements = elements;
-        _firstValue = firstValue;
-        _lastValue = lastValue;
-    }
-    
-    public int[] elements() {
-        
-        return _elements;
-    }
-    
-    public double firstValue() {
-        
-        return _firstValue;
-    }
-    
-    public double lastValue() {
-        
-        return _lastValue;
-    }
-    
-    public int length() {
-        
-        return _elements.length;
-    }
+    /**
+     * Total number of terms for all equivalence classes in the block.
+     * 
+     * @return 
+     */
+    public int termCount();
 }

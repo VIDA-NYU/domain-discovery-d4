@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,9 +28,31 @@ import java.util.Set;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksIndex implements RobustSignatureStream, SignatureBlocksConsumer {
+public class SignatureBlocksIndex implements SignatureBlocksStream, SignatureBlocksConsumer {
 
-    private final HashMap<Integer, List<SignatureBlock>> _elements = new HashMap<>();
+    private class IndexElement {
+        
+        private final List<SignatureBlock> _blocks;
+        private final BigDecimal _sim;
+        
+        public IndexElement(BigDecimal sim, List<SignatureBlock> blocks) {
+            
+            _sim = sim;
+            _blocks = blocks;
+        }
+        
+        public List<SignatureBlock> blocks() {
+            
+            return _blocks;
+        }
+        
+        public BigDecimal sim() {
+            
+            return _sim;
+        }
+    }
+    
+    private final HashMap<Integer, IndexElement> _elements = new HashMap<>();
     
     @Override
     public void close() {
@@ -37,15 +60,15 @@ public class SignatureBlocksIndex implements RobustSignatureStream, SignatureBlo
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<SignatureBlock> blocks) {
 
-        _elements.put(nodeId, blocks);
+        _elements.put(nodeId, new IndexElement(sim, blocks));
     }
 
     public List<SignatureBlock> get(int nodeId) {
     
         if (_elements.containsKey(nodeId)) {
-            return _elements.get(nodeId);
+            return _elements.get(nodeId).blocks();
         } else {
             return new ArrayList<>();
         }
@@ -62,14 +85,13 @@ public class SignatureBlocksIndex implements RobustSignatureStream, SignatureBlo
     }
 
     @Override
-    public void stream(RobustSignatureConsumer consumer) {
+    public void stream(SignatureBlocksConsumer consumer) {
         
         consumer.open();
         
         for (Integer nodeId : _elements.keySet()) {
-            RobustSignature sig;
-            sig = new RobustSignatureBlocks(nodeId, _elements.get(nodeId));
-            consumer.consume(sig);
+            IndexElement el = _elements.get(nodeId);
+            consumer.consume(0, el.sim(), el.blocks());
         }
         consumer.close();
     }

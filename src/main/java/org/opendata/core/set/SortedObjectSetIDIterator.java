@@ -15,18 +15,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.db.eq;
+package org.opendata.core.set;
 
-import java.util.List;
+import java.util.Iterator;
 import org.opendata.core.object.IdentifiableInteger;
-import org.opendata.core.set.SortedObjectSet;
+import org.opendata.core.object.IdentifiableObject;
 
 /**
- * Writer for generated equivalence classes.
+ * Iterator over the identifier in a sorted identifiable object set.
  * 
  * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @param <T>
  */
-public interface EQWriter {
-   
-    public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedObjectSet<T> columns);
+public class SortedObjectSetIDIterator <T extends IdentifiableObject> implements Iterator<Integer> {
+
+    private final SortedObjectSet<IdentifiableInteger> _elements;
+    private int _readIndex;
+    
+    public SortedObjectSetIDIterator(SortedObjectSet<IdentifiableInteger> elements) {
+        
+        _elements = elements;
+        _readIndex = 0;
+    }
+    
+    @Override
+    public boolean hasNext() {
+
+        return (_readIndex < _elements.objectCount());
+    }
+
+    @Override
+    public Integer next() {
+
+        return _elements.objectAt(_readIndex++).id();
+    }
 }

@@ -150,7 +150,7 @@ public class TermIndexFile {
             
             Collections.sort(columns, new IdentifiableObjectSort());
 
-            String cols = ColumnHelper.toArrayString(columns);
+            String cols = ColumnHelper.toArrayString(columns.iterator());
             _out.println(String.format("%d\t%s\t%s", _termId++, term, cols));
         }
     }
@@ -366,7 +366,7 @@ public class TermIndexFile {
         
         try (PrintWriter out = FileSystem.openPrintWriter(file)) {
             for (String term : terms) {
-                String cols = ColumnHelper.toArrayString(_buffer.get(term));
+                String cols = ColumnHelper.toArrayString(_buffer.get(term).iterator());
                 out.println(String.format("%s\t%s", term, cols));
             }
         }

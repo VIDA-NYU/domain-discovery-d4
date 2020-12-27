@@ -17,9 +17,11 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.RobustSignature;
+import java.util.List;
 import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.MultiBlockSignature;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Signature trimmer that simply returns the complete list of signature blocks.
@@ -36,8 +38,8 @@ public class NonTrimmer extends SignatureTrimmer {
     }
     
     @Override
-    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
+    public void trim(int id, List<SignatureBlock> blocks, RobustSignatureConsumer consumer) {
 
-        consumer.consume(sig);
+        consumer.consume(new MultiBlockSignature(id, blocks));
     }
 }

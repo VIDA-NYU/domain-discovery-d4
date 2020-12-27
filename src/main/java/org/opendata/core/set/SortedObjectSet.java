@@ -17,7 +17,6 @@
  */
 package org.opendata.core.set;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import org.opendata.core.object.IdentifiableObject;
 
@@ -27,11 +26,11 @@ import org.opendata.core.object.IdentifiableObject;
  * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  * @param <T>
  */
-public class SortedIDSet <T extends IdentifiableObject> implements Iterable<T> {
+public class SortedObjectSet <T extends IdentifiableObject> implements Iterable<Integer> {
    
     private final T[] _elements;
 
-    public SortedIDSet(T[] elements) {
+    public SortedObjectSet(T[] elements) {
 
         for (int i = 1; i < elements.length; i++) {
             if (elements[i - 1].id() >= elements[i].id()) {
@@ -50,15 +49,10 @@ public class SortedIDSet <T extends IdentifiableObject> implements Iterable<T> {
         _elements = elements;        
     }
     
-    public T get(int index) {
-        
-        return _elements[index];
-    }
-    
     @Override
-    public Iterator<T> iterator() {
+    public Iterator<Integer> iterator() {
 
-        return Arrays.asList(_elements).iterator();
+        return new SortedObjectSetIDIterator(this);
     }
     
     public String key() {
@@ -74,8 +68,27 @@ public class SortedIDSet <T extends IdentifiableObject> implements Iterable<T> {
         return buf.toString();
     }
     
-    public int length() {
+    public T objectAt(int index) {
+        
+        return _elements[index];
+    }
+    
+    public int objectCount() {
         
         return _elements.length;
+    }
+    
+    public T[] toArray() {
+        
+        return _elements;
+    }
+    
+    public Integer[] toKeyArray() {
+        
+        Integer[] keys = new Integer[_elements.length];
+        for (int iEl = 0; iEl < _elements.length; iEl++) {
+            keys[iEl] = _elements[iEl].id();
+        }
+        return keys;
     }
 }

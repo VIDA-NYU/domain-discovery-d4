@@ -30,11 +30,11 @@ import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -56,7 +56,7 @@ public class InMemLocalDomainGenerator {
         private final UniqueDomainSet _domains;
         private final Integer[] _eqTermCounts;
         private final int _id;
-        private final RobustSignatureStream _signatures;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -64,7 +64,7 @@ public class InMemLocalDomainGenerator {
                 int id,
                 Integer[] eqTermCounts,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 UniqueDomainSet domains,
                 boolean verbose
@@ -85,8 +85,6 @@ public class InMemLocalDomainGenerator {
 
             ExpandedColumn column;
             while ((column = _columns.poll()) != null) {
-                MutableIdentifiableIDSet col;
-                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
@@ -94,13 +92,9 @@ public class InMemLocalDomainGenerator {
                         _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
+                trimmer = _trimmerFactory.getSignatureTrimmer(column, domainGenerator);
                 Date runStart = new Date();
-                try {
-                    _signatures.stream(trimmer);
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
-                }
+                _signatures.stream(trimmer);
                 Date runEnd = new Date();
                 System.out.println(column.id() + " (" + column.totalSize() + "): " + (runEnd.getTime() - runStart.getTime()) + " ms");
             }
@@ -130,7 +124,7 @@ public class InMemLocalDomainGenerator {
     public void run(
             Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
-            RobustSignatureStream signatures,
+            SignatureBlocksStream signatures,
             SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,

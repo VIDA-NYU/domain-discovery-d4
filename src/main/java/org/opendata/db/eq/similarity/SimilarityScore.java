@@ -15,27 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.db.eq.similarity;
 
 import java.math.BigDecimal;
-import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * Similarity score for a pair of equivalence classes. Maintains the overlap
+ * between the two equivalence classes and the similarity score. The overlap
+ * is maintained by some data structures to avoid repeated overlap computation
+ * in an interactive setting.
+ * 
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore extends BlockScoreFunction {
-
-    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
+public class SimilarityScore {
+   
+    private final int _overlap;
+    private final BigDecimal _score;
     
-        super(column, eqTermCounts);
+    public SimilarityScore(int overlap, BigDecimal score) {
+    
+        _overlap = overlap;
+        _score = score;
     }
-
-    @Override
-    public BigDecimal score(SignatureBlock block) {
-
-        return new Precision(this.overlap(block), block.termCount()).value();
+    
+    public int overlap() {
+        
+        return _overlap;
+    }
+    
+    public BigDecimal score() {
+        
+        return _score;
     }
 }

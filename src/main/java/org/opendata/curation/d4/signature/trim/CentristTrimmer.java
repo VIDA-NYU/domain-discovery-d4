@@ -17,19 +17,18 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import org.opendata.curation.d4.signature.MultiBlockSignature;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.opendata.curation.d4.signature.RobustSignature;
 import org.opendata.core.constraint.GreaterThanConstraint;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Centrist signature blocks trimmer. The centrist trimmer uses a scoring
@@ -41,25 +40,23 @@ import org.opendata.curation.d4.signature.RobustSignatureConsumer;
  */
 public class CentristTrimmer extends SignatureTrimmer {
 
-    private final int _columnId;
     private final MaxDropFinder<IdentifiableDouble> _dropFinder;
     private final BlockScoreFunction _scoreFunc;
 
     public CentristTrimmer(
-            IdentifiableIDSet column,
+            IDSet column,
             BlockScoreFunction scoreFunc,
             MaxDropFinder<IdentifiableDouble> dropFinder,
             RobustSignatureConsumer consumer
     ) {
         super(column, consumer);
         
-        _columnId = column.id();
         _scoreFunc = scoreFunc;
         _dropFinder = dropFinder;
     }
 
     public CentristTrimmer(
-            IdentifiableIDSet column,
+            IDSet column,
             BlockScoreFunction scoreFunc,
             RobustSignatureConsumer consumer
     ) {
@@ -77,38 +74,27 @@ public class CentristTrimmer extends SignatureTrimmer {
     }
 
     @Override
-    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
+    public void trim(int id, List<SignatureBlock> blocks, RobustSignatureConsumer consumer) {
 
         List<IdentifiableDouble> elements = new ArrayList<>();
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            final int[] block = sig.get(iBlock);
-            BigDecimal score = _scoreFunc.score(block, _columnId);
+        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
+            final SignatureBlock block = blocks.get(iBlock);
+            BigDecimal score = _scoreFunc.score(block);
             elements.add(new IdentifiableDouble(iBlock, score));
         }
         Collections.sort(elements, new DoubleValueDescSort());
         int dropIndex = _dropFinder.getPruneIndex(elements);
-        if (dropIndex > 0) {
-            if (elements.get(0).value() > 0) {
-                consumer.consume(new CentristSignature(sig, elements, dropIndex));
+        List<SignatureBlock> sig = new ArrayList<>();
+        for (int iEl = 0; iEl < dropIndex; iEl++) {
+            IdentifiableDouble el = elements.get(iEl);
+            if (el.value() > 0) {
+                sig.add(blocks.get(el.id()));
+            } else {
+                break;
             }
         }
-    }
-
-    public IDSet trimmedBlocks(RobustSignature sig) {
-
-        List<IdentifiableDouble> elements = new ArrayList<>();
-        for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-            final int[] block = sig.get(iBlock);
-            BigDecimal score = _scoreFunc.score(block, _columnId);
-            elements.add(new IdentifiableDouble(iBlock, score));
+        if (!sig.isEmpty()) {
+            consumer.consume(new MultiBlockSignature(id, sig));
         }
-        Collections.sort(elements, new DoubleValueDescSort());
-        int dropIndex = _dropFinder.getPruneIndex(elements);
-        
-        HashIDSet result = new HashIDSet();
-        for (int iEl = 0; iEl < dropIndex; iEl++) {
-            result.add(elements.get(iEl).id());
-        }
-        return result;
     }
 }

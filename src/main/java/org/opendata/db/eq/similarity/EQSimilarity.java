@@ -17,8 +17,6 @@
  */
 package org.opendata.db.eq.similarity;
 
-import java.math.BigDecimal;
-
 /**
  * Similarity function for two equivalence classes. This interface abstracts
  * from the function as well as the representation of equivalence classes.
@@ -36,5 +34,5 @@ public interface EQSimilarity {
      * @param eq2
      * @return 
      */
-    public BigDecimal sim(int eq1, int eq2);
+    public SimilarityScore sim(int eq1, int eq2);
 }

@@ -17,37 +17,12 @@
  */
 package org.opendata.curation.d4.signature;
 
-import java.util.List;
-
 /**
- * Use two-dimensional array to represent signature blocks.
+ * Interface for classes that produce a stream of signature blocks.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class RobustSignatureImpl extends RobustSignature {
-
-    private final int[][] _blocks;
-
-    public RobustSignatureImpl(int id, List<int[]> blocks) {
-        
-        super(id, blocks.size());
-        
-        _blocks = new int[blocks.size()][];
-        for (int iBlock = 0; iBlock < blocks.size(); iBlock++) {
-            _blocks[iBlock] = blocks.get(iBlock);
-        }
-    }
+public interface SignatureBlocksStream {
     
-    public RobustSignatureImpl(int id, int[][] blocks) {
-        
-        super(id, blocks.length);
-        
-        _blocks = blocks;
-    }
-
-    @Override
-    public int[] get(int index) {
-
-        return _blocks[index];
-    }
+    public void stream(SignatureBlocksConsumer consumer);
 }

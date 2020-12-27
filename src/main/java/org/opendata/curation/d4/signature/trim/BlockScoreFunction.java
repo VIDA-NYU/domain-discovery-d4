@@ -18,10 +18,8 @@
 package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
+import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Score function for signature blocks.
@@ -30,93 +28,45 @@ import org.opendata.db.column.Column;
  */
 public abstract class BlockScoreFunction {
     
-    private final HashMap<Integer, int[]> _columns;
-    private final HashMap<Integer, Integer> _columnSize;
+    private final Integer[] _column;
     private final Integer[] _eqTermCounts;
     
-    public BlockScoreFunction(
-            Integer[] eqTermCounts,
-            IdentifiableObjectSet<Column> columns
-    ) {
+    public BlockScoreFunction(IDSet column, Integer[] eqTermCounts) {
         
+        _column = new Integer[column.length()];
+        column.toSortedList().toArray(_column);
         _eqTermCounts = eqTermCounts;
-        
-        _columns = new HashMap<>();
-        _columnSize = new HashMap<>();
-        
-        for (IdentifiableIDSet column : columns) {
-            _columns.put(column.id(), column.toArray());
-            int size = 0;
-            for (int nodeId : column) {
-                size += _eqTermCounts[nodeId];
-            }
-            _columnSize.put(column.id(), size);
-        }
-        
     }
     
-    /**
-     * Get the maximum score of a signature block over all columns.
-     * 
-     * @param block
-     * @param columns
-     * @return 
-     */
-    public BigDecimal maxScore(int[] block, Iterable<Integer> columns) {
-    
-        BigDecimal max = BigDecimal.ZERO;
+    public int overlap(SignatureBlock block) {
+
+        final int len1 = _column.length;
+        final int len2 = block.elementCount();
         
-        for (int columnId : columns) {
-            BigDecimal score = this.score(block, columnId);
-            if (score.compareTo(max) > 0) {
-                max = score;
-            }
-        }
-        
-        return max;
-    }
-    
-    public abstract BigDecimal relevance(int columnSize, int blockSize, int overlap);
-    
-    /**
-     * Return score of a signature block for a given column.
-     * 
-     * @param block
-     * @param columnId
-     * @return 
-     */
-    public BigDecimal score(int[] block, int columnId) {
-        
-        final int[] column = _columns.get(columnId);
-        final int len1 = block.length;
-        final int len2 = column.length;
         int idx1 = 0;
         int idx2 = 0;
-        int blSize = 0;
         int overlap = 0;
+        
         while ((idx1 < len1) && (idx2 < len2)) {
-            final int nodeId = block[idx1];
-            int comp = Integer.compare(nodeId, column[idx2]);
+            int comp = Integer.compare(_column[idx1], block.elementAt(idx2));
             if (comp < 0) {
-                blSize += _eqTermCounts[nodeId];
                 idx1++;
             } else if (comp > 0) {
                 idx2++;
             } else {
-                int nodeSize = _eqTermCounts[nodeId];
-                blSize += nodeSize;
-                overlap += nodeSize;
+                overlap += _eqTermCounts[_column[idx1]];
                 idx1++;
                 idx2++;
             }
         }
-        if (overlap > 0) {
-            while (idx1 < len1) {
-                blSize += _eqTermCounts[block[idx1++]];
-            }
-            return this.relevance(_columnSize.get(columnId), blSize, overlap);
-        } else {
-            return BigDecimal.ZERO;
-        }
+        
+        return overlap;
     }
+    /**
+     * Get score for a given signature block.
+     * 
+     * @param block
+     * @return 
+     */
+    public abstract BigDecimal score(SignatureBlock block);
 }

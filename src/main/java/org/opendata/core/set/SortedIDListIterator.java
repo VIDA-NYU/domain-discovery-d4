@@ -15,27 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.core.set;
 
-import java.math.BigDecimal;
-import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import java.util.Iterator;
 
 /**
- *
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * Iterator for a list of sorted integers.
+ * 
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore extends BlockScoreFunction {
+public class SortedIDListIterator implements Iterator<Integer> {
 
-    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
+    private final SortedIDList _elements;
+    private int _readIndex;
     
-        super(column, eqTermCounts);
+    public SortedIDListIterator(SortedIDList elements) {
+        
+        _elements = elements;
+        _readIndex = 0;
+    }
+    
+    @Override
+    public boolean hasNext() {
+
+        return (_readIndex < _elements.elementCount());
     }
 
     @Override
-    public BigDecimal score(SignatureBlock block) {
+    public Integer next() {
 
-        return new Precision(this.overlap(block), block.termCount()).value();
+        return _elements.elementAt(_readIndex++);
     }
 }

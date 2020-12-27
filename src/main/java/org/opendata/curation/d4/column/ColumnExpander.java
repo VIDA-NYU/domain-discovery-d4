@@ -21,11 +21,11 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Write set of expanded column equivalence classes to file.
@@ -40,7 +40,7 @@ public class ColumnExpander implements Runnable {
     private final Integer[] _eqTermCounts;
     private final int _id;
     private final int _numberOfIterations;
-    private final RobustSignatureStream _signatures;
+    private final SignatureBlocksStream _signatures;
     private final Threshold _threshold;
     private final SignatureTrimmerFactory _trimmerFactory;
               
@@ -48,7 +48,7 @@ public class ColumnExpander implements Runnable {
             int id,
             Integer[] eqTermCounts,
             List<ExpandedColumn> columns,
-            RobustSignatureStream signatures,
+            SignatureBlocksStream signatures,
             SignatureTrimmerFactory trimmerFactory,
             Threshold threshold,
             BigDecimal decreaseFactor,
@@ -72,7 +72,7 @@ public class ColumnExpander implements Runnable {
         System.out.println("TASK " + _id + " EXPAND " + _columns.size() + " COLUMNS");
         
         List<SingleColumnExpander> expanders = new ArrayList<>();
-        RobustSignatureDispatcher dispatcher = new RobustSignatureDispatcher();
+        SignatureBlocksDispatcher dispatcher = new SignatureBlocksDispatcher();
         
         for (ExpandedColumn column : _columns) {
             SingleColumnExpander columnExpander;
@@ -86,8 +86,8 @@ public class ColumnExpander implements Runnable {
             if (!columnExpander.isDone()) {
                 SignatureTrimmer trimmer;
                 trimmer = _trimmerFactory
-                        .getTrimmer(
-                                column.id(),
+                        .getSignatureTrimmer(
+                                column,
                                 columnExpander
                         );
                 dispatcher.add(trimmer);
@@ -105,13 +105,9 @@ public class ColumnExpander implements Runnable {
                     "TASK " + _id + " ROUND " + round + " WITH " + expanders.size() +
                     " ACTIVE EXPANDERS @ " + new Date()
             );
-            try {
-                _signatures.stream(dispatcher);
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
-            }
+            _signatures.stream(dispatcher);
             ArrayList<SingleColumnExpander> active = new ArrayList<>();
-            dispatcher = new RobustSignatureDispatcher();
+            dispatcher = new SignatureBlocksDispatcher();
             int expansionCount = 0;
             int expandedCount = 0;
             for (SingleColumnExpander expander : expanders) {
@@ -126,8 +122,8 @@ public class ColumnExpander implements Runnable {
                     active.add(expander);
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(
-                                    expander.column().id(),
+                            .getSignatureTrimmer(
+                                    expander.column(),
                                     expander
                             );
                     dispatcher.add(trimmer);

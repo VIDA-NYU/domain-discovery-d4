@@ -15,27 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature.trim;
+package org.opendata.curation.d4.signature;
 
 import java.math.BigDecimal;
-import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IDSet;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import java.util.List;
 
 /**
- *
+ * Consumer for a stream of context signature blocks.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class PrecisionScore extends BlockScoreFunction {
-
-    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
-    
-        super(column, eqTermCounts);
-    }
-
-    @Override
-    public BigDecimal score(SignatureBlock block) {
-
-        return new Precision(this.overlap(block), block.termCount()).value();
-    }
+public interface ContextSignatureBlocksConsumer {
+   
+    public void close();
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks);
+    public void open();
 }

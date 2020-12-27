@@ -17,9 +17,12 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.RobustSignature;
+import java.math.BigDecimal;
+import java.util.List;
 import org.opendata.core.object.ObjectFilter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import org.opendata.curation.d4.signature.SignatureBlock;
+import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
 
 /**
  * Base class for signature trimmer. The trimmer is used to generate robust
@@ -28,14 +31,7 @@ import org.opendata.curation.d4.signature.RobustSignatureConsumer;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public abstract class SignatureTrimmer implements RobustSignatureConsumer {
-    
-    /**
-     * Global variables for trimmer types
-     */
-    public final static String CENTRIST = "CENTRIST";
-    public final static String CONSERVATIVE = "CONSERVATIVE";
-    public final static String LIBERAL = "LIBERAL";
+public abstract class SignatureTrimmer implements SignatureBlocksConsumer {
     
     private final RobustSignatureConsumer _consumer;
     private final ObjectFilter<Integer> _filter;
@@ -63,10 +59,10 @@ public abstract class SignatureTrimmer implements RobustSignatureConsumer {
     }
     
     @Override
-    public void consume(RobustSignature sig) {
+    public void consume(int id, BigDecimal sim, List<SignatureBlock> blocks) {
 
-        if ((_filter.contains(sig.id())) && (!sig.isEmpty())) {
-            this.trim(sig, _consumer);
+        if ((_filter.contains(id)) && (!blocks.isEmpty())) {
+            this.trim(id, blocks, _consumer);
         }
     }
     
@@ -79,8 +75,9 @@ public abstract class SignatureTrimmer implements RobustSignatureConsumer {
     /**
      * Trim the given signature and pass the result to the given consumer.
      * 
-     * @param sig
+     * @param id
+     * @param blocks
      * @param consumer 
      */
-    public abstract void trim(RobustSignature sig, RobustSignatureConsumer consumer);
+    public abstract void trim(int id, List<SignatureBlock> blocks, RobustSignatureConsumer consumer);
 }

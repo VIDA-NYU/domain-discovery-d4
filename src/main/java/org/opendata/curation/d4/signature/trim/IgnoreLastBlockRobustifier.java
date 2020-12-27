@@ -17,9 +17,10 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import java.math.BigDecimal;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
 
 /**
  * Robustifier for context signatures that retains all but the last block. If
@@ -30,14 +31,14 @@ import org.opendata.curation.d4.signature.SignatureBlock;
  */
 public class IgnoreLastBlockRobustifier extends SignatureRobustifier {
 
-    public IgnoreLastBlockRobustifier(SignatureBlocksConsumer consumer) {
+    public IgnoreLastBlockRobustifier(ContextSignatureBlocksConsumer consumer) {
         
         super(consumer);
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks) {
 
-        this.push(nodeId, blocks, Math.max(1, blocks.size() - 1));
+        this.push(nodeId, sim, blocks, Math.max(1, blocks.size() - 1));
     }
 }

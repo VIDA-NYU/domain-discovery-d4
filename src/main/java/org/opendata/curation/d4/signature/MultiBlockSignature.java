@@ -17,12 +17,28 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.util.Iterator;
+import java.util.List;
+
 /**
- * Stream of signature blocks.
+ * Robust signature that contains a list of signature blocks.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface RobustSignatureStream {
+public class MultiBlockSignature extends RobustSignature {
+
+    private final List<SignatureBlock> _blocks;
     
-    public void stream(RobustSignatureConsumer consumer) throws java.io.IOException;
+    public MultiBlockSignature(int id, List<SignatureBlock> blocks) {
+        
+        super(id);
+        
+        _blocks = blocks;
+    }
+    
+    @Override
+    public Iterator<Integer> iterator() {
+
+        return new MultiBlockSignatureIterator(_blocks);
+    }
 }

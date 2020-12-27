@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.urban.data.test.set;
+package org.opendata.test.core.set;
 
 import org.junit.After;
 import org.junit.AfterClass;

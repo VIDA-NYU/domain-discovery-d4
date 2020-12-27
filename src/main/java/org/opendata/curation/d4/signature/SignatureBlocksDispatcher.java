@@ -17,6 +17,7 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,23 +25,23 @@ import java.util.List;
  * The dispatcher manages a set of consumers. Each signature that is handled by
  * the dispatcher is forwarded to each of the managed consumers.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class RobustSignatureDispatcher implements RobustSignatureConsumer {
-    
-    private final List<RobustSignatureConsumer> _consumers;
+public class SignatureBlocksDispatcher implements SignatureBlocksConsumer {
 
-    public RobustSignatureDispatcher(List<RobustSignatureConsumer> consumers) {
+    private final List<SignatureBlocksConsumer> _consumers;
+
+    public SignatureBlocksDispatcher(List<SignatureBlocksConsumer> consumers) {
 
         _consumers = consumers;
     }
 
-    public RobustSignatureDispatcher() {
+    public SignatureBlocksDispatcher() {
         
         this(new ArrayList<>());
     }
     
-    public void add(RobustSignatureConsumer consumer) {
+    public void add(SignatureBlocksConsumer consumer) {
         
         _consumers.add(consumer);
     }
@@ -48,23 +49,23 @@ public class RobustSignatureDispatcher implements RobustSignatureConsumer {
     @Override
     public void close() {
 
-        for (RobustSignatureConsumer consumer : _consumers) {
+        for (SignatureBlocksConsumer consumer : _consumers) {
             consumer.close();
         }
    }
 
     @Override
-    public void consume(RobustSignature sig) {
+    public void consume(int nodeId, BigDecimal sim, List<SignatureBlock> blocks) {
 
-        for (RobustSignatureConsumer consumer : _consumers) {
-            consumer.consume(sig);
+        for (SignatureBlocksConsumer consumer : _consumers) {
+            consumer.consume(nodeId, sim, blocks);
         }
     }
 
     @Override
     public void open() {
 
-        for (RobustSignatureConsumer consumer : _consumers) {
+        for (SignatureBlocksConsumer consumer : _consumers) {
             consumer.open();
         }
     }

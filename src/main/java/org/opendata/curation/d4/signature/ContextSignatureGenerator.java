@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.opendata.db.eq.similarity.EQSimilarity;
+import org.opendata.db.eq.similarity.SimilarityScore;
 
 
 /**
@@ -47,12 +48,12 @@ public class ContextSignatureGenerator {
      */
     public ContextSignature getSignature(int id) {
         
-        ArrayList<SignatureValue> elements = new ArrayList<>();        
+        ArrayList<ContextSignatureValue> elements = new ArrayList<>();        
         for (Integer nodeJ : _nodes) {
             if (id != nodeJ) {
-                BigDecimal sim = _simFunc.sim(id, nodeJ);
-                if (sim.compareTo(BigDecimal.ZERO) > 0) {
-                    elements.add(new SignatureValue(nodeJ, sim));
+                SimilarityScore sim = _simFunc.sim(id, nodeJ);
+                if (sim.score().compareTo(BigDecimal.ZERO) > 0) {
+                    elements.add(new ContextSignatureValue(nodeJ, sim));
                 }
             }
         }

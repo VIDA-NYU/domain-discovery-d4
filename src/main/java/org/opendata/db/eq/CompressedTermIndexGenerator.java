@@ -24,7 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.SortedIDSet;
+import org.opendata.core.set.SortedObjectSet;
+import org.opendata.core.set.SortedObjectSetIterator;
 import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.IdentifiableCount;
 import org.opendata.db.column.ColumnHelper;
@@ -55,7 +56,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
         }
         
         @Override
-        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedIDSet<T> columns) {
+        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedObjectSet<T> columns) {
 
             Collections.sort(terms);
             
@@ -64,7 +65,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
                             "%d\t%s\t%s",
                             _counter++,
                             StringHelper.joinIntegers(terms),
-                            ColumnHelper.toArrayString(columns)
+                            ColumnHelper.toArrayString(new SortedObjectSetIterator<>(columns))
                     )
             );
         }
@@ -72,7 +73,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
     
     private class MutableEQ  {
 
-        private final SortedIDSet<IdentifiableCount> _columns;
+        private final SortedObjectSet<IdentifiableCount> _columns;
         private final List<Integer> _terms;
 
         public MutableEQ(Term term) {
@@ -80,13 +81,13 @@ public class CompressedTermIndexGenerator implements TermConsumer {
             _terms = new ArrayList<>();
             _terms.add(term.id());
 
-            SortedIDSet<IdentifiableInteger> columns = term.columns();
-            IdentifiableCount[] counts = new IdentifiableCount[columns.length()];
-            for (int iEl = 0; iEl < columns.length(); iEl++) {
-                IdentifiableInteger col = columns.get(iEl);
+            SortedObjectSet<IdentifiableInteger> columns = term.columns();
+            IdentifiableCount[] counts = new IdentifiableCount[columns.objectCount()];
+            for (int iEl = 0; iEl < columns.objectCount(); iEl++) {
+                IdentifiableInteger col = columns.objectAt(iEl);
                 counts[iEl] = new IdentifiableCount(col.id(), col.value());
             }
-            _columns = new SortedIDSet<>(counts);
+            _columns = new SortedObjectSet<>(counts);
         }
         
         /**
@@ -99,10 +100,10 @@ public class CompressedTermIndexGenerator implements TermConsumer {
         public void add(Term term) {
 
             _terms.add(term.id());
-            SortedIDSet<IdentifiableInteger> columns = term.columns();
-            for (int iCol = 0; iCol < _columns.length(); iCol++) {
-                IdentifiableCount counter = _columns.get(iCol);
-                IdentifiableInteger col = columns.get(iCol);
+            SortedObjectSet<IdentifiableInteger> columns = term.columns();
+            for (int iCol = 0; iCol < _columns.objectCount(); iCol++) {
+                IdentifiableCount counter = _columns.objectAt(iCol);
+                IdentifiableInteger col = columns.objectAt(iCol);
                 if (counter.id() != col.id()) {
                     throw new IllegalArgumentException(
                             String.format(
@@ -117,7 +118,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
             }
         }
 
-        public SortedIDSet<IdentifiableCount> columns() {
+        public SortedObjectSet<IdentifiableCount> columns() {
             
             return _columns;
         }
@@ -163,7 +164,7 @@ public class CompressedTermIndexGenerator implements TermConsumer {
     @Override
     public void consume(Term term) {
 
-        SortedIDSet<IdentifiableInteger> columns = term.columns();
+        SortedObjectSet<IdentifiableInteger> columns = term.columns();
         String key = columns.key();
         if (_eqIndex.containsKey(key)) {
             _eqIndex.get(key).add(term);

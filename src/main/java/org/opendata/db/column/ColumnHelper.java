@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.opendata.core.object.IdentifiableInteger;
-import org.opendata.core.set.SortedIDSet;
+import org.opendata.core.set.SortedObjectSet;
 import org.opendata.core.util.IdentifiableCount;
 
 /**
@@ -64,7 +64,7 @@ public final class ColumnHelper {
      * @param text
      * @return 
      */
-    public static SortedIDSet<IdentifiableInteger> fromSortedArrayString(String text) {
+    public static SortedObjectSet<IdentifiableInteger> fromSortedArrayString(String text) {
         
         String[] tokens = text.split(",");
         IdentifiableInteger[] elements = new IdentifiableInteger[tokens.length];
@@ -75,7 +75,7 @@ public final class ColumnHelper {
             int val = Integer.parseInt(pair.substring(pos + 1));
             elements[iToken] = new IdentifiableCount(id, val);
         }
-        return new SortedIDSet<>(elements);
+        return new SortedObjectSet<>(elements);
     }
 
     /**
@@ -102,13 +102,12 @@ public final class ColumnHelper {
      * @param elements
      * @return 
      */
-    public static <T extends IdentifiableInteger> String toArrayString(Iterable<T> elements) {
+    public static <T extends IdentifiableInteger> String toArrayString(Iterator<T> elements) {
         
 	StringBuilder buf = new StringBuilder();
 	
-        Iterator<T> iterator = elements.iterator();
-	while (iterator.hasNext()) {
-            IdentifiableInteger el = iterator.next();
+	while (elements.hasNext()) {
+            IdentifiableInteger el = elements.next();
             if (buf.length() > 0) {
                 buf.append(",");
             }

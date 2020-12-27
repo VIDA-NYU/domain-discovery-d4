@@ -29,11 +29,11 @@ import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -57,7 +57,7 @@ public class ExternalMemLocalDomainGenerator {
         private final UniqueDomainSet _domains;
         private final Integer[] _eqTermCounts;
         private final int _id;
-        private final RobustSignatureStream _signatures;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
@@ -65,7 +65,7 @@ public class ExternalMemLocalDomainGenerator {
                 int id,
                 Integer[] eqTermCounts,
                 List<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
                 UniqueDomainSet domains,
                 boolean verbose
@@ -82,12 +82,10 @@ public class ExternalMemLocalDomainGenerator {
         @Override
         public void run() {
             
-            RobustSignatureDispatcher dispatcher;
-            dispatcher = new RobustSignatureDispatcher();
+            SignatureBlocksDispatcher dispatcher;
+            dispatcher = new SignatureBlocksDispatcher();
             
             for (ExpandedColumn column : _columns) {
-                MutableIdentifiableIDSet col;
-                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
@@ -95,17 +93,13 @@ public class ExternalMemLocalDomainGenerator {
                         _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
+                trimmer = _trimmerFactory.getSignatureTrimmer(column, domainGenerator);
                 dispatcher.add(trimmer);
             }
             
             Date start = new Date();
 
-            try {
-                _signatures.stream(dispatcher);
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
-            }
+            _signatures.stream(dispatcher);
             
             Date end = new Date();
             
@@ -132,7 +126,7 @@ public class ExternalMemLocalDomainGenerator {
     public void run(
             Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
-            RobustSignatureStream signatures,
+            SignatureBlocksStream signatures,
             SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,

@@ -30,13 +30,13 @@ import org.opendata.core.sort.DoubleValueDescSort;
  */
 public class ContextSignature implements Comparable<ContextSignature>, IdentifiableObject {
     
-    private final SignatureValue[] _elements;
+    private final ContextSignatureValue[] _elements;
     private final int _id;
     
-    public ContextSignature(int id, List<SignatureValue> elements) {
+    public ContextSignature(int id, List<ContextSignatureValue> elements) {
         
 	_id = id;
-        _elements = new SignatureValue[elements.size()];
+        _elements = new ContextSignatureValue[elements.size()];
         for (int iElement = 0; iElement < elements.size(); iElement++) {
             _elements[iElement] = elements.get(iElement);
         }
@@ -45,7 +45,7 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
 
     public ContextSignature(int id) {
 
-	this(id, new ArrayList<SignatureValue>());
+	this(id, new ArrayList<ContextSignatureValue>());
     }
     
     @Override
@@ -54,7 +54,7 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
         return Integer.compare(this.size(), vec.size());
     }
     
-    public List<SignatureValue> elements() {
+    public List<ContextSignatureValue> elements() {
     
         return Arrays.asList(_elements);
     }
@@ -70,9 +70,9 @@ public class ContextSignature implements Comparable<ContextSignature>, Identifia
         return (_elements.length == 0);
     }
     
-    public List<SignatureValue> rankedElements() {
+    public List<ContextSignatureValue> rankedElements() {
         
-        List<SignatureValue> elements = this.elements();
+        List<ContextSignatureValue> elements = this.elements();
         Collections.sort(elements, new DoubleValueDescSort<>());
         return elements;
     }

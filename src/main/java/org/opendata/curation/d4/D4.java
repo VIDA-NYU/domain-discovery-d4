@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
@@ -35,22 +34,17 @@ import org.opendata.curation.d4.domain.DomainSetStatsPrinter;
 import org.opendata.curation.d4.domain.DomainWriter;
 import org.opendata.curation.d4.domain.ExternalMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
-import org.opendata.curation.d4.signature.RobustSignatureGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.HashObjectSet;
-import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
-import org.opendata.curation.d4.signature.SignatureBlocksWriter;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
-import org.opendata.db.column.Column;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksWriter;
+import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
 import org.opendata.db.eq.CompressedTermIndexFile;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.term.TermIndexGenerator;
@@ -168,7 +162,7 @@ public class D4 {
         new ParallelColumnExpander(telemetry).run(
                 db.getEQTermCounts(),
                 new SignatureBlocksReader(signatureFile),
-                db.getSignatureTrimmerFactory(trimmer),
+                db.getSignatureTrimmerFactory(trimmer, true),
                 db.getColumns(),
                 expandThreshold,
                 decreaseFactor,
@@ -272,23 +266,12 @@ public class D4 {
         SignatureBlocksReader signatures;
         signatures = new SignatureBlocksReader(signatureFile);
         
-        SignatureTrimmerFactory trimmerFactory;
-        if (originalOnly) {
-            trimmerFactory = db.getSignatureTrimmerFactory(trimmer);
-        } else {
-            HashObjectSet<Column> columns = new HashObjectSet<>();
-            for (ExpandedColumn column : columnIndex) {
-                columns.add(column.asColumn());
-            }
-            trimmerFactory = db.getSignatureTrimmerFactory(trimmer, columns);
-        }
-        
         if (inMem) {
             new InMemLocalDomainGenerator(telemetry).run(
                 db.getEQTermCounts(),
                 columnIndex,
                 signatures.read(),
-                trimmerFactory,
+                db.getSignatureTrimmerFactory(trimmer, originalOnly),
                 threads,
                 verbose,
                 new DomainWriter(outputFile)
@@ -298,7 +281,7 @@ public class D4 {
                     db.getEQTermCounts(),
                     columnIndex,
                     signatures,
-                    trimmerFactory,
+                    db.getSignatureTrimmerFactory(trimmer, originalOnly),
                     threads,
                     verbose,
                     new DomainWriter(outputFile)
@@ -352,9 +335,10 @@ public class D4 {
             );
         }
 
-        SignatureBlocksWriter sigWriter = new SignatureBlocksWriter(outputFile);
-        new RobustSignatureGenerator(telemetry).run(
+        ContextSignatureBlocksWriter sigWriter = new ContextSignatureBlocksWriter(outputFile);
+        new SignatureBlocksGenerator(telemetry).run(
                 db.getEQIdentifiers(),
+                db.getEQTermCounts(),
                 db.getEQSimilarityFunction(sigSimSpec),
                 fullSignatureConstraint,
                 ignoreLastDrop,
@@ -690,7 +674,7 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
+                                "<string> [default: " + D4Config.TRIMMER_CENTRIST + "]"
                         ),
                         new Parameter("expandThreshold", "<constraint> [default: 'GT0.25']"),
                         new Parameter("decrease", "<double> [default: 0.05]"),
@@ -703,7 +687,7 @@ public class D4 {
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
+            String trimmer = params.getAsString("trimmer", D4Config.TRIMMER_CENTRIST);
             Threshold expandThreshold = params.getAsConstraint("expandThreshold", "GT0.25");
             BigDecimal decreaseFactor = params
                     .getAsBigDecimal("decrease", new BigDecimal("0.05"));
@@ -742,7 +726,7 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
+                                "<string> [default: " + D4Config.TRIMMER_CENTRIST + "]"
                         ),
                         new Parameter("originalonly", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
@@ -758,7 +742,7 @@ public class D4 {
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
+            String trimmer = params.getAsString("trimmer", D4Config.TRIMMER_CENTRIST);
             boolean originalOnly = params.getAsBool("originalonly", false);
             int threads = params.getAsInt("threads", 6);
             boolean inMem = params.getAsBool("inmem", false);

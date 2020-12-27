@@ -15,25 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.opendata.curation.d4.signature;
-
-import java.math.BigDecimal;
-import org.opendata.core.object.IdentifiableDouble;
+package org.opendata.core.set;
 
 /**
- * Element in a context signature.
+ * Interface for sorted list of unique identifiers.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureValue extends IdentifiableDouble {
+public interface SortedIDList extends Iterable<Integer> {
     
-    public SignatureValue(int id, double value) {
+    /**
+     * Get the array element at the given index position.
+     * 
+     * @param index
+     * @return 
+     */
+    public Integer elementAt(int index);
 
-        super(id, value);
-    }
-    
-    public SignatureValue(int id, BigDecimal value) {
-
-        super(id, value);
-    }
+    /**
+     * Get the number of elements in this array.
+     * 
+     * @return 
+     */
+    public int elementCount();
 }

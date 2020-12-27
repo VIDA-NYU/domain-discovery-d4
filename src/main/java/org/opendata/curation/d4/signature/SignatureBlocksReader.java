@@ -19,8 +19,8 @@ package org.opendata.curation.d4.signature;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.opendata.core.io.FileSetReader;
 import org.opendata.core.io.FileSystem;
@@ -31,15 +31,11 @@ import org.opendata.core.io.FileSystem;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class SignatureBlocksReader extends FileSetReader implements RobustSignatureStream {
+public class SignatureBlocksReader extends FileSetReader implements SignatureBlocksStream {
    
-    private final File _file;
-    
     public SignatureBlocksReader(File file, boolean verbose) {
         
         super(file, verbose);
-        
-        _file = file;
     }
 
     public SignatureBlocksReader(File file) {
@@ -50,40 +46,17 @@ public class SignatureBlocksReader extends FileSetReader implements RobustSignat
     public SignatureBlocksReader(List<File> files, File directory) {
         
         super(files, false);
-        
-        _file = directory;
     }
     
-    private SignatureBlock getBlock(String text) {
+    public SignatureBlocksIndex read() throws java.io.IOException {
         
-        String[] tokens = text.substring(0, text.indexOf(":")).split("-");
-        return new SignatureBlock(
-                this.getBlockNodes(text),
-                Double.parseDouble(tokens[0]),
-                Double.parseDouble(tokens[1])
-        );
-    }
-    
-    private int[] getBlockNodes(String text) {
-        
-        String[] tokens = text.substring(text.indexOf(":") + 1).split(",");
-        int[] nodes = new int[tokens.length];
-        for (int iToken = 0; iToken < tokens.length; iToken++) {
-            nodes[iToken] = Integer.parseInt(tokens[iToken]);
-        }
-        Arrays.sort(nodes);
-        return nodes;
-    }
-    
-    public RobustSignatureIndex read() throws java.io.IOException {
-        
-        RobustSignatureIndex buffer = new RobustSignatureIndex();
+        SignatureBlocksIndex buffer = new SignatureBlocksIndex();
         this.stream(buffer);
         return buffer;
     }
     
     @Override
-    public void stream(RobustSignatureConsumer consumer) throws java.io.IOException {
+    public void stream(SignatureBlocksConsumer consumer) {
 
         consumer.open();
 
@@ -92,37 +65,24 @@ public class SignatureBlocksReader extends FileSetReader implements RobustSignat
                 String line;
                 while ((line = in.readLine()) != null) {
                     String[] tokens = line.split("\t");
-                    int[][] blocks = new int[tokens.length - 1][];
-                    for (int iToken = 1; iToken < tokens.length; iToken++) {
-                        blocks[iToken - 1] = this.getBlockNodes(tokens[iToken]);
+                    int eqId = Integer.parseInt(tokens[0]);
+                    BigDecimal sim = new BigDecimal(tokens[1]);
+                    List<SignatureBlock> blocks = new ArrayList<>();
+                    for (int iToken = 2; iToken < tokens.length; iToken++) {
+                        String[] blockTokens = tokens[iToken].split(",");
+                        int termCount = Integer.parseInt(blockTokens[0]);
+                        Integer[] blockElements = new Integer[blockTokens.length - 1];
+                        for (int iBT = 1; iBT < blockTokens.length; iBT++) {
+                            String token = blockTokens[iBT];
+                            int pos = token.indexOf(":");
+                            blockElements[iBT - 1] = Integer.parseInt(token.substring(0, pos));
+                        }
+                        blocks.add(new SignatureBlockImpl(blockElements, termCount));
                     }
-                    RobustSignature sig = new RobustSignatureImpl(
-                            Integer.parseInt(tokens[0]),
-                            blocks
-                    );
-                    consumer.consume(sig);
+                    consumer.consume(eqId, sim, blocks);
                 }
-            }
-        }
-
-        consumer.close();
-    }
-
-    public void stream(SignatureBlocksConsumer consumer) throws java.io.IOException {
-
-        consumer.open();
-
-        for (File file : this) {
-            try (BufferedReader in = FileSystem.openReader(file)) {
-                String line;
-                while ((line = in.readLine()) != null) {
-                    String[] tokens = line.split("\t");
-                    ArrayList<SignatureBlock> blocks = new ArrayList<>();
-                    for (int iToken = 1; iToken < tokens.length; iToken++) {
-                        blocks.add(this.getBlock(tokens[iToken]));
-                    }
-                    consumer.consume(Integer.parseInt(tokens[0]), blocks);
-                }
+            } catch (java.io.IOException ex) {
+                throw new RuntimeException(ex);
             }
         }
 
