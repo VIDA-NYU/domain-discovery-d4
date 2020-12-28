@@ -122,7 +122,7 @@ D4 - Data-Driven Domain Discovery - Version (0.28.0)
 
 signatures
   --eqs=<file> [default: 'compressed-term-index.txt.gz']
-  --sim=<str> [default: JI | LOGJI]
+  --sim=<str> [default: JI | LOGJI | TF-ICF]
   --robustifier=<str> [default: LIBERAL | COMMON-COLUMN | IGNORE-LAST]
   --fullSignatureConstraint=<boolean> [default: true]
   --ignoreLastDrop=<boolean> [default: false]
@@ -132,7 +132,15 @@ signatures
   --signatures=<file> [default: 'signatures.txt.gz']
 ```
 
-The robust signature step starts by computing context signatures for each term. A *context signature* is a vector containing similarities of a term with all other terms in the dataset. Elements in the context signature are sorted in decreasing order of similarity. For signature robustification the context signature is first divided into blocks of elements based on the idea of consecutive steepest drop , i.e., the maximum difference between consecutive elements in the sorted context signature. We then prune all blocks starting from *noisy block* and only retain blocks that occur before that noisy block. There are three different strategies to identify the noisy block (controlled via the `--robustifier` parameter):
+The robust signature step starts by computing context signatures for each term. A *context signature* is a vector containing similarities of a term with all other terms in the dataset. Elements in the context signature are sorted in decreasing order of similarity. The `--sim` parameter specifies the similarity function that is used to create the context signature. the following similarity functions are currently supported:
+
+- JI: Jaccard-Index similarity between the sets of columns that two equivalence classes.
+- LOGJI: Logarithm of the Jaccard-Index similarity
+- TF-ICF: Weighted Jaccard-Index similarity. The weights for each term are computed using a tf-idf-like measure.
+
+For signature robustification the context signature is first divided into blocks of elements based on the idea of consecutive steepest drop , i.e., the maximum difference between consecutive elements in the sorted context signature. The `--ignoreMinorDrop` parameter can be used to avoid splitting the context signature in too many blocks based on irrelevant steepest drops in regions of low variablility. A minor drop is detected if the next steepest drop is smaller than the difference of the elements in the block that preceeds the drop. If the `--ignoreMinorDrop` parameter is `true` all remaining elements will be placed in a single final block if a minor drop occurs.
+
+D4 then prunes all blocks starting from *noisy block* and only retains blocks that occur before that noisy block. There are three different strategies to identify the noisy block (controlled via the `--robustifier` parameter):
 
 - COMMON-COLUMN: The noisy block is the first block where **NOT** all terms in the block occur together in at least one column. The motivation here is that blocks are supposed to represent subsets of domains that a term belongs to. A block that contains terms that never occur to gether in at least one column is likely to contains terms that do not belong to the same domain.
 - IGNORE-LAST: Keeps all blocks except the last block. The only exception is if the context signature contains only a single block. This pruning strategy is particularly intended to be used in combination with `--ignireMinorDrop=true`. If a minor drop is detected all remaining elements in the context signature are placed in a single (final) block.
