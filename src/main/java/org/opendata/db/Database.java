@@ -34,11 +34,11 @@ import org.opendata.db.term.TermIndexReader;
  */
 public class Database {
     
-    private class TermMappingReader implements TermConsumer {
+    private class EQMappingReader implements TermConsumer {
 
         private final HashMap<Integer, EQTerms> _mapping;
         
-        public TermMappingReader(HashMap<Integer, EQTerms> mapping) {
+        public EQMappingReader(HashMap<Integer, EQTerms> mapping) {
             
             _mapping = mapping;
         }
@@ -57,6 +57,41 @@ public class Database {
             }
         }
 
+        @Override
+        public void open() {
+
+        }
+    }
+    
+    private class TermMappingReader implements TermConsumer {
+
+        private final IDSet _filter;
+        private final HashMap<Integer, String> _mapping;
+        
+        public TermMappingReader(IDSet filter) {
+            
+            _filter = filter;
+            _mapping = new HashMap<>();
+        }
+        
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void consume(Term term) {
+
+            if (_filter.contains(term.id())) {
+                _mapping.put(term.id(), term.name());
+            }
+        }
+
+        public HashMap<Integer, String> mapping() {
+            
+            return _mapping;
+        }
+        
         @Override
         public void open() {
 
@@ -93,6 +128,17 @@ public class Database {
             }
         }
     }
+    
+    public HashMap<Integer, String> getTermIndex(IDSet filter) {
+        
+        TermMappingReader consumer = new TermMappingReader(filter);
+        try {
+            _termIndex.read(consumer);
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        return consumer.mapping();
+    }
         
     public HashMap<Integer, EQTerms> read(IDSet nodes, int sampleSize) {
         
@@ -104,7 +150,7 @@ public class Database {
             }
         }
         
-        return this.readTerms(termMapping);
+        return this.readEQTerms(termMapping);
     }
     
     public HashMap<Integer, EQTerms> read(IDSet node) {
@@ -122,7 +168,7 @@ public class Database {
             }
         }
         
-        return this.readTerms(termMapping);
+        return this.readEQTerms(termMapping);
     }
     
     public HashMap<Integer, EQTerms> read(int columnId) {
@@ -130,10 +176,10 @@ public class Database {
         return this.read(columnId, Integer.MAX_VALUE);
     }
     
-    private HashMap<Integer, EQTerms> readTerms(HashMap<Integer, EQTerms> mapping) {
+    private HashMap<Integer, EQTerms> readEQTerms(HashMap<Integer, EQTerms> mapping) {
         
         try {
-            _termIndex.read(new TermMappingReader(mapping));
+            _termIndex.read(new EQMappingReader(mapping));
         } catch (java.io.IOException ex) {
             throw new RuntimeException(ex);
         }

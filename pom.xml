@@ -70,20 +70,15 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.D4</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.signature.RobustSignatureGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.domain.DomainSetStatsPrinter</mainClass-->
-                            <!--mainClass>org.opendata.db.column.ColumnPrinter</mainClass-->
-                            <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
-                            <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
-                            <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
-                            <!--mainClass>org.opendata.curation.d4.experiments.performance.EQRepresentationExperiment</mainClass-->
-                            <!--mainClass>org.opendata.performance.overlap.OverlapComputationExperiment</mainClass-->
-                            <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
-                            <!--mainClass>org.opendata.curation.d4.experiments.SignatureDropStatsExperiment</mainClass-->
-                            <!--mainClass>org.opendata.curation.d4.experiments.EQSimilarityWriter</mainClass-->
-                            <!--mainClass>org.opendata.curation.d4.explore.GTDisjointTermsPrinter</mainClass-->
+                            <!--mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchPrinter</mainClass-->
+                            <mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchWriter</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.evaluate.PrepareGTFile</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
+                            <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
+                            <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
                       </manifest>
                    </archive>
                 </configuration>
