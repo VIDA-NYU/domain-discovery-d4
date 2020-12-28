@@ -84,6 +84,17 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     }
     
     @Override
+    public Integer[] terms() {
+        
+        String[] tokens = _tokens[1].split(",");
+        Integer[] terms = new Integer[tokens.length];
+        for (int iToken = 0; iToken < tokens.length; iToken++) {
+            terms[iToken] = Integer.parseInt(tokens[iToken]);
+        }
+        return terms;
+    }
+    
+    @Override
     public int termCount() {
         
         return StringHelper.splitSize(_tokens[1], ',');

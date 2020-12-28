@@ -17,76 +17,133 @@
  */
 package org.opendata.db;
 
-import java.io.File;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.HashMap;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.column.Column;
+import org.opendata.db.eq.CompressedTermIndex;
 import org.opendata.db.eq.EQ;
-import org.opendata.db.eq.CompressedTermIndexFile;
+import org.opendata.db.term.Term;
+import org.opendata.db.term.TermConsumer;
+import org.opendata.db.term.TermIndexReader;
 
 /**
- * A database is a set of columns. Each columns contains a list of node
- * identifier.
+ * Collection of methods that provide access to database terms.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class Database implements Iterable<Column> {
+public class Database {
     
-    private final HashObjectSet<Column> _columns;
+    private class TermMappingReader implements TermConsumer {
+
+        private final HashMap<Integer, EQTerms> _mapping;
+        
+        public TermMappingReader(HashMap<Integer, EQTerms> mapping) {
+            
+            _mapping = mapping;
+        }
+        
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public void consume(Term term) {
+
+            EQTerms eqTerms = _mapping.get(term.id());
+            if (eqTerms != null) {
+                eqTerms.add(term.name());
+            }
+        }
+
+        @Override
+        public void open() {
+
+        }
+    }
     
-    public <T extends EQ> Database(Iterable<T> nodes) {
+    private final CompressedTermIndex _eqIndex;
+    private final TermIndexReader _termIndex;
+    
+    public Database(CompressedTermIndex eqIndex, TermIndexReader termIndex) {
         
-        _columns = new HashObjectSet<>();
+        _eqIndex = eqIndex;
+        _termIndex = termIndex;
+    }
+    
+    private void addEq(HashMap<Integer, EQTerms> index, EQ eq, int sampleSize) {
         
-        for (T node : nodes) {
-            for (int columnId : node.columns()) {
-                Column column;
-                if (!_columns.contains(columnId)) {
-                    column = new Column(columnId);
-                    _columns.add(column);
-                } else {
-                    column = _columns.get(columnId);
+        if (eq.termCount() == 1) {
+            SingleTermEQ eqTems = new SingleTermEQ(eq.id());
+            index.put(eq.terms()[0], eqTems);
+        } else {
+            Integer[] terms = eq.terms();
+            MultiTermEQ eqTerms;
+            if (terms.length > sampleSize) {
+                eqTerms = new MultiTermEQ(eq.id(), terms.length, sampleSize);
+                for (Integer termId : new HashIDSet(terms).sample(sampleSize)) {
+                    index.put(termId, eqTerms);
                 }
-                column.add(node.id());
+            } else {
+                eqTerms = new MultiTermEQ(eq.id(), terms.length, terms.length);
+                for (Integer termId : terms) {
+                    index.put(termId, eqTerms);
+                }
             }
         }
     }
-    
-    public Database(File file) throws java.io.IOException {
         
-        this(new CompressedTermIndexFile(file));
-    }
-    
-    public IDSet columnIds() {
-    
-        HashIDSet columns = new HashIDSet();
-        for (Column column : _columns) {
-            columns.add(column.id());
+    public HashMap<Integer, EQTerms> read(IDSet nodes, int sampleSize) {
+        
+        HashMap<Integer, EQTerms> termMapping = new HashMap<>();
+        
+        for (EQ eq : _eqIndex) {
+            if (nodes.contains(eq.id())) {
+                this.addEq(termMapping, eq, sampleSize);
+            }
         }
-        return columns;
-    }
-    
-    public IdentifiableObjectSet<Column> columns() {
         
-        return _columns;
+        return this.readTerms(termMapping);
     }
     
-    public Column get(int columnId) {
+    public HashMap<Integer, EQTerms> read(IDSet node) {
         
-        return _columns.get(columnId);
+        return this.read(node, Integer.MAX_VALUE);
     }
     
-    @Override
-    public Iterator<Column> iterator() {
-
-        return _columns.iterator();
+    public HashMap<Integer, EQTerms> read(int columnId, int sampleSize) {
+        
+        HashMap<Integer, EQTerms> termMapping = new HashMap<>();
+        
+        for (EQ eq : _eqIndex) {
+            if (Arrays.binarySearch(eq.columns(), columnId) >= 0) {
+                this.addEq(termMapping, eq, sampleSize);
+            }
+        }
+        
+        return this.readTerms(termMapping);
     }
     
-    public int size() {
+    public HashMap<Integer, EQTerms> read(int columnId) {
+        
+        return this.read(columnId, Integer.MAX_VALUE);
+    }
     
-        return _columns.length();
+    private HashMap<Integer, EQTerms> readTerms(HashMap<Integer, EQTerms> mapping) {
+        
+        try {
+            _termIndex.read(new TermMappingReader(mapping));
+        } catch (java.io.IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        
+        HashMap<Integer, EQTerms> result = new HashMap<>();
+        for (EQTerms eq : mapping.values()) {
+            if (!result.containsKey(eq.id())) {
+                result.put(eq.id(), eq);
+            }
+        }
+        return result;
     }
 }

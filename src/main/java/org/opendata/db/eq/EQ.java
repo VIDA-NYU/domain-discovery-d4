@@ -55,6 +55,14 @@ public interface EQ extends IdentifiableObject {
     public IdentifiableInteger[] columnFrequencies();
     
     /**
+     * Get a sorted array of identifier for terms that the equivalence class
+     * contains.
+     * 
+     * @return 
+     */
+    public Integer[] terms();
+   
+    /**
      * Get number of terms in the equivalence class.
      * 
      * @return 

@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.io.SynchronizedWriter;
 import org.opendata.curation.d4.Constants;
-import org.opendata.db.Database;
+import org.opendata.curation.d4.DataManager;
 import org.opendata.db.column.Column;
 import org.opendata.db.eq.CompressedTermIndexFile;
 
@@ -102,12 +102,12 @@ public class ParallelColumnOverlapComputer {
             File outputFile
     ) throws java.io.IOException {
         
-        Database db = new Database(new CompressedTermIndexFile(eqFile));
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
         
         ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
         
         HashMap<Integer, int[]> columns = new HashMap<>();
-        for (Column column : db.columns()) {
+        for (Column column : db.getColumns()) {
             columns.put(column.id(), column.toArray());
             queue.add(column.id());
         }

@@ -70,10 +70,10 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.D4</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.signature.RobustSignatureGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.domain.DomainSetStatsPrinter</mainClass-->
-                            <!--mainClass>org.opendata.db.tools.Dataset2ColumnsConverter</mainClass-->
+                            <mainClass>org.opendata.db.column.ColumnPrinter</mainClass>
                             <!--mainClass>org.opendata.db.tools.EQIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.tools.TermIndexGenerator</mainClass-->
                             <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
