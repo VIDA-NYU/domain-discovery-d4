@@ -42,6 +42,7 @@ import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
+import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.ContextSignatureBlocksWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
@@ -210,14 +211,14 @@ public class D4 {
             );
         }
 
-        /*new ExportStrongDomains().run(
+        new ExportStrongDomains().run(
                 eqFile,
                 termFile,
                 columnFile,
                 strongDomainFile,
                 sampleSize,
                 outputDir
-        );*/
+        );
     }
     
     public void localDomains(

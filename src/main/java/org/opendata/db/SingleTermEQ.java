@@ -44,12 +44,6 @@ public class SingleTermEQ extends IdentifiableObjectImpl implements EQTerms {
             throw new RuntimeException("Set already complete");
         }
     }
-    
-    @Override
-    public int eqTermCount() {
-
-        return 1;
-    }
 
     @Override
     public String get(int index) {
@@ -74,4 +68,10 @@ public class SingleTermEQ extends IdentifiableObjectImpl implements EQTerms {
 
         return 1;
     }    
+    
+    @Override
+    public int termCount() {
+
+        return 1;
+    }
 }

@@ -35,13 +35,6 @@ public interface EQTerms extends IdentifiableObject, Iterable<String> {
     public void add(String term);
     
     /**
-     * Total number of terms in the equivalence class.
-     * 
-     * @return 
-     */
-    public int eqTermCount();
-    
-    /**
      * Get the term in this set at the given index position.
      * 
      * @param index
@@ -55,4 +48,11 @@ public interface EQTerms extends IdentifiableObject, Iterable<String> {
      * @return 
      */
     public int size();
+    
+    /**
+     * Total number of terms in the equivalence class.
+     * 
+     * @return 
+     */
+    public int termCount();
 }

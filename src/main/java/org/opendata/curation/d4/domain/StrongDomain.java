@@ -17,9 +17,15 @@
  */
 package org.opendata.curation.d4.domain;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.object.IdentifiableObjectImpl;
+import org.opendata.core.prune.MaxDropFinder;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.core.sort.DoubleValueDescSort;
 
 /**
  * A strong domain is a set of local domains. Each member node in the strong
@@ -57,6 +63,44 @@ public class StrongDomain extends IdentifiableObjectImpl {
     public IDSet columns() {
         
         return _columns;
+    }
+    /**
+     * Get blocks of term identifier for strong domain members. Each term is
+     * assigned a weight based on the number of local domains it occurs in and
+     * blocks are generated using steepest drop.
+     * 
+     * @param eqIndex
+     * @return 
+     */
+    public List<List<IdentifiableDouble>> getBlocksWithWeights() {
+        
+        List<IdentifiableDouble> nodes = new ArrayList<>();
+        for (StrongDomainMember node : this.members()) {
+            double weight = node.weight().doubleValue();
+            nodes.add(new IdentifiableDouble(node.id(), weight));
+            Collections.sort(nodes, new DoubleValueDescSort<>());
+        }
+
+        MaxDropFinder<IdentifiableDouble> dropFinder;
+        dropFinder = new MaxDropFinder<>(0.0, true, true);
+
+        ArrayList<List<IdentifiableDouble>> blocks = new ArrayList<>();
+
+        int start = 0;
+        final int end = nodes.size();        
+        while (start < end) {
+            int pruneIndex = dropFinder.getPruneIndex(nodes, start);
+            if (pruneIndex <= start) {
+                break;
+            }
+            List<IdentifiableDouble> block = new ArrayList<>();
+            for (int iEl = start; iEl < pruneIndex; iEl++) {
+                block.add(nodes.get(iEl));
+            }
+            blocks.add(block);
+            start = pruneIndex;
+        }
+        return blocks;
     }
     
     /**

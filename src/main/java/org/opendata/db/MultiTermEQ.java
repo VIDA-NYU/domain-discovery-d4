@@ -49,12 +49,6 @@ public class MultiTermEQ extends IdentifiableObjectImpl implements EQTerms {
     }
 
     @Override
-    public int eqTermCount() {
-
-        return _eqTermCount;
-    }
-
-    @Override
     public String get(int index) {
 
         if (_index == _terms.length) {
@@ -77,4 +71,10 @@ public class MultiTermEQ extends IdentifiableObjectImpl implements EQTerms {
 
         return _terms.length;
     }    
+
+    @Override
+    public int termCount() {
+
+        return _eqTermCount;
+    }
 }
