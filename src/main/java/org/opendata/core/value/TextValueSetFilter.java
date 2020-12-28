@@ -18,7 +18,7 @@
 package org.opendata.core.value;
 
 import org.opendata.core.constraint.Threshold;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
 
 /**
  * Value set filter for text sets.

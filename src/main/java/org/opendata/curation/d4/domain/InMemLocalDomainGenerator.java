@@ -30,13 +30,11 @@ import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
-import org.opendata.db.eq.EQIndex;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -56,29 +54,26 @@ public class InMemLocalDomainGenerator {
 
         private final ConcurrentLinkedQueue<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
+        private final Integer[] _eqTermCounts;
         private final int _id;
-        private final EQIndex _nodes;
-        private final RobustSignatureStream _signatures;
-        private final SignatureBlocksSketchFactory _sketchFactory;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
         public DomainGeneratorTask(
                 int id,
-                EQIndex nodes,
+                Integer[] eqTermCounts,
                 ConcurrentLinkedQueue<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
             _id = id;
-            _nodes = nodes;
+            _eqTermCounts = eqTermCounts;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
-            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -90,22 +85,16 @@ public class InMemLocalDomainGenerator {
 
             ExpandedColumn column;
             while ((column = _columns.poll()) != null) {
-                MutableIdentifiableIDSet col;
-                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
-                        _nodes.nodeSizes()
+                        _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
+                trimmer = _trimmerFactory.getSignatureTrimmer(column, domainGenerator);
                 Date runStart = new Date();
-                try {
-                    _signatures.stream(_sketchFactory.getConsumer(trimmer));
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
-                }
+                _signatures.stream(trimmer);
                 Date runEnd = new Date();
                 System.out.println(column.id() + " (" + column.totalSize() + "): " + (runEnd.getTime() - runStart.getTime()) + " ms");
             }
@@ -133,12 +122,10 @@ public class InMemLocalDomainGenerator {
     }
     
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
-            RobustSignatureStream signatures,
-            String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
-            boolean originalOnly,
+            SignatureBlocksStream signatures,
+            SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -150,7 +137,7 @@ public class InMemLocalDomainGenerator {
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        List<ExpandedColumn> columnList = columnIndex.columns();
+        List<ExpandedColumn> columnList = columnIndex.asList();
         Collections.sort(columnList, new Comparator<ExpandedColumn>(){
             @Override
             public int compare(ExpandedColumn col1, ExpandedColumn col2) {
@@ -160,35 +147,11 @@ public class InMemLocalDomainGenerator {
         ConcurrentLinkedQueue<ExpandedColumn> queue;
         queue = new ConcurrentLinkedQueue<>(columnList);
         
-        SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(
-                nodes,
-                columnIndex.toColumns(originalOnly),
-                trimmer
-        );
-
         if (verbose) {
             System.out.println(
                     String.format(
-                            "LOCAL DOMAINS (IN MEMORY) FOR %d COLUMN GROUPS USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --columns=%s\n" +
-                            "  --signatures=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --sketch=%s\n" +
-                            "  --originalonly=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --inmem=true\n" +
-                            "  --localdomains=%s",
-                            columnList.size(),
-                            nodes.source(),
-                            columnIndex.source(),
-                            signatures.source(),
-                            trimmer,
-                            sketchFactory.toDocString(),
-                            Boolean.toString(originalOnly),
-                            threads,
-                            consumer.target()
+                            "LOCAL DOMAINS (IN MEMORY) FOR %d COLUMN GROUPS",
+                            columnList.size()
                     )
             );
             System.out.println(String.format("START @ %s", start));
@@ -198,11 +161,10 @@ public class InMemLocalDomainGenerator {
         for (int iThread = 0; iThread < threads; iThread++) {
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
-                    nodes,
+                    eqTermCounts,
                     queue,
                     signatures,
                     trimmerFactory,
-                    sketchFactory,
                     domains,
                     verbose
             );

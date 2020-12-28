@@ -18,53 +18,51 @@
 package org.opendata.db.column;
 
 import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.core.io.EntitySetReader;
-import org.opendata.core.set.EntitySet;
-import org.opendata.core.set.IDSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.core.object.Entity;
+import org.opendata.db.Database;
+import org.opendata.db.SortedEntitySet;
+import org.opendata.db.eq.CompressedTermIndexFile;
+import org.opendata.db.term.TermIndexReader;
 
 /**
- * Print nodes and terms in a database column.
+ * Print list of terms in a database columns. Outputs all terms (or only sample
+ * for larger equivalence classes if selected) together with the identifier of
+ * the equivalence class they belong to. Terms are sorted in alphabetic order.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class ColumnPrinter {
-   
+    
     private final static String COMMAND =
             "Usage:\n" +
             "  <eq-file>\n" +
             "  <term-file>\n" +
-            "  <column-id>";
-    
-    private final static Logger LOGGER = Logger
-            .getLogger(ColumnPrinter.class.getName());
+            "  <column-id>\n" +
+            "  {<sample-size>}";
     
     public static void main(String[] args) {
         
-        if (args.length != 3) {
+        if ((args.length < 3) || (args.length > 4)) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
         File eqFile = new File(args[0]);
         File termFile = new File(args[1]);
-        int columnId = Integer.parseInt(args[2]);
+        int columnIndex = Integer.parseInt(args[2]);
         
-        try {
-            EQIndex eqIndex = new EQIndex(eqFile);
-            IDSet column = eqIndex.columns().get(columnId);
-            EntitySet terms = new EntitySetReader(termFile).readEntities(eqIndex, column);
-            for (int nodeId : column) {
-                int[] termIds = eqIndex.get(nodeId).terms().toArray();
-                System.out.println(nodeId + "\t" + terms.get(termIds[0]).name());
-                for (int i = 1; i < termIds.length; i++) {
-                    System.out.println("\t" + terms.get(termIds[i]).name());
-                }
-            }
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
+        int sampleSize;
+        if (args.length == 4) {
+            sampleSize = Integer.parseInt(args[3]);
+        } else {
+            sampleSize = Integer.MAX_VALUE;
+        }
+        
+        Database db;
+        db = new Database(new CompressedTermIndexFile(eqFile), new TermIndexReader(termFile));
+        
+        for (Entity term : new SortedEntitySet(db.read(columnIndex, sampleSize))) {
+            System.out.println(String.format("%d\t%s", term.id(), term.name()));
         }
     }
 }

@@ -25,9 +25,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
-import org.opendata.core.profiling.datatype.label.DataType;
-import org.opendata.core.util.count.Counter;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.profiling.datatype.DataType;
+import org.opendata.core.util.Counter;
+import org.opendata.core.util.SimpleCounter;
 
 /**
  * Print summary of data types for all values in a given list of columns.
@@ -66,7 +67,7 @@ public class ColumnTypePrinter {
                     DataType type = typeCheck.getType(reader.next().getText());
                     int key = type.id();
                     if (!types.containsKey(key)) {
-                        types.put(key, new Counter(1));
+                        types.put(key, new SimpleCounter(1));
                     } else {
                         types.get(key).inc();
                     }

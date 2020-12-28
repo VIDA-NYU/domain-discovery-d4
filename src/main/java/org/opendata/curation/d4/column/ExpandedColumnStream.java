@@ -17,7 +17,7 @@
  */
 package org.opendata.curation.d4.column;
 
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 
 /**
  *

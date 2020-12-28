@@ -17,7 +17,6 @@
  */
 package org.opendata.curation.d4.domain;
 
-import org.opendata.core.io.prov.DataSink;
 import org.opendata.core.set.IdentifiableIDSet;
 
 /**
@@ -26,7 +25,7 @@ import org.opendata.core.set.IdentifiableIDSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface StrongDomainConsumer extends DataSink {
+public interface StrongDomainConsumer {
     
     /**
      * Signal the end of the output stream.

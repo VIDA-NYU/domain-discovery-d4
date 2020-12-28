@@ -27,7 +27,7 @@ import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.Support;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
 
 /**
  * Identify columns that contain text values. Takes a list of column files as

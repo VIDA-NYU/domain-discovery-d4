@@ -34,13 +34,13 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
     
     private final ExpandedColumn _column;
     private boolean _isDone = false;
-    private final int[] _nodeSizes;
+    private final Integer[] _nodeSizes;
     private final UniqueDomainSet _resultSet;
 
     public UndirectedDomainGenerator(
             ExpandedColumn column,
             UniqueDomainSet resultSet,
-            int[] nodeSizes
+            Integer[] nodeSizes
     ) {
         super(column.nodes());
 
@@ -75,11 +75,9 @@ public class UndirectedDomainGenerator extends UndirectedConnectedComponents imp
         final int sigId = sig.id();
         
         if (_column.contains(sigId)) {
-            for (int iBlock = 0; iBlock < sig.size(); iBlock++) {
-                for (int nodeId : sig.get(iBlock)) {
-                    if (_column.contains(nodeId)) {
-                        this.edge(sigId, nodeId);
-                    }
+            for (int nodeId : sig) {
+                if (_column.contains(nodeId)) {
+                    this.edge(sigId, nodeId);
                 }
             }
             if (this.isComplete()) {

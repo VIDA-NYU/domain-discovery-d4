@@ -17,10 +17,11 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import org.opendata.curation.d4.signature.SignatureBlock;
-import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
+import org.opendata.curation.d4.signature.ContextSignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
 
 /**
  * Base class for generating robust signatures for individual equivalence
@@ -31,22 +32,16 @@ import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public abstract class SignatureRobustifier implements SignatureBlocksConsumer {
+public abstract class SignatureRobustifier implements ContextSignatureBlocksConsumer {
     
-    /**
-     * Global variables for trimmer types
-     */
-    public final static String COLSUPP = "COLSUPP";
-    public final static String LIBERAL = "LIBERAL";
-    
-    private final SignatureBlocksConsumer _consumer;
+    private final ContextSignatureBlocksConsumer _consumer;
         
     /**
      * Initialize the consumer for the robust signature blocks.
      * 
      * @param consumer 
      */
-    public SignatureRobustifier(SignatureBlocksConsumer consumer) {
+    public SignatureRobustifier(ContextSignatureBlocksConsumer consumer) {
 
         _consumer = consumer;
     }
@@ -64,26 +59,21 @@ public abstract class SignatureRobustifier implements SignatureBlocksConsumer {
     }
     
     /**
-     * Push robust signature to associated consumer. Passes only a prefix of the
-     * block list to the underlying consumer.
+     * Push robust signature to associated consumer. Passes only a prefix of
+     * the block list to the underlying consumer.
      * 
      * @param nodeId
+     * @param sim
      * @param blocks 
      * @param end 
      */
-    public void push(int nodeId, List<SignatureBlock> blocks, int end) {
+    public void push(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks, int end) {
 
-        ArrayList<SignatureBlock> prunedBlocks = new ArrayList<>();
+        ArrayList<ContextSignatureBlock> prunedBlocks = new ArrayList<>();
         for (int iBlock = 0; iBlock < end; iBlock++) {
             prunedBlocks.add(blocks.get(iBlock));
         }
         
-        _consumer.consume(nodeId, prunedBlocks);
-    }
-
-    @Override
-    public String target() {
-
-        return SignatureRobustifier.class.getCanonicalName();
+        _consumer.consume(nodeId, sim, prunedBlocks);
     }
 }

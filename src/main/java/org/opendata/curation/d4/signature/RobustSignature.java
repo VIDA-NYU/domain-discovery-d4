@@ -20,47 +20,16 @@ package org.opendata.curation.d4.signature;
 import org.opendata.core.object.IdentifiableObjectImpl;
 
 /**
- * List of blocks for a robust context signature. The robust signature contains
- * on;y the node identifier for each block but no similarity statistics.
+ * A robust signature is an identifiable list of integers. Signature elements
+ * are identifier of equivalence classes. The elements in the signature are
+ * not assumed to be sorted.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public abstract class RobustSignature extends IdentifiableObjectImpl {
+public abstract class RobustSignature extends IdentifiableObjectImpl implements Iterable<Integer> {
     
-    private final int _size;
-    
-    public RobustSignature(int id, int size) {
+    public RobustSignature(int id) {
         
         super(id);
-        
-        _size = size;
-    }
-    
-    /**
-     * Get a block from the signature.
-     * 
-     * @param index
-     * @return 
-     */
-    public abstract int[] get(int index);
-    
-    /**
-     * Test if the signature is empty (has no blocks).
-     * 
-     * @return 
-     */
-    public boolean isEmpty() {
-        
-        return (_size == 0);
-    }
-    
-    /**
-     * Number of blocks in the signature.
-     * 
-     * @return 
-     */
-    public int size() {
-        
-        return _size;
     }
 }

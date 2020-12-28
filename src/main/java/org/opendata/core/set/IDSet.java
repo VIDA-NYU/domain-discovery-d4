@@ -19,7 +19,7 @@ package org.opendata.core.set;
 
 import java.math.BigDecimal;
 import java.util.List;
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 
 /**
  * List of unique identifier.

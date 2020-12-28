@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.util.FormatedBigDecimal;
-import org.opendata.core.util.count.IdentifiableCounterSet;
+import org.opendata.core.util.IdentifiableCounterSet;
 
 /**
  * Print statistics for a set of domains.
@@ -84,12 +84,6 @@ public class DomainSetStatsPrinter implements DomainConsumer {
             System.out.println("AVG. DOMAINS PER COLUMN: " + new FormatedBigDecimal((double)_domainColumnCount/(double)_columnDomainCount.size()));
             System.out.println("AVG. COLUMNS PER DOMAIN: " + new FormatedBigDecimal((double)_domainColumnCount/(double)_domainCount));
         }
-    }
-
-    @Override
-    public String target() {
-
-        return "System.out";
     }
     
     private static final String COMMAND =

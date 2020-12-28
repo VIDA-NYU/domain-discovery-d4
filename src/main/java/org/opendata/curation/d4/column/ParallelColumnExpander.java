@@ -32,18 +32,14 @@ import java.util.logging.Logger;
 import org.opendata.curation.d4.telemetry.TelemetryCollector;
 import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.util.MemUsagePrinter;
-import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
 import org.opendata.db.column.Column;
-import org.opendata.db.eq.EQIndex;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Expand columns using multiple threads. Each thread expands a single columns
@@ -64,22 +60,20 @@ public class ParallelColumnExpander {
         private final BigDecimal _decreaseFactor;
         private final List<ExpandedColumn> _columns;
         private final ExpandedColumnConsumer _consumer;
+        private final Integer[] _eqTermCounts;
         private final int _id;
-        private final EQIndex _nodes;
         private final int _numberOfIterations;
-        private final RobustSignatureStream _signatures;
-        private final SignatureBlocksSketchFactory _sketchFactory;
+        private final SignatureBlocksStream _signatures;
         private final Threshold _threshold;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
         public ExpanderTask(
                 int id,
-                EQIndex nodes,
+                Integer[] eqTermCounts,
                 List<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                SignatureBlocksSketchFactory sketchFactory,
                 Threshold threshold,
                 BigDecimal decreaseFactor,
                 int numberOfIterations,
@@ -87,11 +81,10 @@ public class ParallelColumnExpander {
                 ExpandedColumnConsumer consumer
         ) {
             _id = id;
-            _nodes = nodes;
+            _eqTermCounts = eqTermCounts;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
-            _sketchFactory = sketchFactory;
             _threshold = threshold;
             _decreaseFactor = decreaseFactor;
             _numberOfIterations = numberOfIterations;
@@ -111,7 +104,7 @@ public class ParallelColumnExpander {
             for (ExpandedColumn column : _columns) {
                     SingleColumnExpander expander;
                     expander = new SingleColumnExpander(
-                            _nodes,
+                            _eqTermCounts,
                             column,
                             _threshold,
                             _decreaseFactor,
@@ -121,15 +114,12 @@ public class ParallelColumnExpander {
             }
             int round = 0;
             while (!columns.isEmpty()) {
-                RobustSignatureDispatcher dispatcher;
-                dispatcher = new RobustSignatureDispatcher();
+                SignatureBlocksDispatcher dispatcher;
+                dispatcher = new SignatureBlocksDispatcher();
                 for (SingleColumnExpander expander : columns) {
                     SignatureTrimmer trimmer;
                     trimmer = _trimmerFactory
-                            .getTrimmer(
-                                    expander.column().id(),
-                                    expander
-                            );
+                            .getSignatureTrimmer(expander.column(), expander);
                     dispatcher.add(trimmer);
                 }
                 round++;
@@ -144,13 +134,7 @@ public class ParallelColumnExpander {
                             )
                     );
                 }
-                RobustSignatureConsumer consumer;
-                consumer = _sketchFactory.getConsumer(dispatcher);
-                try {
-                    _signatures.stream(consumer);
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
-                }
+                _signatures.stream(dispatcher);
                 List<SingleColumnExpander> candidates = new ArrayList<>();
                 for (SingleColumnExpander expander : columns) {
                     if (expander.isDone()) {
@@ -195,12 +179,10 @@ public class ParallelColumnExpander {
     }
     
     public void run(
-            EQIndex nodes,
-            RobustSignatureStream signatures,
-            String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
-            IdentifiableObjectSet<Column> db,
-            IDSet columnFilter,
+            Integer[] eqTermCounts,
+            SignatureBlocksStream signatures,
+            SignatureTrimmerFactory trimmerFactory,
+            IdentifiableObjectSet<Column> columns,
             Threshold threshold,
             BigDecimal decreaseFactor,
             int numberOfIterations,
@@ -211,8 +193,7 @@ public class ParallelColumnExpander {
         HashMap<String, ExpandedColumn> columnIndex = new HashMap<>();
         HashMap<Integer, HashIDSet> groups = new HashMap<>();
         HashMap<String, Integer> mapping = new HashMap<>();
-        for (int columnId : columnFilter) {
-            Column column = db.get(columnId);
+        for (Column column : columns) {
             String key = column.toIntString();
             if (!columnIndex.containsKey(key)) {
                 columnIndex.put(key, new MutableExpandedColumn(column));
@@ -241,36 +222,15 @@ public class ParallelColumnExpander {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "EXPAND %d COLUMNS IN %d GROUPS USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --signatures=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --sketch=%s\n" +
-                            "  --expandThreshold=%s\n" +
-                            "  --decrease=%s\n" +
-                            "  --iterations=%d\n" +
-                            "  --threads=%d\n" +
-                            "  --columns=%s",
-                            db.length(),
-                            columnList.size(),
-                            nodes.source(),
-                            signatures.source(),
-                            trimmer,
-                            sketchFactory.toDocString(),
-                            threshold.toPlainString(),
-                            decreaseFactor.toPlainString(),
-                            numberOfIterations,
-                            threads,
-                            outputFile.getName()
+                            "EXPAND %d COLUMNS IN %d GROUPS",
+                            columns.length(),
+                            columnList.size()
                     )
             );
             LOGGER.log(Level.INFO, String.format("START @ %s", start));
             new MemUsagePrinter().print();
         }
                 
-        SignatureTrimmerFactory trimmerFactory;
-        trimmerFactory = new SignatureTrimmerFactory(nodes, nodes.columns(), trimmer);
-        
         ExpandedColumnWriter writer;
         writer = new ExpandedColumnWriter(outputFile, groups);
         
@@ -284,11 +244,10 @@ public class ParallelColumnExpander {
             }
             ExpanderTask expander = new ExpanderTask(
                     iThread,
-                    nodes,
+                    eqTermCounts,
                     taskColumns,
                     signatures,
                     trimmerFactory,
-                    sketchFactory,
                     threshold,
                     decreaseFactor,
                     numberOfIterations,

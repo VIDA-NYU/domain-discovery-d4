@@ -17,11 +17,13 @@
  */
 package org.opendata.core.set;
 
+import org.opendata.core.object.IdentifiableObject;
+
 /**
  * ID set that is an identifiable object.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface IdentifiableIDSet extends IDSet, Signature {
+public interface IdentifiableIDSet extends IDSet, IdentifiableObject{
 
 }

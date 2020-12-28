@@ -17,10 +17,11 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
-import org.opendata.curation.d4.signature.RobustSignature;
-import org.opendata.curation.d4.signature.RobustSignatureImpl;
+import java.util.List;
 import org.opendata.core.set.IDSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
+import org.opendata.curation.d4.signature.SignatureBlock;
+import org.opendata.curation.d4.signature.SingleBlockSignature;
 
 /**
  * Conservative signature blocks trimmer. The conservative trimmer prunes all
@@ -38,10 +39,8 @@ public class ConservativeTrimmer extends SignatureTrimmer {
     }
 
     @Override
-    public void trim(RobustSignature sig, RobustSignatureConsumer consumer) {
+    public void trim(int id, List<SignatureBlock> blocks, RobustSignatureConsumer consumer) {
 
-        int[][] block = new int[1][];
-        block[0] = sig.get(0);
-        consumer.consume(new RobustSignatureImpl(sig.id(), block));
+        consumer.consume(new SingleBlockSignature(id, blocks.get(0)));
     }
 }

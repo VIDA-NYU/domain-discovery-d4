@@ -17,7 +17,7 @@
  */
 package org.opendata.db.term;
 
-import org.opendata.core.object.filter.ObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 

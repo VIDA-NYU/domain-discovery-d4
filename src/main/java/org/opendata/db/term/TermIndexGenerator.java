@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.value.ValueCounter;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.metric.Support;
 import org.opendata.core.util.FormatedBigDecimal;
@@ -108,8 +108,7 @@ public class TermIndexGenerator {
                 final int columnId = reader.columnId();
                 reader = new FlexibleColumnReader(file);
                 while (reader.hasNext()) {
-                    ValueCounter colVal = reader.next();
-                    _termIndex.add(colVal.getText(), columnId);
+                    _termIndex.add(columnId, reader.next());
                 }
             }
         }        
@@ -119,8 +118,9 @@ public class TermIndexGenerator {
             List<File> files,
             Threshold textThreshold,
             int bufferSize,
-            boolean verbose,
+            boolean validate,
             int threads,
+            boolean verbose,
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
@@ -150,7 +150,7 @@ public class TermIndexGenerator {
         es.shutdown();
         es.awaitTermination(threads, TimeUnit.DAYS);
         
-        termIndex.write(outputFile);
+        termIndex.write(outputFile, validate);
     }
     
     private final static String COMMAND =
@@ -158,6 +158,7 @@ public class TermIndexGenerator {
 	    "  <column-file-or-dir>\n" +
             "  <text-threshold>\n" +
 	    "  <mem-buffer-size>\n" +
+            "  <validate>\n" +
             "  <threads>\n" +
 	    "  <output-file>";
     
@@ -165,7 +166,7 @@ public class TermIndexGenerator {
         
 	System.out.println(Constants.NAME + " - Term Index Generator - Version (" + Constants.VERSION + ")\n");
 
-        if (args.length != 5) {
+        if (args.length != 6) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
@@ -173,16 +174,18 @@ public class TermIndexGenerator {
         File inputDirectory = new File(args[0]);
         Threshold textThreshold = Threshold.getConstraint(args[1]);
         int bufferSize = Integer.parseInt(args[2]);
-        int threads = Integer.parseInt(args[3]);
-        File outputFile = new File(args[4]);
+        boolean validate = Boolean.parseBoolean(args[3]);
+        int threads = Integer.parseInt(args[4]);
+        File outputFile = new File(args[5]);
         
         try {
             new TermIndexGenerator().run(
                     new FileListReader(".txt").listFiles(inputDirectory),
                     textThreshold,
                     bufferSize,
-                    true,
+                    validate,
                     threads,
+                    true,
                     outputFile
             );
         } catch (java.lang.InterruptedException | java.io.IOException ex) {

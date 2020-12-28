@@ -20,10 +20,10 @@ package org.opendata.db.term;
 import java.io.BufferedReader;
 import java.io.File;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.object.filter.AnyObjectFilter;
-import org.opendata.core.object.filter.ObjectFilter;
-import org.opendata.core.set.HashIDSet;
+import org.opendata.core.object.AnyObjectFilter;
+import org.opendata.core.object.ObjectFilter;
 import org.opendata.core.set.IdentifiableObjectSet;
+import org.opendata.db.column.ColumnHelper;
 
 /**
  * Read a term index file as a stream.Passes each term to a TermStreamHandler.
@@ -51,7 +51,7 @@ public class TermIndexReader {
                         new Term(
                                 Integer.parseInt(tokens[0]),
                                 tokens[1],
-                                new HashIDSet(tokens[2].split(","))
+                                ColumnHelper.fromSortedArrayString(tokens[2])
                         )
                 );
             }

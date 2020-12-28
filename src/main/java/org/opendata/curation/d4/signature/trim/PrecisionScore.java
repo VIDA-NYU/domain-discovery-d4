@@ -19,9 +19,8 @@ package org.opendata.curation.d4.signature.trim;
 
 import java.math.BigDecimal;
 import org.opendata.core.metric.Precision;
-import org.opendata.core.set.IdentifiableIDSet;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.core.set.IDSet;
+import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  *
@@ -29,14 +28,14 @@ import org.opendata.db.eq.EQIndex;
  */
 public class PrecisionScore extends BlockScoreFunction {
 
-    public PrecisionScore(EQIndex eqIndex, IdentifiableObjectSet<IdentifiableIDSet> columns) {
-        
-        super(eqIndex, columns);
-    }
+    public PrecisionScore(IDSet column, Integer[] eqTermCounts) {
     
-    @Override
-    public BigDecimal relevance(int columnSize, int blockSize, int overlap) {
+        super(column, eqTermCounts);
+    }
 
-        return new Precision(overlap, blockSize).value();
-    }    
+    @Override
+    public BigDecimal score(SignatureBlock block) {
+
+        return new Precision(this.overlap(block), block.termCount()).value();
+    }
 }

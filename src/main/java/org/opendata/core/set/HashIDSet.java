@@ -69,6 +69,14 @@ public class HashIDSet extends IDSetImpl implements MutableIDSet {
         }
     }
     
+    public HashIDSet(Integer[] values) {
+        
+        _values = new HashSet<>();
+        for (Integer val : values) {
+            _values.add(val);
+        }
+    }
+    
     public HashIDSet(String[] values) {
         
         _values = new HashSet<>();

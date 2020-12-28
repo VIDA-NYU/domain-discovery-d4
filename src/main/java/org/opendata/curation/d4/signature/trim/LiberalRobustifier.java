@@ -17,9 +17,11 @@
  */
 package org.opendata.curation.d4.signature.trim;
 
+import java.math.BigDecimal;
 import java.util.List;
+import org.opendata.curation.d4.signature.ContextSignatureBlock;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksConsumer;
-import org.opendata.curation.d4.signature.SignatureBlock;
 
 /**
  * Liberal signature blocks trimmer. The liberal trimmer prunes all
@@ -30,31 +32,24 @@ import org.opendata.curation.d4.signature.SignatureBlock;
  */
 public class LiberalRobustifier extends SignatureRobustifier {
 
-    private final int[] _nodeSizes;
+    public LiberalRobustifier(ContextSignatureBlocksConsumer consumer) {
     
-    public LiberalRobustifier(int[] nodeSizes, SignatureBlocksConsumer consumer) {
         super(consumer);
-        
-        _nodeSizes = nodeSizes;
     }
 
     @Override
-    public void consume(int nodeId, List<SignatureBlock> blocks) {
+    public void consume(int nodeId, BigDecimal sim, List<ContextSignatureBlock> blocks) {
 
         int index = 0;
         int maxIndex = -1;
         int maxSize = -1;
-        for (SignatureBlock block : blocks) {
-            int size = 0;
-            for (int memberId : block.elements()) {
-                size += _nodeSizes[memberId];
-            }
-            if (size > maxSize) {
-                maxSize = size;
+        for (ContextSignatureBlock block : blocks) {
+            if (block.termCount() > maxSize) {
+                maxSize = block.termCount();
                 maxIndex = index;
             }
             index++;
         }
-        this.push(nodeId, blocks, Math.max(1, maxIndex));
+        this.push(nodeId, sim, blocks, Math.max(1, maxIndex));
     }
 }

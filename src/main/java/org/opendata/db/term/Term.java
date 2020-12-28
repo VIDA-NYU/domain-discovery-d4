@@ -17,41 +17,39 @@
  */
 package org.opendata.db.term;
 
-import java.io.PrintWriter;
 import org.opendata.core.object.Entity;
-import org.opendata.core.set.IDSet;
-import org.opendata.core.set.ImmutableIDSet;
-import org.opendata.core.profiling.datatype.label.DataType;
-import org.opendata.core.profiling.datatype.DefaultDataTypeAnnotator;
-import org.opendata.db.eq.EQ;
+import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.profiling.datatype.DataType;
+import org.opendata.profiling.datatype.DefaultDataTypeAnnotator;
+import org.opendata.core.set.SortedObjectSet;
 
 /**
  * A term in a database. Each term has a unique identifier and a unique name.
- * The database term also has a list of columns that contain the term.
+ * The database term also has a list of columns that contain the term. For each
+ * column the frequency of the term in that column is maintained.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class Term extends Entity implements EQ {
+public class Term extends Entity {
     
-    private final IDSet _columns;
+    private final SortedObjectSet<IdentifiableInteger> _columns;
     
-    public Term(int id, String value, IDSet columns) {
+    public Term(int id, String value, SortedObjectSet<IdentifiableInteger> columns) {
         
         super(id, value);
         
         _columns = columns;
     }
 
-    @Override
-    public IDSet columns() {
+    /**
+     * List of columns that the term occurs in. For each column the frequency
+     * of the term in that column is maintained.
+     * 
+     * @return 
+     */
+    public SortedObjectSet<IdentifiableInteger> columns() {
         
         return _columns;
-    }
-
-    @Override
-    public IDSet terms() {
-
-        return new ImmutableIDSet(this.id());
     }
 
     /**
@@ -62,15 +60,5 @@ public class Term extends Entity implements EQ {
     public DataType type() {
         
         return new DefaultDataTypeAnnotator().getType(this.name());
-    }
-
-    @Override
-    public void write(PrintWriter out) {
-
-        out.println(
-                this.id() + "\t" +
-                this.name() + "\t" +
-                this.columns().toIntString()
-        );
     }
 }

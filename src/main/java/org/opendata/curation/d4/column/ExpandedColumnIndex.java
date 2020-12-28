@@ -17,11 +17,10 @@
  */
 package org.opendata.curation.d4.column;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import org.opendata.core.io.prov.DataCollection;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
@@ -37,25 +36,26 @@ import org.opendata.core.set.IdentifiableObjectSet;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsumer {
+public class ExpandedColumnIndex implements ExpandedColumnConsumer, Iterable<ExpandedColumn> {
 
     private HashMap<String, Integer> _columnIndex;
     private List<ExpandedColumn> _columnList = null;
     private HashMap<Integer, HashIDSet> _columnMapping;
-    private final String _source;
     
-    public ExpandedColumnIndex(File file) {
+    public ExpandedColumnIndex() {
         
-        _source = file.getName();
     }
     
     public ExpandedColumnIndex(ExpandedColumn column) {
         
-        _source = "Column " + column.id();
-        
         this.open();
         this.consume(column);
         this.close();
+    }
+    
+    public List<ExpandedColumn> asList() {
+        
+        return _columnList;
     }
     
     @Override
@@ -70,11 +70,6 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
         } else {
             return new HashIDSet(id);
         }
-    }
-    
-    public List<ExpandedColumn> columns() {
-        
-        return _columnList;
     }
     
     @Override
@@ -94,6 +89,12 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
                 _columnMapping.get(columnId).add(column.id());
             }
         }
+    }
+    
+    @Override
+    public Iterator<ExpandedColumn> iterator() {
+        
+        return _columnList.iterator();
     }
 
     @Override
@@ -121,11 +122,5 @@ public class ExpandedColumnIndex implements DataCollection, ExpandedColumnConsum
         }
         
         return result;
-    }
-
-    @Override
-    public String source() {
-
-        return _source;
     }
 }

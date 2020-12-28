@@ -29,13 +29,11 @@ import org.opendata.curation.d4.telemetry.TelemetryPrinter;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmerFactory;
+import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
-import org.opendata.curation.d4.signature.RobustSignatureDispatcher;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
-import org.opendata.db.eq.EQIndex;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
+import org.opendata.curation.d4.signature.SignatureBlocksDispatcher;
+import org.opendata.curation.d4.signature.SignatureBlocksStream;
 
 /**
  * Generator for local domains using undirected graphs. Each connected component
@@ -57,29 +55,26 @@ public class ExternalMemLocalDomainGenerator {
 
         private final List<ExpandedColumn> _columns;
         private final UniqueDomainSet _domains;
+        private final Integer[] _eqTermCounts;
         private final int _id;
-        private final EQIndex _nodes;
-        private final RobustSignatureStream _signatures;
-        private final SignatureBlocksSketchFactory _sketchFactory;
+        private final SignatureBlocksStream _signatures;
         private final SignatureTrimmerFactory _trimmerFactory;
         private final boolean _verbose;
         
         public DomainGeneratorTask(
                 int id,
-                EQIndex nodes,
+                Integer[] eqTermCounts,
                 List<ExpandedColumn> columns,
-                RobustSignatureStream signatures,
+                SignatureBlocksStream signatures,
                 SignatureTrimmerFactory trimmerFactory,
-                SignatureBlocksSketchFactory sketchFactory,
                 UniqueDomainSet domains,
                 boolean verbose
        ) {
             _id = id;
-            _nodes = nodes;
+            _eqTermCounts = eqTermCounts;
             _columns = columns;
             _signatures = signatures;
             _trimmerFactory = trimmerFactory;
-            _sketchFactory = sketchFactory;
             _domains = domains;
             _verbose = verbose;
         }
@@ -87,30 +82,24 @@ public class ExternalMemLocalDomainGenerator {
         @Override
         public void run() {
             
-            RobustSignatureDispatcher dispatcher;
-            dispatcher = new RobustSignatureDispatcher();
+            SignatureBlocksDispatcher dispatcher;
+            dispatcher = new SignatureBlocksDispatcher();
             
             for (ExpandedColumn column : _columns) {
-                MutableIdentifiableIDSet col;
-                col = new MutableIdentifiableIDSet(column.id(), column.nodes());
                 RobustSignatureConsumer domainGenerator;
                 domainGenerator = new UndirectedDomainGenerator(
                         column,
                         _domains,
-                        _nodes.nodeSizes()
+                        _eqTermCounts
                 );
                 SignatureTrimmer trimmer;
-                trimmer = _trimmerFactory.getTrimmer(col.id(), domainGenerator);
+                trimmer = _trimmerFactory.getSignatureTrimmer(column, domainGenerator);
                 dispatcher.add(trimmer);
             }
             
             Date start = new Date();
 
-            try {
-                _signatures.stream(_sketchFactory.getConsumer(dispatcher));
-            } catch (java.io.IOException ex) {
-                throw new RuntimeException(ex);
-            }
+            _signatures.stream(dispatcher);
             
             Date end = new Date();
             
@@ -135,12 +124,10 @@ public class ExternalMemLocalDomainGenerator {
     }
     
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             ExpandedColumnIndex columnIndex,
-            RobustSignatureStream signatures,
-            String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
-            boolean originalOnly,
+            SignatureBlocksStream signatures,
+            SignatureTrimmerFactory trimmerFactory,
             int threads,
             boolean verbose,
             DomainConsumer consumer
@@ -151,7 +138,7 @@ public class ExternalMemLocalDomainGenerator {
         Date start = new Date();
 
         // Sort column in decreasing number of nodes
-        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.columns());
+        List<ExpandedColumn> columnList = new ArrayList<>(columnIndex.asList());
         Collections.sort(columnList, (ExpandedColumn c1, ExpandedColumn c2) -> 
                 Integer.compare(c1.nodes().length(), c2.nodes().length())
         );
@@ -160,25 +147,8 @@ public class ExternalMemLocalDomainGenerator {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "LOCAL DOMAINS (EXTERNAL MEMORY) FOR %d COLUMN GROUPS USING:\n" +
-                            "  --eqs=%s\n" +
-                            "  --columns=%s\n" +
-                            "  --signatures=%s\n" +
-                            "  --trimmer=%s\n" +
-                            "  --sketch=%s\n" +
-                            "  --originalonly=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --inmem=false\n" +
-                            "  --localdomains=%s",
-                            columnList.size(),
-                            nodes.source(),
-                            columnIndex.source(),
-                            signatures.source(),
-                            trimmer,
-                            sketchFactory.toDocString(),
-                            Boolean.toString(originalOnly),
-                            threads,
-                            consumer.target()
+                            "LOCAL DOMAINS (EXTERNAL MEMORY) FOR %d COLUMN GROUPS",
+                            columnList.size()
                     )
             );
             System.out.println("START @ " + start);
@@ -186,12 +156,6 @@ public class ExternalMemLocalDomainGenerator {
         
         ExecutorService es = Executors.newCachedThreadPool();
         
-        SignatureTrimmerFactory trimmerFactory =  new SignatureTrimmerFactory(
-                nodes,
-                columnIndex.toColumns(originalOnly),
-                trimmer
-        );
-
         for (int iThread = 0; iThread < threads; iThread++) {
             List<ExpandedColumn> columns = new ArrayList<>();
             for (int iCol = iThread; iCol < columnList.size(); iCol += threads) {
@@ -199,11 +163,10 @@ public class ExternalMemLocalDomainGenerator {
             }
             DomainGeneratorTask task = new DomainGeneratorTask(
                     iThread,
-                    nodes,
+                    eqTermCounts,
                     columns,
                     signatures,
                     trimmerFactory,
-                    sketchFactory,
                     domains,
                     verbose
             );

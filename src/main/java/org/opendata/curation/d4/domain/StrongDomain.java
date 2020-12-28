@@ -23,11 +23,9 @@ import java.util.List;
 import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.core.object.IdentifiableObjectImpl;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.core.sort.DoubleValueDescSort;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * A strong domain is a set of local domains. Each member node in the strong
@@ -66,7 +64,6 @@ public class StrongDomain extends IdentifiableObjectImpl {
         
         return _columns;
     }
-    
     /**
      * Get blocks of term identifier for strong domain members. Each term is
      * assigned a weight based on the number of local domains it occurs in and
@@ -75,7 +72,7 @@ public class StrongDomain extends IdentifiableObjectImpl {
      * @param eqIndex
      * @return 
      */
-    public List<List<IdentifiableDouble>> getBlocksWithWeights(EQIndex eqIndex) {
+    public List<List<IdentifiableDouble>> getBlocksWithWeights() {
         
         List<IdentifiableDouble> nodes = new ArrayList<>();
         for (StrongDomainMember node : this.members()) {
@@ -84,7 +81,8 @@ public class StrongDomain extends IdentifiableObjectImpl {
             Collections.sort(nodes, new DoubleValueDescSort<>());
         }
 
-        MaxDropFinder<IdentifiableDouble> dropFinder = new MaxDropFinder<>(0.0, true, true);
+        MaxDropFinder<IdentifiableDouble> dropFinder;
+        dropFinder = new MaxDropFinder<>(0.0, true, true);
 
         ArrayList<List<IdentifiableDouble>> blocks = new ArrayList<>();
 
@@ -97,10 +95,7 @@ public class StrongDomain extends IdentifiableObjectImpl {
             }
             List<IdentifiableDouble> block = new ArrayList<>();
             for (int iEl = start; iEl < pruneIndex; iEl++) {
-                IdentifiableDouble node = nodes.get(iEl);
-                for (int termId : eqIndex.get(node.id()).terms()) {
-                    block.add(new IdentifiableDouble(termId, node.value()));
-                }
+                block.add(nodes.get(iEl));
             }
             blocks.add(block);
             start = pruneIndex;
@@ -108,42 +103,6 @@ public class StrongDomain extends IdentifiableObjectImpl {
         return blocks;
     }
     
-    /**
-     * Get blocks of node identifier for strong domain members.
-     * 
-     * @param eqIndex
-     * @return 
-     */
-    public List<IDSet> getNodeBlocks(EQIndex eqIndex) {
-        
-        List<IdentifiableDouble> nodes = new ArrayList<>();
-        for (StrongDomainMember node : this.members()) {
-            double weight = node.weight().doubleValue();
-            nodes.add(new IdentifiableDouble(node.id(), weight));
-            Collections.sort(nodes, new DoubleValueDescSort<>());
-        }
-
-        MaxDropFinder<IdentifiableDouble> dropFinder = new MaxDropFinder<>(0.0, true, true);
-
-        ArrayList<IDSet> blocks = new ArrayList<>();
-
-        int start = 0;
-        final int end = nodes.size();        
-        while (start < end) {
-            int pruneIndex = dropFinder.getPruneIndex(nodes, start);
-            if (pruneIndex <= start) {
-                break;
-            }
-            HashIDSet block = new HashIDSet();
-            for (int iEl = start; iEl < pruneIndex; iEl++) {
-                block.add(nodes.get(iEl).id());
-            }
-            blocks.add(block);
-            start = pruneIndex;
-        }
-        return blocks;
-    }
-
     /**
      * Set of identifier for local domains that compose this strong domain.
      * 

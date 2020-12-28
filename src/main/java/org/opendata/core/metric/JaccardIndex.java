@@ -24,9 +24,9 @@ import java.math.MathContext;
  *
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class JaccardIndex implements OverlapSimilarityFunction {
+public class JaccardIndex {
 
-	private final static MathContext MC = MathContext.DECIMAL64;
+    private final static MathContext MC = MathContext.DECIMAL64;
 	
     public BigDecimal logSim(int size1, int size2, int overlap) {
 
@@ -38,14 +38,12 @@ public class JaccardIndex implements OverlapSimilarityFunction {
         		.divide(new BigDecimal(Math.log(divisor + 1)), MC);
     }
 
-    @Override
     public BigDecimal sim(int size1, int size2, int overlap) {
 
     	int divisor = (size1 + size2) - overlap;
     	if (overlap == divisor) {
-    		return BigDecimal.ONE;
+            return BigDecimal.ONE;
     	}
-        return new BigDecimal(overlap)
-        		.divide(new BigDecimal(divisor), MC);
+        return new BigDecimal(overlap).divide(new BigDecimal(divisor), MC);
     }
 }

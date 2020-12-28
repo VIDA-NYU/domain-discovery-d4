@@ -18,9 +18,17 @@
 package org.opendata.db.eq;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.HashIDSet;
-import org.opendata.core.util.count.Counter;
+import org.opendata.core.set.SortedObjectSet;
+import org.opendata.core.set.SortedObjectSetIterator;
+import org.opendata.core.util.StringHelper;
+import org.opendata.core.util.IdentifiableCount;
+import org.opendata.db.column.ColumnHelper;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermConsumer;
 
@@ -36,17 +44,108 @@ import org.opendata.db.term.TermConsumer;
  */
 public class CompressedTermIndexGenerator implements TermConsumer {
 
-    private final Counter _counter;
+    private class EQFileWriter implements EQWriter {
+
+        private int _counter;
+        private final PrintWriter _out;
+        
+        public EQFileWriter(PrintWriter out) {
+            
+            _out = out;
+            _counter = 0;
+        }
+        
+        @Override
+        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedObjectSet<T> columns) {
+
+            Collections.sort(terms);
+            
+            _out.println(
+                    String.format(
+                            "%d\t%s\t%s",
+                            _counter++,
+                            StringHelper.joinIntegers(terms),
+                            ColumnHelper.toArrayString(new SortedObjectSetIterator<>(columns))
+                    )
+            );
+        }
+    }
+    
+    private class MutableEQ  {
+
+        private final SortedObjectSet<IdentifiableCount> _columns;
+        private final List<Integer> _terms;
+
+        public MutableEQ(Term term) {
+
+            _terms = new ArrayList<>();
+            _terms.add(term.id());
+
+            SortedObjectSet<IdentifiableInteger> columns = term.columns();
+            IdentifiableCount[] counts = new IdentifiableCount[columns.objectCount()];
+            for (int iEl = 0; iEl < columns.objectCount(); iEl++) {
+                IdentifiableInteger col = columns.objectAt(iEl);
+                counts[iEl] = new IdentifiableCount(col.id(), col.value());
+            }
+            _columns = new SortedObjectSet<>(counts);
+        }
+        
+        /**
+         * Add a term to the equivalence class. This assumes that the list of
+         * columns for the added term is the same as the list of columns for all
+         * other terms in the equivalence class.
+         * 
+         * @param term 
+         */
+        public void add(Term term) {
+
+            _terms.add(term.id());
+            SortedObjectSet<IdentifiableInteger> columns = term.columns();
+            for (int iCol = 0; iCol < _columns.objectCount(); iCol++) {
+                IdentifiableCount counter = _columns.objectAt(iCol);
+                IdentifiableInteger col = columns.objectAt(iCol);
+                if (counter.id() != col.id()) {
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Mismatch at position %d: %d <> %d",
+                                    iCol,
+                                    counter.id(),
+                                    col.id()
+                            )
+                    );
+                }
+                counter.inc(col.value());
+            }
+        }
+
+        public SortedObjectSet<IdentifiableCount> columns() {
+            
+            return _columns;
+        }
+        
+        public List<Integer> terms() {
+        
+            return _terms;
+        }
+    }
+
     private HashMap<String, MutableEQ> _eqIndex = null;
-    private final PrintWriter _out;
     private final boolean _verbose;
+    private final EQWriter _writer;
+
+    public CompressedTermIndexGenerator(EQWriter writer, boolean verbose) {
+
+        _writer = writer;
+
+        _eqIndex = new HashMap<>();
+        _verbose = verbose;
+    }
 
     public CompressedTermIndexGenerator(PrintWriter out, boolean verbose) {
 
-        _out = out;
+        _writer = new EQFileWriter(out);
 
         _eqIndex = new HashMap<>();
-        _counter = new Counter(0);
         _verbose = verbose;
     }
 
@@ -54,9 +153,9 @@ public class CompressedTermIndexGenerator implements TermConsumer {
     public void close() {
 
         for (MutableEQ eq : _eqIndex.values()) {
-            eq.write(_out);
+            _writer.write(eq.terms(), eq.columns());
         }
-
+        
         if (_verbose) {
             System.out.println("NUMBER OF EQUIVALENCE CLASSES IS " + _eqIndex.size());
         }
@@ -65,16 +164,14 @@ public class CompressedTermIndexGenerator implements TermConsumer {
     @Override
     public void consume(Term term) {
 
-        String key = term.columns().toIntString();
+        SortedObjectSet<IdentifiableInteger> columns = term.columns();
+        String key = columns.key();
         if (_eqIndex.containsKey(key)) {
             _eqIndex.get(key).add(term);
         } else {
             HashIDSet terms = new HashIDSet();
             terms.add(term.id());
-            _eqIndex.put(
-                    key,
-                    new MutableEQ(_counter.inc(), term)
-            );
+            _eqIndex.put(key, new MutableEQ(term));
         }
     }
 

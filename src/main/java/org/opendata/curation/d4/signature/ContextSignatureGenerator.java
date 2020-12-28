@@ -17,11 +17,11 @@
  */
 package org.opendata.curation.d4.signature;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import org.opendata.core.graph.Node;
-import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.metric.JaccardIndex;
-import org.opendata.core.metric.OverlapSimilarityFunction;
+import java.util.Collection;
+import org.opendata.db.eq.similarity.EQSimilarity;
+import org.opendata.db.eq.similarity.SimilarityScore;
 
 
 /**
@@ -31,14 +31,13 @@ import org.opendata.core.metric.OverlapSimilarityFunction;
  */
 public class ContextSignatureGenerator {
 
-    private final OverlapSimilarityFunction _ovpFunc;
-    private final IdentifiableObjectSet<Node> _nodes;
+    private final Collection<Integer> _nodes;
+    private final EQSimilarity _simFunc;
     
-    public ContextSignatureGenerator(IdentifiableObjectSet<Node> nodes) {
+    public ContextSignatureGenerator(Collection<Integer> nodes, EQSimilarity simFunc) {
 
         _nodes = nodes;
-        
-        _ovpFunc =  new JaccardIndex();
+        _simFunc = simFunc;
     }
 
     /**
@@ -49,21 +48,16 @@ public class ContextSignatureGenerator {
      */
     public ContextSignature getSignature(int id) {
         
-        Node node = _nodes.get(id);
-        
-        ArrayList<SignatureValue> elements = new ArrayList<>();        
-        for (Node nodeJ : _nodes) {
-            if (node.id() != nodeJ.id()) {
-                int overlap =  node.overlap(nodeJ);
-                if (overlap > 0) {
-                    double sim = _ovpFunc
-                            .sim(node.elementCount(), nodeJ.elementCount(), overlap)
-                            .doubleValue();
-                    elements.add(new SignatureValue(nodeJ.id(), sim));
+        ArrayList<ContextSignatureValue> elements = new ArrayList<>();        
+        for (Integer nodeJ : _nodes) {
+            if (id != nodeJ) {
+                SimilarityScore sim = _simFunc.sim(id, nodeJ);
+                if (sim.score().compareTo(BigDecimal.ZERO) > 0) {
+                    elements.add(new ContextSignatureValue(nodeJ, sim));
                 }
             }
         }
         
-        return new ContextSignature(node.id(), elements);
+        return new ContextSignature(id, elements);
     }
 }

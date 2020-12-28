@@ -17,36 +17,55 @@
  */
 package org.opendata.db.eq;
 
-import java.io.PrintWriter;
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.object.IdentifiableObject;
-import org.opendata.core.set.IDSet;
 
 /**
  * Each equivalence class is a set of terms that always occur together in the
- * same set of columns.
+ * same set of columns. Equivalence classes are the basis for all steps in the
+ * domain discovery process. This interface defines methods that provide
+ * access to information about equivalence classes that is required by the
+ * different steps in the discovery algorithm.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public interface EQ extends IdentifiableObject {
    
     /**
-     * List of identifier for columns the equivalence class occurs in.
+     * Get a sorted array of identifier for columns that contain the equivalence
+     * class.
      * 
      * @return 
      */
-    public IDSet columns();
+    public Integer[] columns();
     
     /**
-     * List of identifier for terms in the equivalence class.
+     * Get the number of columns that contain this equivalence class.
      * 
      * @return 
      */
-    public IDSet terms();
+    public int columnCount();
+
+    /**
+     * Get sorted list of columns together with the frequency of the equivalence
+     * class in that column.
+     * 
+     * @return 
+     */
+    public IdentifiableInteger[] columnFrequencies();
     
     /**
-     * Print string representation of the equivalence class.
+     * Get a sorted array of identifier for terms that the equivalence class
+     * contains.
      * 
-     * @param out 
+     * @return 
      */
-    public void write(PrintWriter out);
+    public Integer[] terms();
+   
+    /**
+     * Get number of terms in the equivalence class.
+     * 
+     * @return 
+     */
+    public int termCount();
 }

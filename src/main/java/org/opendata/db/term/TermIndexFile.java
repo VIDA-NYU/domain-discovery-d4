@@ -27,10 +27,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.HashIDSet;
-import org.opendata.core.set.IDSet;
+import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.core.sort.IdentifiableObjectSort;
 import org.opendata.core.util.OrderedLinkedList;
-import org.opendata.core.util.StringHelper;
+import org.opendata.core.util.IdentifiableCount;
+import org.opendata.core.value.ValueCounter;
+import org.opendata.db.column.ColumnHelper;
 
 /**
  * Generator for a unique index of database terms. Creates the unique term index
@@ -44,30 +46,30 @@ public class TermIndexFile {
     
     private class IOTerm implements Comparable<IOTerm> {
 
-        private final IDSet _columns;
+        private final List<IdentifiableInteger> _columns;
         private final String _term;
 
-        public IOTerm(String term, IDSet columns) {
+        public IOTerm(String term, List<IdentifiableInteger> columns) {
             
             _term = term;
             _columns = columns;
         }
 
-        public IDSet columns() {
+        public List<IdentifiableInteger> columns() {
 
             return _columns;
-        }
-
-        public String term() {
-
-            return _term;
         }
 
         @Override
         public int compareTo(IOTerm t) {
 
-            return _term.compareTo(t.term());
+            return _term.compareTo(t.name());
         }
+        public String name() {
+
+            return _term;
+        }
+
     }
 
     private class TermFileMerger {
@@ -80,7 +82,7 @@ public class TermIndexFile {
             _out = out;
         }
         
-        public void merge(List<TermSetIterator> readers) throws java.io.IOException {
+        public int merge(List<TermSetIterator> readers) throws java.io.IOException {
 
             OrderedLinkedList<TermSetIterator> activeReaders;
             activeReaders = new OrderedLinkedList<>();
@@ -100,8 +102,8 @@ public class TermIndexFile {
                 List<TermSetIterator> advanceReaders = new ArrayList<>();
                 TermSetIterator reader = activeReaders.pop();
                 advanceReaders.add(reader);
-                String name = reader.term().term();
-                IDSet columns = reader.term().columns();
+                String name = reader.term().name();
+                List<IdentifiableInteger> columns = reader.term().columns();
                 while (!activeReaders.isEmpty()) {
                     if (activeReaders.peek().compareTo(reader) == 0) {
                         advanceReaders.add(activeReaders.pop());
@@ -111,8 +113,9 @@ public class TermIndexFile {
                 }
                 if (advanceReaders.size() > 1) {
                     // Merge the column lists from all terms at the top.
+                    columns = new ArrayList<>();
                     for (TermSetIterator r : advanceReaders) {
-                        columns = columns.union(r.term().columns());
+                        columns.addAll(r.term().columns());
                         if (r.next()) {
                             activeReaders.insert(r);
                         }
@@ -134,16 +137,21 @@ public class TermIndexFile {
                     reader.next();
                 }
             }
+            
+            return _termId;
         }
         
         private void write(IOTerm term) {
             
-            this.write(term.term(), term.columns());
+            this.write(term.name(), term.columns());
         }
         
-        private void write(String term, IDSet columns) {
+        private void write(String term, List<IdentifiableInteger> columns) {
             
-            _out.println(String.format("%d\t%s\t%s", _termId++, term, columns.toIntString()));
+            Collections.sort(columns, new IdentifiableObjectSort());
+
+            String cols = ColumnHelper.toArrayString(columns.iterator());
+            _out.println(String.format("%d\t%s\t%s", _termId++, term, cols));
         }
     }
 
@@ -192,9 +200,13 @@ public class TermIndexFile {
             
             if (line != null) {
                 String[] tokens = line.split("\t");
+                List<IdentifiableInteger> columns = new ArrayList<>();
+                for (IdentifiableInteger el : ColumnHelper.fromArbitraryArrayString(tokens[1])) {
+                    columns.add(el);
+                }
                 _term = new IOTerm(
                         tokens[0],
-                        new HashIDSet(tokens[1].split((",")))
+                        columns
                 );
             } else {
                 _term = null;
@@ -217,11 +229,11 @@ public class TermIndexFile {
     private class TermSetReader extends TermSetIterator {
 
         private final ArrayList<String> _terms;
-        private final HashMap<String, List<Integer>> _termIndex;
+        private final HashMap<String, List<IdentifiableInteger>> _termIndex;
         private int _readIndex;
         private IOTerm _term = null;
         
-        public TermSetReader(HashMap<String, List<Integer>> termIndex) {
+        public TermSetReader(HashMap<String, List<IdentifiableInteger>> termIndex) {
             
             _termIndex = termIndex;
             
@@ -237,7 +249,7 @@ public class TermIndexFile {
             
             if (_readIndex < _terms.size()) {
                 String term = _terms.get(_readIndex++);
-                _term = new IOTerm(term, new HashIDSet(_termIndex.get(term)));
+                _term = new IOTerm(term, _termIndex.get(term));
             } else {
                 _term = null;
             }
@@ -251,7 +263,7 @@ public class TermIndexFile {
         }
     }
 
-    private HashMap<String, List<Integer>> _buffer;
+    private HashMap<String, List<IdentifiableInteger>> _buffer;
     private final List<File> _files;
     private final int _maxBufferSize;
     private final boolean _verbose;
@@ -265,14 +277,17 @@ public class TermIndexFile {
         _verbose = verbose;
     }
     
-    public synchronized void add(String term, int columnId) {
+    public synchronized void add(int columnId, ValueCounter term) {
         
-        if (!_buffer.containsKey(term)) {
-            ArrayList<Integer> columns = new ArrayList<>();
-            columns.add(columnId);
-            _buffer.put(term, columns);
+        String key = term.getText();
+        IdentifiableInteger colCount;
+        colCount = new IdentifiableCount(columnId, term.getCount());
+        if (!_buffer.containsKey(key)) {
+            ArrayList<IdentifiableInteger> columns = new ArrayList<>();
+            columns.add(colCount);
+            _buffer.put(key, columns);
         } else {
-            _buffer.get(term).add(columnId);
+            _buffer.get(key).add(colCount);
         }
         if (_buffer.size() > _maxBufferSize) {
             try {
@@ -283,7 +298,7 @@ public class TermIndexFile {
         }
     }
     
-    public void write(File outputFile) throws java.io.IOException {
+    public void write(File outputFile, boolean validate) throws java.io.IOException {
         
         List<TermSetIterator> readers = new ArrayList<>();
         if (!_buffer.isEmpty()) {
@@ -294,12 +309,42 @@ public class TermIndexFile {
             readers.add(new TermFileReader(file));
         }
 
+        if (_verbose) {
+            System.out.println(String.format("MERGE %d FILES.", readers.size()));
+        }
+        
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new TermFileMerger(out).merge(readers);
+            int count = new TermFileMerger(out).merge(readers);
+            if (_verbose) {
+                System.out.println(String.format("RESULTING FILE HAS %d TERMS.", count));
+            }
         }
         
         for (File file : _files) {
             file.delete();
+        }
+        
+        if (validate) {
+            if (_verbose) {
+                System.out.println("VALIDATE @ " + new Date());
+            }
+            try (BufferedReader in = FileSystem.openReader(outputFile)) {
+                String line = in.readLine();
+                if (line == null) {
+                    return;
+                }
+                String prevTerm = line.split("\t")[1];
+                while ((line = in.readLine()) != null) {
+                    String term = line.split("\t")[1];
+                    if (prevTerm.compareTo(term) >= 0) {
+                        throw new RuntimeException(String.format("%s before %s", prevTerm, term));
+                    }
+                    prevTerm = term;
+                }
+            }
+            if (_verbose) {
+                System.out.println("DONE @ " + new Date());
+            }
         }
     }
     
@@ -321,8 +366,8 @@ public class TermIndexFile {
         
         try (PrintWriter out = FileSystem.openPrintWriter(file)) {
             for (String term : terms) {
-                String columns = StringHelper.joinIntegers(_buffer.get(term));
-                out.println(String.format("%s\t%s", term, columns));
+                String cols = ColumnHelper.toArrayString(_buffer.get(term).iterator());
+                out.println(String.format("%s\t%s", term, cols));
             }
         }
 

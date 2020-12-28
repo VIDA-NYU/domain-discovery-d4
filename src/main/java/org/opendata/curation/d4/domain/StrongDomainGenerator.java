@@ -35,8 +35,7 @@ import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.util.count.IdentifiableCounterSet;
-import org.opendata.db.eq.EQIndex;
+import org.opendata.core.util.IdentifiableCounterSet;
 
 /**
  * Identify domains that have support by at least n other domains. Support
@@ -227,7 +226,7 @@ public class StrongDomainGenerator {
     /**
      * Compute set local domains that have sufficient support.
      * 
-     * @param nodes
+     * @param eqTermCounts
      * @param domainReader
      * @param domainOverlapConstraint
      * @param minSupportConstraint
@@ -239,7 +238,7 @@ public class StrongDomainGenerator {
      * @throws java.io.IOException 
      */
     public void run(
-            EQIndex nodes,
+            Integer[] eqTermCounts,
             DomainReader domainReader,
             Threshold domainOverlapConstraint,
             Threshold minSupportConstraint,
@@ -256,27 +255,13 @@ public class StrongDomainGenerator {
         if (verbose) {
             System.out.println(
                     String.format(
-                            "STRONG DOMAINS FOR %d LOCAL DOMAINS USING:\n" +
-                            "  --eqs=%s\n" +                            
-                            "  --localdomains=%s\n" +
-                            "  --domainOverlap=%s\n" +
-                            "  --minSupport=%s\n" +
-                            "  --supportFraction=%s\n" +
-                            "  --threads=%d\n" +
-                            "  --strongdomains=%s",
-                            localDomains.length(),
-                            nodes.source(),
-                            domainReader.source(),
-                            domainOverlapConstraint.toPlainString(),
-                            minSupportConstraint.toPlainString(),
-                            supportFraction.toPlainString(),
-                            threads,
-                            outputFile.getName()
+                            "STRONG DOMAINS FOR %d LOCAL DOMAINS",
+                            localDomains.length()
                     )
             );
         }
         
-        DomainHelper helper = new DomainHelper(nodes, localDomains);
+        DomainHelper helper = new DomainHelper(eqTermCounts, localDomains);
         
         // For each local domain we first estimate the frequency of the semantic
         // type that the domain represents in the database. The estimate is

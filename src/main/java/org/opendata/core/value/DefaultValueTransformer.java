@@ -17,8 +17,6 @@
  */
 package org.opendata.core.value;
 
-import org.opendata.core.util.StringHelper;
-
 /**
  * Default transformer for column values. Replace successive white spaces with
  * a single space character.
@@ -30,6 +28,6 @@ public class DefaultValueTransformer implements ValueTransformer {
     @Override
     public String transform(String value) {
 
-        return StringHelper.joinStrings(value.toUpperCase().split("\\s+"), " ");
+        return value.toUpperCase().replaceAll("\\s+", " ").trim();
     }
 }

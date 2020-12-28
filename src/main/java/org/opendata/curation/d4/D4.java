@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
@@ -35,33 +34,23 @@ import org.opendata.curation.d4.domain.DomainSetStatsPrinter;
 import org.opendata.curation.d4.domain.DomainWriter;
 import org.opendata.curation.d4.domain.ExternalMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomainGenerator;
-import org.opendata.curation.d4.signature.RobustSignatureGenerator;
 import org.opendata.curation.d4.signature.SignatureBlocksStats;
 import org.opendata.core.constraint.Threshold;
 import org.opendata.core.io.FileListReader;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
 import org.opendata.curation.d4.export.ExportStrongDomains;
-import org.opendata.curation.d4.export.PrimaryDomainWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
-import org.opendata.curation.d4.signature.SignatureBlocksWriter;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSizeSketchFactory;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksSketchFactory;
-import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
-import org.opendata.db.Database;
-import org.opendata.db.column.Column;
+import org.opendata.curation.d4.signature.ContextSignatureBlocksWriter;
+import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
+import org.opendata.db.eq.CompressedTermIndexFile;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
-import org.opendata.db.eq.EQIndex;
 import org.opendata.db.term.TermIndexGenerator;
 import org.opendata.db.term.TermIndexReader;
 import org.opendata.db.tools.Dataset2ColumnsConverter;
-import org.opendata.curation.d4.signature.RobustSignatureStream;
-import org.opendata.curation.d4.signature.sketch.SignatureBlocksNoSketchFactory;
-import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
 
 /**
  * Complete D4 pipeline.
@@ -70,11 +59,71 @@ import org.opendata.curation.d4.signature.trim.SignatureRobustifier;
  */
 public class D4 {
 
+    public void columns(
+            File inputDir,
+            File metadataFile,
+            int cacheSize,
+            int threads,
+            boolean verbose,
+            File outputDir
+    ) throws java.lang.InterruptedException, java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --input=%s\n" +
+                            "  --metadata=%s\n" +
+                            "  --cacheSize=%d\n" +
+                            "  --threads=%d\n" +
+                            "  --output=%s\n",
+                            STEP_GENERATE_COLUMNS,
+                            inputDir.getAbsolutePath(),
+                            metadataFile.getAbsolutePath(),
+                            cacheSize,
+                            threads,
+                            outputDir.getAbsolutePath()
+                    )
+            );
+        }
+
+        try (PrintWriter out = FileSystem.openPrintWriter(metadataFile)) {
+            List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
+                    .listFiles(inputDir);
+            new Dataset2ColumnsConverter(outputDir, out, cacheSize, verbose)
+                    .run(files, threads);
+        }
+    }
+
+    public void eqs(
+            File inputFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --input=%s\n" +
+                            "  --output=%s\n",
+                            STEP_COMPRESS_TERMINDEX,
+                            inputFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+        
+        try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
+            new TermIndexReader(inputFile)
+                    .read(new CompressedTermIndexGenerator(out, verbose));
+        }
+    }
+    
     public void expandColumns(
-            EQIndex nodeIndex,
-            RobustSignatureStream signatures,
+            File eqFile,
+            File signatureFile,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             Threshold expandThreshold,
             int numberOfIterations,
             BigDecimal decreaseFactor,
@@ -84,14 +133,38 @@ public class D4 {
             File outputFile
     ) throws java.io.IOException {
         
-        IdentifiableObjectSet<Column> db = new Database(nodeIndex).columns();
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --signatures=%s\n" +
+                            "  --trimmer=%s\n" +
+                            "  --expandThreshold=%s\n" +
+                            "  --decrease=%s\n" +
+                            "  --iterations=%d\n" +
+                            "  --threads=%d\n" +
+                            "  --columns=%s",
+                            STEP_EXPAND_COLUMNS,
+                            eqFile.getAbsolutePath(),
+                            signatureFile.getAbsolutePath(),
+                            trimmer,
+                            expandThreshold.toPlainString(),
+                            decreaseFactor.toPlainString(),
+                            numberOfIterations,
+                            threads,
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
         new ParallelColumnExpander(telemetry).run(
-                nodeIndex,
-                signatures,
-                trimmer,
-                sketchFactory,
-                db,
-                db.keys(),
+                db.getEQTermCounts(),
+                new SignatureBlocksReader(signatureFile),
+                db.getSignatureTrimmerFactory(trimmer, true),
+                db.getColumns(),
                 expandThreshold,
                 decreaseFactor,
                 numberOfIterations,
@@ -113,8 +186,30 @@ public class D4 {
             File columnFile,
             File strongDomainFile,
             int sampleSize,
+            boolean verbose,
             File outputDir
     ) throws java.io.IOException {
+
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --terms=%s\n" +
+                            "  --columns=%s\n" +
+                            "  --domains=%s\n" +
+                            "  --sampleSize=%d\n" +
+                            "  --output=%s",
+                            STEP_EXPORT_DOMAINS,
+                            eqFile.getAbsolutePath(),
+                            termFile.getAbsolutePath(),
+                            columnFile.getAbsolutePath(),
+                            strongDomainFile.getAbsolutePath(),
+                            sampleSize,
+                            outputDir.getAbsolutePath()
+                    )
+            );
+        }
 
         new ExportStrongDomains().run(
                 eqFile,
@@ -126,36 +221,11 @@ public class D4 {
         );
     }
     
-    /**
-     * Factory for sketch factories. Create the instance of the sketch factory
-     * from the given specification.
-     * 
-     * If the specification is null the non-sketch factory is returned that does
-     * not modify the signature blocks.
-     * 
-     * The only other sketch specification that is currently supported is
-     * 'Nn' which returns a size threshold sketch generator using n as the
-     * size threshold.
-     * 
-     * @param spec
-     * @return 
-     */
-    private static SignatureBlocksSketchFactory getSketchFactory(String spec) {
-        
-        if (spec == null) {
-            return new SignatureBlocksNoSketchFactory();
-        } else if ((spec.toUpperCase().startsWith("N")) && (spec.length() > 1)) {
-            return new SignatureBlocksSizeSketchFactory(Integer.parseInt(spec.substring(1)));
-        }
-        throw new IllegalArgumentException(String.format("Invalid sketch specification '%s", spec));
-    }
-    
     public void localDomains(
-            EQIndex nodeIndex,
+            File eqFile,
             File columnsFile,
-            SignatureBlocksReader signatures,
+            File signatureFile,
             String trimmer,
-            SignatureBlocksSketchFactory sketchFactory,
             boolean originalOnly,
             int threads,
             boolean inMem,
@@ -163,29 +233,56 @@ public class D4 {
             TelemetryCollector telemetry,
             File outputFile
     ) throws java.io.IOException {
+
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --columns=%s\n" +
+                            "  --signatures=%s\n" +
+                            "  --trimmer=%s\n" +
+                            "  --originalonly=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --inmem=false\n" +
+                            "  --localdomains=%s",
+                            STEP_LOCAL_DOMAINS,
+                            eqFile.getAbsolutePath(),
+                            columnsFile.getAbsolutePath(),
+                            signatureFile.getAbsolutePath(),
+                            trimmer,
+                            Boolean.toString(originalOnly),
+                            threads,
+                            Boolean.toString(inMem),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
         
-        ExpandedColumnIndex columnIndex = new ExpandedColumnIndex(columnsFile);
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
+        ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
         new ExpandedColumnReader(columnsFile).stream(columnIndex);
+        
+        SignatureBlocksReader signatures;
+        signatures = new SignatureBlocksReader(signatureFile);
+        
         if (inMem) {
             new InMemLocalDomainGenerator(telemetry).run(
-                nodeIndex,
+                db.getEQTermCounts(),
                 columnIndex,
                 signatures.read(),
-                trimmer,
-                sketchFactory,
-                originalOnly,
+                db.getSignatureTrimmerFactory(trimmer, originalOnly),
                 threads,
                 verbose,
                 new DomainWriter(outputFile)
             );
         } else {
             new ExternalMemLocalDomainGenerator(telemetry).run(
-                    nodeIndex,
+                    db.getEQTermCounts(),
                     columnIndex,
                     signatures,
-                    trimmer,
-                    sketchFactory,
-                    originalOnly,
+                    db.getSignatureTrimmerFactory(trimmer, originalOnly),
                     threads,
                     verbose,
                     new DomainWriter(outputFile)
@@ -200,7 +297,8 @@ public class D4 {
     }
     
     public void signatures(
-            EQIndex nodeIndex,
+            File eqFile,
+            String sigSimSpec,
             String trimmerSpec,
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
@@ -211,17 +309,44 @@ public class D4 {
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
-        SignatureBlocksWriter sigWriter = new SignatureBlocksWriter(outputFile);
-        new RobustSignatureGenerator(telemetry).run(
-                nodeIndex,
-                new ConcurrentLinkedQueue<>(nodeIndex.keys().toList()),
-                trimmerSpec,
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --sim=%s\n" +
+                            "  --robustifier=%s\n" +
+                            "  --fullSignatureConstraint=%s\n" +
+                            "  --ignoreLastDrop=%s\n" +
+                            "  --ignoreMinorDrop=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --signatures=%s",
+                            STEP_SIGNATURES,
+                            eqFile.getAbsolutePath(),
+                            sigSimSpec,
+                            trimmerSpec,
+                            Boolean.toString(fullSignatureConstraint),
+                            Boolean.toString(ignoreLastDrop),
+                            Boolean.toString(ignoreMinorDrop),
+                            threads,
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        ContextSignatureBlocksWriter sigWriter = new ContextSignatureBlocksWriter(outputFile);
+        new SignatureBlocksGenerator(telemetry).run(
+                db.getEQIdentifiers(),
+                db.getEQTermCounts(),
+                db.getEQSimilarityFunction(sigSimSpec),
                 fullSignatureConstraint,
                 ignoreLastDrop,
                 ignoreMinorDrop,
                 threads,
                 verbose,
-                sigWriter
+                db.getSignatureRobustifier(trimmerSpec, sigWriter)
         );
 
         if (verbose) {
@@ -232,7 +357,7 @@ public class D4 {
     }
     
     public void strongDomains(
-            EQIndex nodeIndex,
+            File eqFile,
             File localDomainFile,
             Threshold domainOverlapConstraint,
             Threshold minSupportConstraint,
@@ -243,8 +368,33 @@ public class D4 {
             File outputFile
     ) throws java.lang.InterruptedException, java.io.IOException {
         
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +                            
+                            "  --localdomains=%s\n" +
+                            "  --domainOverlap=%s\n" +
+                            "  --minSupport=%s\n" +
+                            "  --supportFraction=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --strongdomains=%s",
+                            STEP_STRONG_DOMAINS,
+                            eqFile.getAbsolutePath(),
+                            localDomainFile.getAbsolutePath(),
+                            domainOverlapConstraint.toPlainString(),
+                            minSupportConstraint.toPlainString(),
+                            supportFraction.toPlainString(),
+                            threads,
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
         new StrongDomainGenerator(telemetry).run(
-                nodeIndex,
+                db.getEQTermCounts(),
                 new DomainReader(localDomainFile),
                 domainOverlapConstraint,
                 minSupportConstraint,
@@ -269,6 +419,48 @@ public class D4 {
             statsPrinter.close();
             statsPrinter.print();
         }
+    }
+
+    public void termIndex(
+            File inputDir,
+            Threshold threshold,
+            int bufferSize,
+            boolean validate,
+            int threads,
+            boolean verbose,
+            File outputFile
+    ) throws java.lang.InterruptedException, java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --input=%s\n" +
+                            "  --textThreshold=%s\n" +
+                            "  --membuffer=%d\n" +
+                            "  --validate=%s\n" +
+                            "  --threads=%d\n" +
+                            "  --output=%s\n",
+                            STEP_TERMINDEX,
+                            inputDir.getAbsolutePath(),
+                            threshold.toPlainString(),
+                            bufferSize,
+                            Boolean.toString(validate),
+                            threads,
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+        
+        new TermIndexGenerator().run(
+                new FileListReader(".txt").listFiles(inputDir),
+                threshold,
+                bufferSize,
+                validate,
+                threads,
+                verbose,
+                outputFile
+        );
     }
     
     /**
@@ -329,20 +521,28 @@ public class D4 {
                     new Parameter[] {
                         new Parameter("input", "<directory> [default: 'tsv']"),
                         new Parameter("metadata", "<file> [default: 'columns.tsv']"),
+                        new Parameter("cacheSize", "<int> [default: 1000]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("output", "<directory> [default: 'columns']")
                     },
                     args
             );
             File inputDir = params.getAsFile("input", "tsv");
             File outputFile = params.getAsFile("metadata", "columns.tsv");
+            int cacheSize = params.getAsInt("cacheSize", 1000);
             boolean verbose = params.getAsBool("verbose", true);
+            int threads = params.getAsInt("threads", 6);
             File outputDir = params.getAsFile("output", "columns");
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                List<File> files = new FileListReader(new String[]{".csv", ".tsv"})
-                        .listFiles(inputDir);
-                new Dataset2ColumnsConverter(outputDir, out, verbose)
-                        .run(files);
+            try {
+                new D4().columns(
+                        inputDir,
+                        outputFile,
+                        cacheSize,
+                        threads,
+                        verbose,
+                        outputDir
+                );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
                 System.exit(-1);
@@ -359,25 +559,28 @@ public class D4 {
                         ),
                         new Parameter("textThreshold", "<constraint> [default: 'GT0.5']"),
                         new Parameter("membuffer", "<int> [default: 10000000]"),
+                        new Parameter("validate", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("threads", "<int> [default: 6]"),
-                        new Parameter("output", "<file> [default: 'text-columns.txt']")
+                        new Parameter("output", "<file> [default: 'text-columns.txt.gz']")
                     },
                     args
             );
             File inputDir = params.getAsFile("input", "columns");
             Threshold threshold = params.getAsConstraint("textThreshold", "GT0.5");
             int bufferSize = params.getAsInt("membuffer", 10000000);
+            boolean validate = params.getAsBool("validate", false);
             boolean verbose = params.getAsBool("verbose", true);
             int threads = params.getAsInt("threads", 6);
             File outputFile = params.getAsFile("output", "term-index.txt.gz");
             try {
-                new TermIndexGenerator().run(
-                        new FileListReader(".txt").listFiles(inputDir),
+                new D4().termIndex(
+                        inputDir,
                         threshold,
                         bufferSize,
-                        verbose,
+                        validate,
                         threads,
+                        verbose,
                         outputFile
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
@@ -402,9 +605,12 @@ public class D4 {
             File inputFile = params.getAsFile("input", "term-index.txt.gz");
             boolean verbose = params.getAsBool("verbose", true);
             File outputFile = params.getAsFile("output", "compressed-term-index.txt.gz");     
-            try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-                new TermIndexReader(inputFile)
-                        .read(new CompressedTermIndexGenerator(out, verbose));
+            try {
+                new D4().eqs(
+                        inputFile,
+                        verbose,
+                        outputFile
+                );
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "EQUIVALENCE CLASSES", ex);
                 System.exit(-1);
@@ -419,7 +625,8 @@ public class D4 {
                                 "eqs",
                                 "<file> [default: 'compressed-term-index.txt.gz']"
                         ),
-                        new Parameter("robustifier", "<string> [default: LIBERAL]"),
+                        new Parameter("sim", String.format("<string> [default: %s]", D4Config.EQSIM_JI)),
+                        new Parameter("robustifier", String.format("<string> [default: %s]", D4Config.ROBUST_LIBERAL)),
                         new Parameter("fullSignatureConstraint", "<boolean> [default: true]"),
                         new Parameter("ignoreLastDrop", "<boolean> [default: false]"),
                         new Parameter("ignoreMinorDrop", "<boolean> [default: true]"),
@@ -430,7 +637,8 @@ public class D4 {
                     args
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
-            String robustifierSpec = params.getAsString("robustifier", SignatureRobustifier.LIBERAL);
+            String sigSimSpec = params.getAsString("sim", D4Config.EQSIM_JI);
+            String robustifierSpec = params.getAsString("robustifier", D4Config.ROBUST_LIBERAL);
             int threads = params.getAsInt("threads", 6);
             boolean verbose = params.getAsBool("verbose", true);
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
@@ -439,7 +647,8 @@ public class D4 {
             boolean ignoreMinorDrop = params.getAsBool("ignoreMinorDrop", true);
             try {
                 new D4().signatures(
-                        new EQIndex(eqFile),
+                        eqFile,
+                        sigSimSpec,
                         robustifierSpec,
                         fullSignatureConstraint,
                         ignoreLastDrop,
@@ -466,9 +675,8 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
+                                "<string> [default: " + D4Config.TRIMMER_CENTRIST + "]"
                         ),
-                        new Parameter("sketch", "<string> [default: null]"),
                         new Parameter("expandThreshold", "<constraint> [default: 'GT0.25']"),
                         new Parameter("decrease", "<double> [default: 0.05]"),
                         new Parameter("iterations", "<int> [default: 5]"),
@@ -480,8 +688,7 @@ public class D4 {
             );
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
-            String sketch = params.getAsString("sketch", null);
+            String trimmer = params.getAsString("trimmer", D4Config.TRIMMER_CENTRIST);
             Threshold expandThreshold = params.getAsConstraint("expandThreshold", "GT0.25");
             BigDecimal decreaseFactor = params
                     .getAsBigDecimal("decrease", new BigDecimal("0.05"));
@@ -491,10 +698,9 @@ public class D4 {
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             try {
                 new D4().expandColumns(
-                        new EQIndex(eqFile),
-                        new SignatureBlocksReader(signatureFile),
+                        eqFile,
+                        signatureFile,
                         trimmer,
-                        getSketchFactory(sketch),
                         expandThreshold,
                         numberOfIterations,
                         decreaseFactor,
@@ -521,9 +727,8 @@ public class D4 {
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']"),
                         new Parameter(
                                 "trimmer",
-                                "<string> [default: " + SignatureTrimmer.CENTRIST + "]"
+                                "<string> [default: " + D4Config.TRIMMER_CENTRIST + "]"
                         ),
-                        new Parameter("sketch", "<string> [default: null]"),
                         new Parameter("originalonly", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("inmem", "<boolean> [default: false]"),
@@ -538,8 +743,7 @@ public class D4 {
             File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
             File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
             File signatureFile = params.getAsFile("signatures", "signatures.txt.gz");     
-            String trimmer = params.getAsString("trimmer", SignatureTrimmer.CENTRIST);
-            String sketch = params.getAsString("sketch", null);
+            String trimmer = params.getAsString("trimmer", D4Config.TRIMMER_CENTRIST);
             boolean originalOnly = params.getAsBool("originalonly", false);
             int threads = params.getAsInt("threads", 6);
             boolean inMem = params.getAsBool("inmem", false);
@@ -547,11 +751,10 @@ public class D4 {
             File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
             try {
                 new D4().localDomains(
-                        new EQIndex(eqFile),
+                        eqFile,
                         columnsFile,
-                        new SignatureBlocksReader(signatureFile),
+                        signatureFile,
                         trimmer,
-                        getSketchFactory(sketch),
                         originalOnly,
                         threads,
                         inMem,
@@ -600,7 +803,7 @@ public class D4 {
             File strongDomainFile = params.getAsFile("strongdomains", "strong-domains.txt.gz");
             try {
                 new D4().strongDomains(
-                        new EQIndex(eqFile),
+                        eqFile,
                         localDomainFile,
                         domainOverlapConstraint,
                         minSupportConstraint,
@@ -631,7 +834,7 @@ public class D4 {
                                 "<file> [default: 'strong-domains.txt.gz']"
                         ),
                         new Parameter("sampleSize", "<int> [default: 100]"),
-                        new Parameter("writePrimary", "<boolean> [default: false]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("output", "<direcory> [default: 'domains']"),
                     },
                     args
@@ -641,7 +844,7 @@ public class D4 {
             File columnsFile = params.getAsFile("columns", "columns.tsv");
             File domainsFile = params.getAsFile("domains", "strong-domains.txt.gz");
             int samleSize = params.getAsInt("sampleSize", 100);
-            boolean writePrimary = params.getAsBool("writePrimary", false);
+            boolean verbose = params.getAsBool("verbose", true);
             File outputDir = params.getAsFile("output", "domains");
             try {
                 new D4().exportStrongDomains(
@@ -650,11 +853,9 @@ public class D4 {
                         columnsFile,
                         domainsFile,
                         samleSize,
+                        verbose,
                         outputDir
                 );
-                if (writePrimary) {
-                    new PrimaryDomainWriter().run(outputDir, outputDir);
-                }
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "EXPORT DOMAINS", ex);
                 System.exit(-1);

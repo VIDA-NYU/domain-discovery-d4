@@ -22,8 +22,6 @@ import java.util.HashMap;
 
 import org.opendata.core.metric.JaccardIndex;
 import org.opendata.core.set.IdentifiableObjectSet;
-import org.opendata.core.util.ArrayHelper;
-import org.opendata.db.eq.EQIndex;
 
 /**
  * Collection of helper methods for domains.
@@ -33,25 +31,49 @@ import org.opendata.db.eq.EQIndex;
 public class DomainHelper {
     
     private final HashMap<Integer, Integer> _domainSizes;
-    private final int[] _nodeSizes;
+    private final Integer[] _eqTermCounts;
     
-    public DomainHelper(EQIndex nodes, IdentifiableObjectSet<Domain> domains) {
+    public DomainHelper(Integer[] eqTermCounts, IdentifiableObjectSet<Domain> domains) {
         
-        _nodeSizes = nodes.nodeSizes();
+        _eqTermCounts = eqTermCounts;
         
         _domainSizes = new HashMap<>();
         for (Domain domain : domains) {
             int size = 0;
             for (int nodeId : domain) {
-                size += _nodeSizes[nodeId];
+                size += _eqTermCounts[nodeId];
             }
             _domainSizes.put(domain.id(), size);
         }
     }
     
+    private int overlap(int[] list1, int[] list2, Integer[] nodeSizes) {
+        
+        final int len1 = list1.length;
+        final int len2 = list2.length;
+        
+        int idx1 = 0;
+        int idx2 = 0;
+        int overlap = 0;
+        
+        while ((idx1 < len1) && (idx2 < len2)) {
+            int comp = Integer.compare(list1[idx1], list2[idx2]);
+            if (comp < 0) {
+                idx1++;
+            } else if (comp > 0) {
+                idx2++;
+            } else {
+                overlap += nodeSizes[list1[idx1]];
+                idx1++;
+                idx2++;
+            }
+        }
+        return overlap;
+    }
+
     public BigDecimal termOverlap(Domain domI, Domain domJ) {
         
-        int overlap = ArrayHelper.overlap(domI.nodes(), domJ.nodes(), _nodeSizes);
+        int overlap = this.overlap(domI.nodes(), domJ.nodes(), _eqTermCounts);
 
         int sizeI = _domainSizes.get(domI.id());
         int sizeJ = _domainSizes.get(domJ.id());
