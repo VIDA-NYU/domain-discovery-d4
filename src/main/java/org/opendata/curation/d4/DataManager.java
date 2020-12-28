@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import org.opendata.core.object.IdentifiableDouble;
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.HashObjectSet;
 import org.opendata.core.set.IdentifiableObjectSet;
 import org.opendata.curation.d4.signature.ContextSignatureBlocksConsumer;
@@ -34,6 +36,7 @@ import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.similarity.EQSimilarity;
 import org.opendata.db.eq.similarity.JISimilarity;
 import org.opendata.db.eq.similarity.LogJISimilarity;
+import org.opendata.db.eq.similarity.WeightedJISimilarity;
 
 /**
  * The D4 data manager is a wrapper around the set of equivalence classes in
@@ -50,6 +53,7 @@ public class DataManager {
     
     private HashObjectSet<Column> _columns = null;
     private Integer[][] _eqColumns = null;
+    private IdentifiableDouble[][] _eqColumnWeights = null;
     private final List<Integer> _eqIdentifiers;
     private final CompressedTermIndex _eqIndex;
     private final Integer[] _eqTermCounts;
@@ -131,6 +135,8 @@ public class DataManager {
             return new JISimilarity(this.getColumnsArray());
         } else if (identifier.equalsIgnoreCase(D4Config.EQSIM_LOGJI)) {
             return new LogJISimilarity(this.getColumnsArray());
+        } else if (identifier.equalsIgnoreCase(D4Config.EQSIM_TFICF)) {
+            return new WeightedJISimilarity(this.getColumnWeightsArray());
         }
         throw new IllegalArgumentException(
                 String.format("Unknown similarity function '%s'", identifier)
@@ -163,6 +169,66 @@ public class DataManager {
         }
         
         return _eqColumns;
+    }
+    
+    /**
+     * Get multi-dimensional array that contains the list of all columns for
+     * each equivalence class together with their weight. The weight for each
+     * equivalence class is an adoption of the tf-idf measure. We consider each
+     * column as a document (hence the name TF-ICF for Inverted Column Frequency).
+     * The measures for tf and icf are based on :
+     * 
+     * https://en.wikipedia.org/wiki/Tf%E2%80%93idf
+     * 
+     * We use the augmented term frequency to prevent bias towards larger
+     * columns.
+     * 
+     * @return 
+     */
+    private IdentifiableDouble[][] getColumnWeightsArray() {
+        
+        if (_eqColumnWeights == null) {
+            // Get the total number of columns and the most requent equivalence
+            // class for each column.
+            HashMap<Integer, Integer> columns = new HashMap<>();
+            int maxColId = -1;
+            for (EQ eq : _eqIndex) {
+                for (IdentifiableInteger col : eq.columnFrequencies()) {
+                    if (col.id() > maxColId) {
+                        maxColId = col.id();
+                    }
+                    Integer maxFreq = columns.get(col.id());
+                    if (maxFreq != null) {
+                        if (col.value() > maxFreq) {
+                            columns.put(col.id(), col.value());
+                        }
+                    } else {
+                        columns.put(col.id(), col.value());
+                    }
+                }
+            }
+            // Create an array for the max. frequent count of each column.
+            Integer[] maxFreq = new Integer[maxColId + 1];
+            for (Integer colId : columns.keySet()) {
+                maxFreq[colId] = columns.get(colId);
+            }
+            int columnCount = columns.size();
+            // Compute weights for each equivalence class.
+            _eqColumnWeights = new IdentifiableDouble[_maxEqIdentifier + 1][];
+            for (EQ eq : _eqIndex) {
+                IdentifiableInteger[] eqColFreqs = eq.columnFrequencies();
+                IdentifiableDouble[] weights = new IdentifiableDouble[eqColFreqs.length];
+                for (int iCol = 0; iCol < eqColFreqs.length; iCol++) {
+                    IdentifiableInteger col = eqColFreqs[iCol];
+                    double tf = 0.5 + (0.5 * ((double)col.value() / (double)maxFreq[col.id()]));
+                    double icf = Math.log((double)columnCount / (double)eqColFreqs.length);
+                    weights[iCol] = new IdentifiableDouble(col.id(), tf * icf);
+                }
+                _eqColumnWeights[eq.id()] = weights;
+            }
+        }
+        
+        return _eqColumnWeights;
     }
     
     /**

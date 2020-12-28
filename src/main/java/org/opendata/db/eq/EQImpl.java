@@ -17,7 +17,9 @@
  */
 package org.opendata.db.eq;
 
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.object.IdentifiableObjectImpl;
+import org.opendata.core.util.IdentifiableCount;
 import org.opendata.core.util.StringHelper;
 
 /**
@@ -64,6 +66,21 @@ public class EQImpl extends IdentifiableObjectImpl implements EQ {
     public int columnCount() {
         
         return StringHelper.splitSize(_tokens[2], ',');
+    }
+
+    @Override
+    public IdentifiableInteger[] columnFrequencies() {
+
+        String[] tokens = _tokens[2].split(",");
+        IdentifiableInteger[] columns = new IdentifiableInteger[tokens.length];
+        for (int iToken = 0; iToken < tokens.length; iToken++) {
+            String token = tokens[iToken];
+            int pos = token.indexOf(":");
+            int columnId = Integer.parseInt(token.substring(0, pos));
+            int freq = Integer.parseInt(token.substring(pos + 1));
+            columns[iToken] = new IdentifiableCount(columnId, freq);
+        }
+        return columns;
     }
     
     @Override

@@ -29,6 +29,7 @@ public final class D4Config {
      */
     public static final String EQSIM_JI = "JI";
     public static final String EQSIM_LOGJI = "LOGJI";
+    public static final String EQSIM_TFICF = "TF-ICF";
     
     /**
      * Identifier for signature robustifier.

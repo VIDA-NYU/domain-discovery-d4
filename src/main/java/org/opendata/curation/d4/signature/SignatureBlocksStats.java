@@ -112,7 +112,7 @@ public class SignatureBlocksStats implements SignatureBlocksConsumer {
     public void print(PrintWriter out) {
 
         out.println("SIMILARITIES:");
-        out.println("\tMAX. SIM\tFIRST DROP\tLAST DROP");
+        out.println("MAX. SIM\tEQs");
         for (String key : _similarityHistogram.keys()) {
             out.println(
                     String.format(

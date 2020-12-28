@@ -17,6 +17,7 @@
  */
 package org.opendata.db.eq;
 
+import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.object.IdentifiableObject;
 
 /**
@@ -45,6 +46,14 @@ public interface EQ extends IdentifiableObject {
      */
     public int columnCount();
 
+    /**
+     * Get sorted list of columns together with the frequency of the equivalence
+     * class in that column.
+     * 
+     * @return 
+     */
+    public IdentifiableInteger[] columnFrequencies();
+    
     /**
      * Get number of terms in the equivalence class.
      * 

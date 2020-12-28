@@ -25,9 +25,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.opendata.core.metric.JaccardIndex;
+import org.opendata.core.object.IdentifiableDouble;
 import org.opendata.db.eq.similarity.JISimilarity;
 import org.opendata.db.eq.similarity.LogJISimilarity;
 import org.opendata.db.eq.similarity.SimilarityScore;
+import org.opendata.db.eq.similarity.WeightedJISimilarity;
 
 /**
  *
@@ -89,7 +91,7 @@ public class EQSimilarityTest {
     public void testJILogSimilarity() {
     
         LogJISimilarity simFunc = new LogJISimilarity(
-                new Integer[][]{
+                new Integer[][] {
                     {1, 2, 3, 4 ,5},
                     {1, 3, 5, 6},
                     {3, 5, 7},
@@ -114,5 +116,32 @@ public class EQSimilarityTest {
         SimilarityScore s03 = simFunc.sim(0, 3);
         assertEquals(0, s03.overlap());
         assertEquals(BigDecimal.ZERO, s03.score());
+    }
+    
+    @Test
+    public void testWeightedSimilarity() {
+        
+        WeightedJISimilarity simFunc = new WeightedJISimilarity(
+                new IdentifiableDouble[][] {
+                    {
+                        new IdentifiableDouble(1, 0.1),
+                        new IdentifiableDouble(2, 0.25),
+                        new IdentifiableDouble(3, 0.5)
+                    },
+                    {
+                        new IdentifiableDouble(2, 0.3),
+                        new IdentifiableDouble(4, 0.05),
+                        new IdentifiableDouble(5, 0.05)
+                    }
+                }
+        );
+        
+        SimilarityScore s = simFunc.sim(0, 1);
+        assertEquals(1, s.overlap());
+        assertEquals(new BigDecimal(0.25 / (0.1 + 0.3 + 0.5 + 0.05 + 0.05)), s.score());
+        
+        s = simFunc.sim(1, 0);
+        assertEquals(1, s.overlap());
+        assertEquals(new BigDecimal(0.25 / (0.1 + 0.3 + 0.5 + 0.05 + 0.05)), s.score());
     }
 }

@@ -561,7 +561,7 @@ public class D4 {
                         new Parameter("validate", "<boolean> [default: false]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("threads", "<int> [default: 6]"),
-                        new Parameter("output", "<file> [default: 'text-columns.txt']")
+                        new Parameter("output", "<file> [default: 'text-columns.txt.gz']")
                     },
                     args
             );
