@@ -462,15 +462,47 @@ public class D4 {
                 outputFile
         );
     }
+
+    public void writeColumns(
+            File eqFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --columns=%s",
+                            STEP_NO_EXPAND,
+                            eqFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
+        new ParallelColumnExpander().noExpand(db.getColumns(), outputFile);
+
+        if (verbose) {
+            ExpandedColumnStatsWriter colStats = new ExpandedColumnStatsWriter();
+            new ExpandedColumnReader(outputFile).stream(colStats);
+            colStats.print();
+        }
+    }
     
     /**
      * Identifier for different steps in the D4 pipeline.
      */
+    private static final String STEP_COLUMN_DOMAINS = "columns-as-domains";
     private static final String STEP_COMPRESS_TERMINDEX = "eqs";
     private static final String STEP_EXPAND_COLUMNS = "expand-columns";
     private static final String STEP_EXPORT_DOMAINS = "export";
     private static final String STEP_GENERATE_COLUMNS = "columns";
     private static final String STEP_LOCAL_DOMAINS = "local-domains";
+    private static final String STEP_NO_EXPAND = "no-expand";
     private static final String STEP_SIGNATURES = "signatures";
     private static final String STEP_STRONG_DOMAINS = "strong-domains";
     private static final String STEP_TERMINDEX = "term-index";
@@ -489,6 +521,10 @@ public class D4 {
             "      " + STEP_EXPAND_COLUMNS + "\n" +
             "      " + STEP_LOCAL_DOMAINS + "\n" +
             "      " + STEP_STRONG_DOMAINS + "\n\n" +
+            "      Alternatives\n" +
+            "      ------------\n" +
+            "      " + STEP_NO_EXPAND + "\n" +
+            "      " + STEP_COLUMN_DOMAINS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
             "      " + STEP_EXPORT_DOMAINS + "\n\n" +
@@ -815,6 +851,77 @@ public class D4 {
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_NO_EXPAND)) {
+            // ----------------------------------------------------------------
+            // NO EXPAND
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "eqs",
+                                "<file> [default: 'compressed-term-index.txt.gz']"
+                        ),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("columns", "<file> [default: 'expanded-columns.txt.gz']")
+                    },
+                    args
+            );
+            File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            boolean verbose = params.getAsBool("verbose", true);
+            File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");
+            try {
+                new D4().writeColumns(
+                        eqFile,
+                        verbose,
+                        columnsFile
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, "EXPORT DOMAINS", ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_COLUMN_DOMAINS)) {
+            // ----------------------------------------------------------------
+            // COLUMN DOMAINS
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "eqs",
+                                "<file> [default: 'compressed-term-index.txt.gz']"
+                        ),
+                        new Parameter("terms", "<file> [default: 'term-index.txt.gz']"),
+                        new Parameter("columns", "<file> [default: 'columns.tsv']"),
+                        new Parameter(
+                                "domains",
+                                "<file> [default: 'strong-domains.txt.gz']"
+                        ),
+                        new Parameter("sampleSize", "<int> [default: 100]"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("output", "<direcory> [default: 'domains']"),
+                    },
+                    args
+            );
+            File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            File termFile = params.getAsFile("terms", "term-index.txt.gz");
+            File columnsFile = params.getAsFile("columns", "columns.tsv");
+            File domainsFile = params.getAsFile("domains", "strong-domains.txt.gz");
+            int samleSize = params.getAsInt("sampleSize", 100);
+            boolean verbose = params.getAsBool("verbose", true);
+            File outputDir = params.getAsFile("output", "domains");
+            try {
+                new D4().exportStrongDomains(
+                        eqFile,
+                        termFile,
+                        columnsFile,
+                        domainsFile,
+                        samleSize,
+                        verbose,
+                        outputDir
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, "EXPORT DOMAINS", ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_EXPORT_DOMAINS)) {

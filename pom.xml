@@ -70,11 +70,11 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <!--mainClass>org.opendata.curation.d4.D4</mainClass-->
+                            <mainClass>org.opendata.curation.d4.D4</mainClass>
                             <!--mainClass>org.opendata.curation.d4.signature.RobustSignatureGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.domain.DomainSetStatsPrinter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchPrinter</mainClass-->
-                            <mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchWriter</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchWriter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.evaluate.PrepareGTFile</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
                             <!--mainClass>org.opendata.db.eq.SimilarTermIndexGenerator</mainClass-->
