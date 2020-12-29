@@ -54,6 +54,11 @@ Usage:
       local-domains
       strong-domains
 
+      Alternatives
+      ------------
+      no-expand
+      columns-as-domains
+
       Explore Results
       ---------------
       export
@@ -201,6 +206,35 @@ strong-domains
   --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --strongdomains=<file> [default: 'strong-domains.txt.gz']
+```
+
+
+#### Alternatives
+
+**No expansion:** Use the `no-expand` option when discovering local domains on the original dataset columns (without expansion). This option will output a columns file in the same format as the `expand-columns` step that can be used as input for the `local-domains` step.
+
+```
+$> java -jar /home/user/lib/D4.jar no-expand --help
+D4 - Data-Driven Domain Discovery - Version (0.30.1)
+
+no-expand
+  --eqs=<file> [default: 'compressed-term-index.txt.gz']
+  --verbose=<boolean> [default: true]
+  --columns=<file> [default: 'expanded-columns.txt.gz']
+```
+
+
+**Whole column as domain:** Instead of discovering local domains within (expanded) columns there is now an option to treat each unique (expanded) column as a local domain.
+
+```
+$> java -jar /home/user/lib/D4.jar columns-as-domains --help
+D4 - Data-Driven Domain Discovery - Version (0.30.1)
+
+columns-as-domains
+  --eqs=<file> [default: 'compressed-term-index.txt.gz']
+  --columns=<file> [default: 'expanded-columns.txt.gz']
+  --verbose=<boolean> [default: true]
+  --localdomains=<file> [default: 'local-domains.txt.gz']
 ```
 
 
