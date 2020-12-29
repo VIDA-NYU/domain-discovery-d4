@@ -71,6 +71,7 @@
                       <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.D4Interactive</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.signature.RobustSignatureGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.domain.DomainSetStatsPrinter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchPrinter</mainClass-->

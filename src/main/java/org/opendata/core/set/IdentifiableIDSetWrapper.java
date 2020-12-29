@@ -17,6 +17,7 @@
  */
 package org.opendata.core.set;
 
+import com.google.gson.JsonArray;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
@@ -179,6 +180,12 @@ public class IdentifiableIDSetWrapper extends IdentifiableObjectImpl implements 
     public String toIntString() {
 
         return _values.toIntString();
+    }
+
+    @Override
+    public JsonArray toJsonArray() {
+
+        return _values.toJsonArray();
     }
 
     @Override

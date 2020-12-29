@@ -32,4 +32,19 @@ public abstract class RobustSignature extends IdentifiableObjectImpl implements 
         
         super(id);
     }
+    
+    @Override
+    public String toString() {
+        
+        StringBuilder buf = new StringBuilder().append(this.id()).append("\t");
+        boolean first = true;
+        for (int memberId : this) {
+            if (!first) {
+                buf.append(",");
+            }
+            buf.append(memberId);
+            first = false;
+        }
+        return buf.toString();
+    }
 }

@@ -17,6 +17,8 @@
  */
 package org.opendata.core.set;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
@@ -210,6 +212,18 @@ public abstract class IDSetImpl extends ObjectSetImpl<Integer> implements IDSet 
     
         List<Integer> result = this.toList();
         Collections.sort(result);
+        return result;
+    }
+
+    @Override
+    public JsonArray toJsonArray() {
+        
+        JsonArray result = new JsonArray();
+        
+        for (int eqId : this.toArray()) {
+            result.add(new JsonPrimitive(eqId));
+        }
+        
         return result;
     }
     

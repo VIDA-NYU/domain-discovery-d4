@@ -17,6 +17,8 @@
  */
 package org.opendata.curation.d4.domain;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import org.opendata.core.set.IDSet;
 import org.opendata.core.set.IdentifiableIDSet;
 import org.opendata.core.set.IdentifiableIDSetWrapper;
