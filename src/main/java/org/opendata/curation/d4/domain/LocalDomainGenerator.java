@@ -21,11 +21,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.util.Date;
+import java.util.HashMap;
 import org.opendata.curation.d4.SignatureTrimmerFactory;
 import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
+import org.opendata.db.Database;
+import org.opendata.db.EQTerms;
 
 /**
  * Generator for local domains in an expanded column.
@@ -34,11 +37,16 @@ import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
  */
 public class LocalDomainGenerator {
     
+    private final Database _db;
     private final Integer[] _eqTermCounts;
     private final SignatureBlocksStream _signatures;
 
-    public LocalDomainGenerator(SignatureBlocksStream signatures, Integer[] eqTermCounts) {
-        
+    public LocalDomainGenerator(
+            Database db,
+            SignatureBlocksStream signatures,
+            Integer[] eqTermCounts
+    ) {
+        _db = db;
         _signatures = signatures;
         _eqTermCounts = eqTermCounts;
     }
@@ -63,6 +71,8 @@ public class LocalDomainGenerator {
         _signatures.stream(trimmer);
         Date runEnd = new Date();
         
+        HashMap<Integer, EQTerms> termIndex = _db.read(column.nodes(), 10);
+        
         JsonObject doc = new JsonObject();
         // Column.
         JsonObject col = new JsonObject();
@@ -72,7 +82,11 @@ public class LocalDomainGenerator {
         // Domains
         JsonArray arrDomains = new JsonArray();
         for (Domain domain : domains.domains()) {
-            arrDomains.add(domain.toJsonArray());
+            JsonArray arrDomain = new JsonArray();
+            for (int eqId : domain) {
+                arrDomain.add(termIndex.get(eqId).toJsonObject());
+            }
+            arrDomains.add(arrDomain);
         }
         doc.add("domains", arrDomains);
         // Exec. Time

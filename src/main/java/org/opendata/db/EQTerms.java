@@ -17,6 +17,7 @@
  */
 package org.opendata.db;
 
+import com.google.gson.JsonObject;
 import org.opendata.core.object.IdentifiableObject;
 
 /**
@@ -55,4 +56,11 @@ public interface EQTerms extends IdentifiableObject, Iterable<String> {
      * @return 
      */
     public int termCount();
+    
+    /**
+     * Get Json serialization.
+     * 
+     * @return 
+     */
+    public JsonObject toJsonObject();
 }

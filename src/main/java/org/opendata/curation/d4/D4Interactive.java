@@ -101,7 +101,11 @@ public class D4Interactive {
                             originalOnly = Boolean.parseBoolean(tokens[3]);
                         }
                         LocalDomainGenerator domGen;
-                        domGen = new LocalDomainGenerator(signatures, d4.getEQTermCounts());
+                        domGen = new LocalDomainGenerator(
+                                db,
+                                signatures,
+                                d4.getEQTermCounts()
+                        );
                         JsonObject doc = domGen.getLocalDomain(
                                 columns.get(columnId),
                                 d4.getSignatureTrimmerFactory(trimmer, originalOnly)

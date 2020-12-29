@@ -17,6 +17,9 @@
  */
 package org.opendata.db;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import java.util.Arrays;
 import java.util.Iterator;
 import org.opendata.core.object.IdentifiableObjectImpl;
@@ -73,5 +76,16 @@ public class SingleTermEQ extends IdentifiableObjectImpl implements EQTerms {
     public int termCount() {
 
         return 1;
+    }
+
+    @Override
+    public JsonObject toJsonObject() {
+
+        JsonObject doc = new JsonObject();
+        doc.add("id", new JsonPrimitive(this.id()));
+        JsonArray terms = new JsonArray();
+        terms.add(new JsonPrimitive(_term));
+        doc.add("terms", terms);
+        return doc;
     }
 }
