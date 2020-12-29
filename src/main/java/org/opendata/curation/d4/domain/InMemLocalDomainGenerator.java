@@ -31,7 +31,6 @@ import org.opendata.curation.d4.column.ExpandedColumn;
 import org.opendata.curation.d4.column.ExpandedColumnIndex;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 import org.opendata.curation.d4.SignatureTrimmerFactory;
-import org.opendata.core.set.MutableIdentifiableIDSet;
 import org.opendata.core.util.MemUsagePrinter;
 import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.SignatureBlocksStream;
@@ -119,6 +118,20 @@ public class InMemLocalDomainGenerator {
     public InMemLocalDomainGenerator() {
         
         this(new TelemetryPrinter());
+    }
+    
+    public void columnsAsDomains(
+            ExpandedColumnIndex columnIndex,
+            DomainConsumer consumer
+    ) throws java.io.IOException {
+
+        UniqueDomainSet domains = new UniqueDomainSet(columnIndex);
+        
+        for (ExpandedColumn column : columnIndex) {
+            domains.put(column.id(), column.nodes());
+        }
+        
+        domains.stream(consumer);
     }
     
     public void run(

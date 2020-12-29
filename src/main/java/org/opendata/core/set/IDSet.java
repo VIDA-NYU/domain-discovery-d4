@@ -17,6 +17,7 @@
  */
 package org.opendata.core.set;
 
+import com.google.gson.JsonArray;
 import java.math.BigDecimal;
 import java.util.List;
 import org.opendata.core.object.ObjectFilter;
@@ -44,4 +45,5 @@ public interface IDSet extends ObjectSet<Integer>, ObjectFilter<Integer> {
     public List<Integer> toSortedList();
     public IDSet union(IDSet list);
     public IDSet union(int id);
+    public JsonArray toJsonArray();
 }

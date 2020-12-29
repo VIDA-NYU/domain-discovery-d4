@@ -94,6 +94,43 @@ public class D4 {
                     .run(files, threads);
         }
     }
+    
+    public void columnsAsDomains(
+            File eqFile,
+            File columnsFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --columns=%s\n" +
+                            "  --localdomains=%s",
+                            STEP_COLUMN_DOMAINS,
+                            columnsFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+        
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
+        ExpandedColumnIndex columnIndex = new ExpandedColumnIndex();
+        new ExpandedColumnReader(columnsFile).stream(columnIndex);
+        
+        new InMemLocalDomainGenerator().columnsAsDomains(
+            columnIndex,
+            new DomainWriter(outputFile)
+        );
+        
+        if (verbose) {
+            DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
+            new DomainReader(outputFile).stream(localStats);
+            localStats.print();
+        }
+    }
 
     public void eqs(
             File inputFile,
@@ -462,15 +499,47 @@ public class D4 {
                 outputFile
         );
     }
+
+    public void writeColumns(
+            File eqFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --columns=%s",
+                            STEP_NO_EXPAND,
+                            eqFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        DataManager db = new DataManager(new CompressedTermIndexFile(eqFile));
+
+        new ParallelColumnExpander().noExpand(db.getColumns(), outputFile);
+
+        if (verbose) {
+            ExpandedColumnStatsWriter colStats = new ExpandedColumnStatsWriter();
+            new ExpandedColumnReader(outputFile).stream(colStats);
+            colStats.print();
+        }
+    }
     
     /**
      * Identifier for different steps in the D4 pipeline.
      */
+    private static final String STEP_COLUMN_DOMAINS = "columns-as-domains";
     private static final String STEP_COMPRESS_TERMINDEX = "eqs";
     private static final String STEP_EXPAND_COLUMNS = "expand-columns";
     private static final String STEP_EXPORT_DOMAINS = "export";
     private static final String STEP_GENERATE_COLUMNS = "columns";
     private static final String STEP_LOCAL_DOMAINS = "local-domains";
+    private static final String STEP_NO_EXPAND = "no-expand";
     private static final String STEP_SIGNATURES = "signatures";
     private static final String STEP_STRONG_DOMAINS = "strong-domains";
     private static final String STEP_TERMINDEX = "term-index";
@@ -489,6 +558,10 @@ public class D4 {
             "      " + STEP_EXPAND_COLUMNS + "\n" +
             "      " + STEP_LOCAL_DOMAINS + "\n" +
             "      " + STEP_STRONG_DOMAINS + "\n\n" +
+            "      Alternatives\n" +
+            "      ------------\n" +
+            "      " + STEP_NO_EXPAND + "\n" +
+            "      " + STEP_COLUMN_DOMAINS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
             "      " + STEP_EXPORT_DOMAINS + "\n\n" +
@@ -544,7 +617,7 @@ public class D4 {
                         outputDir
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "COLUMN FILES", ex);
+                LOGGER.log(Level.SEVERE, STEP_GENERATE_COLUMNS, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_TERMINDEX)) {
@@ -584,7 +657,7 @@ public class D4 {
                         outputFile
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "TERM INDEX", ex);
+                LOGGER.log(Level.SEVERE, STEP_TERMINDEX, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_COMPRESS_TERMINDEX)) {
@@ -612,7 +685,7 @@ public class D4 {
                         outputFile
                 );
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "EQUIVALENCE CLASSES", ex);
+                LOGGER.log(Level.SEVERE, STEP_COMPRESS_TERMINDEX, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_SIGNATURES)) {
@@ -659,7 +732,7 @@ public class D4 {
                         signatureFile
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "SIGNATURES", ex);
+                LOGGER.log(Level.SEVERE, STEP_SIGNATURES, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_EXPAND_COLUMNS)) {
@@ -710,7 +783,7 @@ public class D4 {
                         columnsFile
                 );
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "EXPAND COLUMNS", ex);
+                LOGGER.log(Level.SEVERE, STEP_EXPAND_COLUMNS, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_LOCAL_DOMAINS)) {
@@ -763,7 +836,7 @@ public class D4 {
                         localDomainFile
                 );
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "LOCAL DOMAINS", ex);
+                LOGGER.log(Level.SEVERE, STEP_LOCAL_DOMAINS, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_STRONG_DOMAINS)) {
@@ -814,7 +887,69 @@ public class D4 {
                         strongDomainFile
                 );
             } catch (java.lang.InterruptedException | java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "STRONG DOMAINS", ex);
+                LOGGER.log(Level.SEVERE, STEP_STRONG_DOMAINS, ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_NO_EXPAND)) {
+            // ----------------------------------------------------------------
+            // NO EXPAND
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "eqs",
+                                "<file> [default: 'compressed-term-index.txt.gz']"
+                        ),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("columns", "<file> [default: 'expanded-columns.txt.gz']")
+                    },
+                    args
+            );
+            File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            boolean verbose = params.getAsBool("verbose", true);
+            File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");
+            try {
+                new D4().writeColumns(
+                        eqFile,
+                        verbose,
+                        columnsFile
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, STEP_NO_EXPAND, ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_COLUMN_DOMAINS)) {
+            // ----------------------------------------------------------------
+            // COLUMN DOMAINS
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "eqs",
+                                "<file> [default: 'compressed-term-index.txt.gz']"
+                        ),
+                        new Parameter("columns", "<file> [default: 'expanded-columns.txt.gz']"),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter(
+                                "localdomains",
+                                "<file> [default: 'local-domains.txt.gz']"
+                        )
+                    },
+                    args
+            );
+            File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            File columnsFile = params.getAsFile("columns", "expanded-columns.txt.gz");     
+            boolean verbose = params.getAsBool("verbose", true);
+            File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
+            try {
+                new D4().columnsAsDomains(
+                        eqFile,
+                        columnsFile,
+                        verbose,
+                        localDomainFile
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, STEP_COLUMN_DOMAINS, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_EXPORT_DOMAINS)) {

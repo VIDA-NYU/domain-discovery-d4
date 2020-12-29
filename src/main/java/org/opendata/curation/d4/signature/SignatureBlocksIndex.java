@@ -91,7 +91,7 @@ public class SignatureBlocksIndex implements SignatureBlocksStream, SignatureBlo
         
         for (Integer nodeId : _elements.keySet()) {
             IndexElement el = _elements.get(nodeId);
-            consumer.consume(0, el.sim(), el.blocks());
+            consumer.consume(nodeId, el.sim(), el.blocks());
         }
         consumer.close();
     }

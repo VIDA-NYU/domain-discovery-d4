@@ -178,6 +178,18 @@ public class ParallelColumnExpander {
         this(new TelemetryPrinter());
     }
     
+    public void noExpand(IdentifiableObjectSet<Column> columns, File outputFile) {
+                
+        ExpandedColumnWriter writer;
+        writer = new ExpandedColumnWriter(outputFile);
+        
+        writer.open();
+        for (Column column : columns) {
+            writer.consume(new ImmutableExpandedColumn(column));
+        }
+        writer.close();
+    }
+
     public void run(
             Integer[] eqTermCounts,
             SignatureBlocksStream signatures,

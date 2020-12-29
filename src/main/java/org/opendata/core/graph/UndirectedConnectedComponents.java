@@ -17,6 +17,7 @@
  */
 package org.opendata.core.graph;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,6 +77,7 @@ public class UndirectedConnectedComponents implements ConnectedComponentGenerato
         }
     }
     
+    @Override
     public synchronized void edge(int sourceId, int targetId) {	
         
         int sourceCompId = _componentMap[sourceId];
