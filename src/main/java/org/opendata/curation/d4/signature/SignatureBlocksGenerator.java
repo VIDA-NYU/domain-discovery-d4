@@ -99,6 +99,7 @@ public class SignatureBlocksGenerator {
      * @param fullSignatureConstraint
      * @param ignoreLastDrop
      * @param ignoreMinorDrop
+     * @param includeBlockBeforeMinor
      * @param threads
      * @param verbose
      * @param consumer
@@ -111,6 +112,7 @@ public class SignatureBlocksGenerator {
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             boolean ignoreMinorDrop,
+            boolean includeBlockBeforeMinor,
             int threads,
             boolean verbose,
             ContextSignatureBlocksConsumer consumer
@@ -151,7 +153,8 @@ public class SignatureBlocksGenerator {
                             new ContextSignatureProcessor(
                                     eqTermCounts,
                                     candidateFinder,
-                                    ignoreMinorDrop
+                                    ignoreMinorDrop,
+                                    includeBlockBeforeMinor
                             ),
                             consumer
                     )

@@ -24,6 +24,6 @@ import org.opendata.core.object.IdentifiableObject;
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface IdentifiableIDSet extends IDSet, IdentifiableObject{
+public interface IdentifiableIDSet extends IDSet, IdentifiableObject {
 
 }

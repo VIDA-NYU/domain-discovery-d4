@@ -131,7 +131,8 @@ signatures
   --robustifier=<str> [default: LIBERAL | COMMON-COLUMN | IGNORE-LAST]
   --fullSignatureConstraint=<boolean> [default: true]
   --ignoreLastDrop=<boolean> [default: false]
-  --ignoreMinorDrop=<boolean> [default: true] 
+  --ignoreMinorDrop=<boolean> [default: true]
+  --blockBeforeMinor=<boolean> [default: false]
   --threads=<int> [default: 6]
   --verbose=<boolean> [default: true]
   --signatures=<file> [default: 'signatures.txt.gz']
@@ -143,7 +144,7 @@ The robust signature step starts by computing context signatures for each term. 
 - LOGJI: Logarithm of the Jaccard-Index similarity
 - TF-ICF: Weighted Jaccard-Index similarity. The weights for each term are computed using a tf-idf-like measure.
 
-For signature robustification the context signature is first divided into blocks of elements based on the idea of consecutive steepest drop , i.e., the maximum difference between consecutive elements in the sorted context signature. The `--ignoreMinorDrop` parameter can be used to avoid splitting the context signature in too many blocks based on irrelevant steepest drops in regions of low variablility. A minor drop is detected if the next steepest drop is smaller than the difference of the elements in the block that preceeds the drop. If the `--ignoreMinorDrop` parameter is `true` all remaining elements will be placed in a single final block if a minor drop occurs.
+For signature robustification the context signature is first divided into blocks of elements based on the idea of consecutive steepest drop, i.e., the maximum difference between consecutive elements in the sorted context signature. The `--ignoreMinorDrop` parameter can be used to avoid splitting the context signature in too many blocks particularly towards the end of the context signature where overall similarities are low and *steepest drops* tend to occur by chance. A minor drop is detected if the next steepest drop is smaller than the difference of the elements in the block that preceeds the drop. In case of a minor drop the `--blockBeforeMinor` parameter determines the remaining blocks. If the parameter is set to **true** the elements before the detected minor drop are included in the list of blocks as a separate block followed by one block with the remaining elements. If the parameter is **false** all elements (starting from the previous steepest drop) will be placed in a single final block.
 
 D4 then prunes all blocks starting from *noisy block* and only retains blocks that occur before that noisy block. There are three different strategies to identify the noisy block (controlled via the `--robustifier` parameter):
 

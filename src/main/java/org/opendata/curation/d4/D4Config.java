@@ -44,5 +44,5 @@ public final class D4Config {
     public final static String TRIMMER_CENTRIST = "CENTRIST";
     public final static String TRIMMER_CONSERVATIVE = "CONSERVATIVE";
     public final static String TRIMMER_LIBERAL = "LIBERAL";
-    
+    public final static String TRIMMER_OVERLAP = "OVERLAP";
 }

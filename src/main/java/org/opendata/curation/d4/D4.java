@@ -340,6 +340,7 @@ public class D4 {
             boolean fullSignatureConstraint,
             boolean ignoreLastDrop,
             boolean ignoreMinorDrop,
+            boolean includeBlockBeforeMinor,
             int threads,
             boolean verbose,
             TelemetryCollector telemetry,
@@ -358,6 +359,7 @@ public class D4 {
                             "  --fullSignatureConstraint=%s\n" +
                             "  --ignoreLastDrop=%s\n" +
                             "  --ignoreMinorDrop=%s\n" +
+                            "  --blockBeforeMinor=%s\n" +
                             "  --threads=%d\n" +
                             "  --signatures=%s",
                             STEP_SIGNATURES,
@@ -367,6 +369,7 @@ public class D4 {
                             Boolean.toString(fullSignatureConstraint),
                             Boolean.toString(ignoreLastDrop),
                             Boolean.toString(ignoreMinorDrop),
+                            Boolean.toString(includeBlockBeforeMinor),
                             threads,
                             outputFile.getAbsolutePath()
                     )
@@ -381,6 +384,7 @@ public class D4 {
                 fullSignatureConstraint,
                 ignoreLastDrop,
                 ignoreMinorDrop,
+                includeBlockBeforeMinor,
                 threads,
                 verbose,
                 db.getSignatureRobustifier(trimmerSpec, sigWriter)
@@ -703,6 +707,7 @@ public class D4 {
                         new Parameter("fullSignatureConstraint", "<boolean> [default: true]"),
                         new Parameter("ignoreLastDrop", "<boolean> [default: false]"),
                         new Parameter("ignoreMinorDrop", "<boolean> [default: true]"),
+                        new Parameter("blockBeforeMinor", "<boolean> [default: false]"),
                         new Parameter("threads", "<int> [default: 6]"),
                         new Parameter("verbose", "<boolean> [default: true]"),
                         new Parameter("signatures", "<file> [default: 'signatures.txt.gz']")
@@ -718,6 +723,7 @@ public class D4 {
             boolean fullSignatureConstraint = params.getAsBool("fullSignatureConstraint", true);
             boolean ignoreLastDrop = params.getAsBool("ignoreLastDrop", false);
             boolean ignoreMinorDrop = params.getAsBool("ignoreMinorDrop", true);
+            boolean includeBlockBeforeMinor = params.getAsBool("blockBeforeMinor", false);
             try {
                 new D4().signatures(
                         eqFile,
@@ -726,6 +732,7 @@ public class D4 {
                         fullSignatureConstraint,
                         ignoreLastDrop,
                         ignoreMinorDrop,
+                        includeBlockBeforeMinor,
                         threads,
                         verbose,
                         new TelemetryPrinter(),

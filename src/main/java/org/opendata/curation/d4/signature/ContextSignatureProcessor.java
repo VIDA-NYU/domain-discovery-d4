@@ -34,15 +34,18 @@ public class ContextSignatureProcessor {
     private final MaxDropFinder<ContextSignatureValue> _dropFinder;
     private final Integer[] _eqTermCounts;
     private final boolean _ignoreMinorDrop;
+    private final boolean _includeBlockBeforeMinor;
 
     public ContextSignatureProcessor(
             Integer[] eqTermCounts,
             MaxDropFinder<ContextSignatureValue> dropFinder,
-            boolean ignoreMinorDrop
+            boolean ignoreMinorDrop,
+            boolean includeBlockBeforeMinor
     ) {
         _eqTermCounts = eqTermCounts;
         _dropFinder = dropFinder;
         _ignoreMinorDrop = ignoreMinorDrop;
+        _includeBlockBeforeMinor = includeBlockBeforeMinor;
     }
     
     private ContextSignatureBlock getBlock(List<ContextSignatureValue> sig, int start, int end) {
@@ -79,6 +82,7 @@ public class ContextSignatureProcessor {
         while (start < end) {
             Drop drop = _dropFinder.getSteepestDrop(elements, start);
             int pruneIndex = drop.index();
+            boolean isMinorDrop = false;
             if (pruneIndex <= start) {
                 break;
             } else if ((!drop.isFullSignature()) && (_ignoreMinorDrop)) {
@@ -94,11 +98,31 @@ public class ContextSignatureProcessor {
                     // Otherwise, we add the remaining elements as the
                     // final block.
                     if (!blocks.isEmpty()) {
-                        pruneIndex = end;
+                        // Depending on the value of the includeBlockBeforeMinor
+                        // flag we either include all remaining elements in the
+                        // filal block (false) or include the block until the
+                        // current prune index and then the remaining elements
+                        // as a final block (true);
+                        if (_includeBlockBeforeMinor) {
+                            // Ensure that the block until the current prune
+                            // index is inclded as separate block.
+                            isMinorDrop = true;
+                        } else {
+                            // Put all elements since the previous drop into
+                            // one final block.
+                            pruneIndex = end;
+                        }
                     }
                 }
             }
             blocks.add(this.getBlock(elements, start, pruneIndex));
+            if (isMinorDrop) {
+                if (pruneIndex < end) {
+                    start = pruneIndex;
+                    pruneIndex = end;
+                    blocks.add(this.getBlock(elements, start, pruneIndex));
+                }
+            }
             start = pruneIndex;
         }
         if (!blocks.isEmpty()) {

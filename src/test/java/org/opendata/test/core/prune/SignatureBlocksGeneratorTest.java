@@ -19,7 +19,6 @@ package org.opendata.test.core.prune;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -28,14 +27,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opendata.core.prune.MaxDropFinder;
-import org.opendata.core.sort.DoubleValueDescSort;
 import org.opendata.curation.d4.signature.ContextSignature;
 import org.opendata.curation.d4.signature.ContextSignatureBlock;
 import org.opendata.curation.d4.signature.ContextSignatureBlocksIndex;
 import org.opendata.curation.d4.signature.SignatureBlock;
 import org.opendata.curation.d4.signature.ContextSignatureProcessor;
 import org.opendata.curation.d4.signature.ContextSignatureValue;
-import org.opendata.db.eq.similarity.SimilarityScore;
 
 /**
  * Unit tests for the signature blocks generator.
@@ -61,7 +58,8 @@ public class SignatureBlocksGeneratorTest {
         processor = new ContextSignatureProcessor(
                 eqTermCounts,
                 dropFinder,
-                ignoreMinorDrop
+                ignoreMinorDrop,
+                false
         );
         
         List<ContextSignatureValue> elements = new ArrayList<>();

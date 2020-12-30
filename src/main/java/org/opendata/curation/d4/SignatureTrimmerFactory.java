@@ -23,6 +23,7 @@ import org.opendata.curation.d4.signature.RobustSignatureConsumer;
 import org.opendata.curation.d4.signature.trim.CentristTrimmer;
 import org.opendata.curation.d4.signature.trim.ConservativeTrimmer;
 import org.opendata.curation.d4.signature.trim.NonTrimmer;
+import org.opendata.curation.d4.signature.trim.OverlapTrimmer;
 import org.opendata.curation.d4.signature.trim.PrecisionScore;
 import org.opendata.curation.d4.signature.trim.SignatureTrimmer;
 
@@ -64,6 +65,8 @@ public class SignatureTrimmerFactory {
             return new CentristTrimmer(column, new PrecisionScore(column, _eqTermCounts), consumer);
         } else if (_identifier.equals(D4Config.TRIMMER_LIBERAL)) {
             return new NonTrimmer(column, consumer);
+        } else if (_identifier.equals(D4Config.TRIMMER_OVERLAP)) {
+            return new OverlapTrimmer(column, consumer);
         }
         throw new IllegalArgumentException(
                 String.format("Invalid trimmer: %s", _identifier)
