@@ -18,16 +18,16 @@
 package org.opendata.db.column;
 
 import java.io.File;
-import java.io.PrintWriter;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.opendata.core.io.FileListReader;
-import org.opendata.core.io.FileSystem;
+import org.opendata.core.object.IdentifiableInteger;
+import org.opendata.core.util.IdentifiableCounterSet;
+import org.opendata.db.eq.CompressedTermIndex;
+import org.opendata.db.eq.CompressedTermIndexFile;
+import org.opendata.db.eq.EQ;
 
 /**
- * Print number of distinct values and total values in a collection of database
- * column files.
+ * Print number of terms for each column in a dataset.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
@@ -36,59 +36,41 @@ public class ColumnSizePrinter {
     /**
      * Output number of total values and distinct values per column.
      * 
-     * @param files
-     * @param out
+     * @param eqIndex
      * @throws java.io.IOException 
      */
-    public void run(List<File> files, PrintWriter out) throws java.io.IOException {
+    public void run(CompressedTermIndex eqIndex) throws java.io.IOException {
         
-        System.out.println(files.size() + " COLUMNS");
+        IdentifiableCounterSet columns = new IdentifiableCounterSet();
         
-        for (File file : files) {
-            try (FlexibleColumnReader reader = new FlexibleColumnReader(file)) {
-                int cellCount = 0;
-                int valueCount = 0;
-                while (reader.hasNext()) {
-                    cellCount += reader.next().getCount();
-                    valueCount++;
-                }
-                String name = file.getName();
-                name = name.substring(0, name.length() - 7);
-                int pos = name.indexOf(".");
-                String line = name.substring(0, pos) + "\t" + name.substring(pos + 1);
-                line += "\t" + valueCount + "\t" + cellCount;
-                out.println(line);
-                System.out.println(line);
-            } catch (java.lang.NumberFormatException ex) {
-                LOGGER.log(Level.SEVERE, file.getName(), ex);
-                System.exit(-1);
+        for (EQ eq : eqIndex) {
+            for (IdentifiableInteger col : eq.columnFrequencies()) {
+                columns.inc(col.id(), col.value());
             }
+        }
+        for (IdentifiableInteger col : columns.toSortedList(false)) {
+            System.out.println(String.format("%d\t%d", col.id(), col.value()));
         }
     }
     
     private static final String COMMAND =
             "Usage:\n" +
-            "  <column-file-or-dir>\n" +
-            "  <output-file>";
+            "  <eq-file>";
     
     private static final Logger LOGGER = Logger
             .getLogger(ColumnSizePrinter.class.getName());
     
     public static void main(String[] args) {
         
-        if (args.length != 2) {
+        if (args.length != 1) {
             System.out.println(COMMAND);
             System.exit(-1);
         }
         
-        File inFile = new File(args[0]);
-        File outputFile = new File(args[1]);
+        File eqFile = new File(args[0]);
         
-        try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new ColumnSizePrinter().run(
-                    new FileListReader(".txt").listFiles(inFile),
-                    out
-            );
+        try {
+            new ColumnSizePrinter().run(new CompressedTermIndexFile(eqFile));
         } catch (java.io.IOException ex) {
             LOGGER.log(Level.SEVERE, "RUN", ex);
             System.exit(-1);

@@ -19,16 +19,12 @@ package org.opendata.db.eq;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.set.HashIDSet;
 import org.opendata.core.set.SortedObjectSet;
-import org.opendata.core.set.SortedObjectSetIterator;
-import org.opendata.core.util.StringHelper;
 import org.opendata.core.util.IdentifiableCount;
-import org.opendata.db.column.ColumnHelper;
 import org.opendata.db.term.Term;
 import org.opendata.db.term.TermConsumer;
 
@@ -44,33 +40,6 @@ import org.opendata.db.term.TermConsumer;
  */
 public class CompressedTermIndexGenerator implements TermConsumer {
 
-    private class EQFileWriter implements EQWriter {
-
-        private int _counter;
-        private final PrintWriter _out;
-        
-        public EQFileWriter(PrintWriter out) {
-            
-            _out = out;
-            _counter = 0;
-        }
-        
-        @Override
-        public <T extends IdentifiableInteger> void write(List<Integer> terms, SortedObjectSet<T> columns) {
-
-            Collections.sort(terms);
-            
-            _out.println(
-                    String.format(
-                            "%d\t%s\t%s",
-                            _counter++,
-                            StringHelper.joinIntegers(terms),
-                            ColumnHelper.toArrayString(new SortedObjectSetIterator<>(columns))
-                    )
-            );
-        }
-    }
-    
     private class MutableEQ  {
 
         private final SortedObjectSet<IdentifiableCount> _columns;

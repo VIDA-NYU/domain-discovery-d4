@@ -110,6 +110,15 @@ public class IdentifiableCounterSet implements Iterable<IdentifiableCount> {
         return result;
     }
     
+    public HashMap<Integer, Integer> toMapping() {
+        
+        HashMap<Integer, Integer> mapping = new HashMap<>();
+        for (Integer id : _elements.keySet()) {
+            mapping.put(id, _elements.get(id).value());
+        }
+        return mapping;
+    }
+    
     public List<IdentifiableCount> toSortedList(boolean reverse) {
         
         List<IdentifiableCount> result = this.toList();
