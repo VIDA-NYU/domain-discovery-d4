@@ -42,6 +42,7 @@ import org.opendata.curation.d4.domain.Domain;
 import org.opendata.curation.d4.domain.InMemLocalDomainGenerator;
 import org.opendata.curation.d4.domain.StrongDomain;
 import org.opendata.curation.d4.domain.StrongDomainReader;
+import org.opendata.curation.d4.domain.StrongLocalDomainWriter;
 import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.ContextSignatureBlocksWriter;
@@ -534,6 +535,42 @@ public class D4 {
         }
     }
     
+    private void writeStrongLocalDomains(
+            File strongDomainFile,
+            File localDomainFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +                            
+                            "  --strongdomains=%s",
+                            "  --localdomains=%s\n" +
+                            "  --output=%s",
+                            STEP_STRONG_LOCAL_DOMAINS,
+                            localDomainFile.getAbsolutePath(),
+                            localDomainFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+
+        new StrongLocalDomainWriter().run(
+                new StrongDomainReader(strongDomainFile).read(),
+                new DomainReader(localDomainFile).read(),
+                new DomainWriter(outputFile)
+        );
+                
+        if (verbose) {
+            DomainSetStatsPrinter localStats = new DomainSetStatsPrinter();
+            new DomainReader(outputFile).stream(localStats);
+            localStats.print();
+        }
+}
+    
     /**
      * Identifier for different steps in the D4 pipeline.
      */
@@ -546,6 +583,7 @@ public class D4 {
     private static final String STEP_NO_EXPAND = "no-expand";
     private static final String STEP_SIGNATURES = "signatures";
     private static final String STEP_STRONG_DOMAINS = "strong-domains";
+    private static final String STEP_STRONG_LOCAL_DOMAINS = "strong-local-domains";
     private static final String STEP_TERMINDEX = "term-index";
 
     private static final String COMMAND =
@@ -566,6 +604,9 @@ public class D4 {
             "      ------------\n" +
             "      " + STEP_NO_EXPAND + "\n" +
             "      " + STEP_COLUMN_DOMAINS + "\n\n" +
+            "      Iterative\n" +
+            "      ---------\n" +
+            "      " + STEP_STRONG_LOCAL_DOMAINS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
             "      " + STEP_EXPORT_DOMAINS + "\n\n" +
@@ -957,6 +998,40 @@ public class D4 {
                 );
             } catch (java.io.IOException ex) {
                 LOGGER.log(Level.SEVERE, STEP_COLUMN_DOMAINS, ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_STRONG_LOCAL_DOMAINS)) {
+            // ----------------------------------------------------------------
+            // STRONG LOCAL DOMAINS
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "localdomains",
+                                "<file> [default: 'local-domains.txt.gz']"
+                        ),
+                        new Parameter(
+                                "strongdomains",
+                                "<file> [default: 'strong-domains.txt.gz']"
+                        ),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter("output", "<direcory> [default: 'strong-local-domains.txt.gz']"),
+                    },
+                    args
+            );
+            File localDomainFile = params.getAsFile("localdomains", "local-domains.txt.gz");
+            File strongDomainFile = params.getAsFile("strongdomains", "strong-domains.txt.gz");
+            boolean verbose = params.getAsBool("verbose", true);
+            File outputFile = params.getAsFile("output", "strong-local-domains.txt.gz");
+            try {
+                new D4().writeStrongLocalDomains(
+                        strongDomainFile,
+                        localDomainFile,
+                        verbose,
+                        outputFile
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, "WRITE STRONG LOCAL DOMAINS", ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_EXPORT_DOMAINS)) {
