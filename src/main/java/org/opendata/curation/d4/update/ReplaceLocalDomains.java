@@ -23,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.object.IdentifiableInteger;
 import org.opendata.core.object.IdentifiableObjectImpl;
@@ -34,11 +32,8 @@ import org.opendata.core.set.SortedObjectSet;
 import org.opendata.core.sort.IdentifiableObjectSort;
 import org.opendata.core.util.IdentifiableCount;
 import org.opendata.core.util.IdentifiableCounterSet;
-import org.opendata.curation.d4.Constants;
 import org.opendata.curation.d4.domain.Domain;
-import org.opendata.curation.d4.domain.DomainReader;
 import org.opendata.db.eq.CompressedTermIndex;
-import org.opendata.db.eq.CompressedTermIndexFile;
 import org.opendata.db.eq.EQ;
 import org.opendata.db.eq.EQFileWriter;
 import org.opendata.db.eq.EQWriter;
@@ -57,14 +52,14 @@ public class ReplaceLocalDomains {
     private class MutableEQ extends IdentifiableObjectImpl {
 
         private final HashMap<Integer, Integer> _columns;
-        private final List<List<Integer>> _terms;
+        private final List<EQ> _eqs;
 
-        public MutableEQ(int id, HashMap<Integer, Integer> columns, List<List<Integer>> terms) {
+        public MutableEQ(int id, HashMap<Integer, Integer> columns, List<EQ> eqs) {
 
             super(id);
 
             _columns = columns;
-            _terms = terms;
+            _eqs = eqs;
         }
 
         public MutableEQ(EQ eq) {
@@ -75,18 +70,13 @@ public class ReplaceLocalDomains {
             for (IdentifiableInteger col : eq.columnFrequencies()) {
                 _columns.put(col.id(), col.value());
             }
-            _terms = new ArrayList<>();
-            _terms.add(Arrays.asList(eq.terms()));
+            _eqs = new ArrayList<>();
+            _eqs.add(eq);
         }
 
-        public boolean isEmpty() {
-            
-            return _columns.isEmpty();
-        }
-        
-        public String key() {
+        public List<EQ> eqs() {
 
-            return new HashIDSet(_columns.keySet()).toIntString();
+            return _eqs;
         }
         
         public SortedObjectSet<IdentifiableInteger> columns() {
@@ -109,10 +99,20 @@ public class ReplaceLocalDomains {
             
             return _columns.keySet();
         }
+
+        public boolean isEmpty() {
+            
+            return _columns.isEmpty();
+        }
+        
+        public String key() {
+
+            return new HashIDSet(_columns.keySet()).toIntString();
+        }
         
         public void merge(MutableEQ eq) {
         
-            _terms.addAll(eq.terms());
+            _eqs.addAll(eq.eqs());
             for (Integer columnId : eq.columnIdentifiers()) {
                 int value = _columns.getOrDefault(columnId, 0) + eq.columnFrequency(columnId);
                 _columns.put(columnId, value);
@@ -123,16 +123,23 @@ public class ReplaceLocalDomains {
 
             _columns.remove(columnId);
         }
-
-        public List<List<Integer>> terms() {
-
-            return _terms;
+        
+        public List<Integer> terms() {
+            
+            HashIDSet terms = new HashIDSet();
+            for (EQ eq : _eqs) {
+                for (Integer tid : eq.terms()) {
+                    terms.add(tid);
+                }
+            }
+            return terms.toList();
         }
     }
     
     public void run(
             CompressedTermIndex eqIndex,
             Iterable<Domain> domains,
+            boolean verbose,
             EQWriter writer
     ) {
         
@@ -145,17 +152,25 @@ public class ReplaceLocalDomains {
         // Create new equivalence classes for given domains.
         int eqCounter = eqs.getMaxId() + 1;
         for (Domain domain : domains) {
-            LOGGER.log(Level.INFO, String.format("DOMAIN %d IS EQ %d", domain.id(), eqCounter));
-            List<List<Integer>> terms = new ArrayList<>();
+            List<EQ> members = new ArrayList<>();
             IdentifiableCounterSet columns = new IdentifiableCounterSet();
             for (int eqId : domain) {
                 MutableEQ eq = eqs.get(eqId);
-                terms.addAll(eq.terms());
+                members.addAll(eq.eqs());
                 for (int columnId : domain.columns()) {
                     columns.inc(columnId, eq.columnFrequency(columnId));
                 }
             }
-            eqs.add(new MutableEQ(eqCounter++, columns.toMapping(), terms));
+            if (verbose) {
+                System.out.println(
+                        String.format(
+                                "DOMAIN %d IS EQ %d",
+                                domain.id(),
+                                eqCounter
+                        )
+                );
+            }
+            eqs.add(new MutableEQ(eqCounter++, columns.toMapping(), members));
         }
         
         // Remove domain members from the respective columns.
@@ -178,7 +193,9 @@ public class ReplaceLocalDomains {
             String key = eq.key();
             if (compressedEqIndex.containsKey(key)) {
                 MutableEQ mergeEq = compressedEqIndex.get(key);
-                LOGGER.log(Level.INFO, String.format("MERGE %d AND %d", mergeEq.id(), eq.id()));
+                if (verbose) {
+                    System.out.println(String.format("MERGE %d INTO %d", eq.id(), mergeEq.id()));
+                }
                 mergeEq.merge(eq);
             } else {
                 compressedEqIndex.put(key, eq);
@@ -186,46 +203,26 @@ public class ReplaceLocalDomains {
         }
         
         for (MutableEQ eq : compressedEqIndex.values()) {
-            List<Integer> terms = new ArrayList<>();
-            for (List<Integer> t : eq.terms()) {
-                for (int termId : t) {
-                    terms.add(termId);
-                }
-            }
-            writer.write(terms, eq.columns());
+            writer.write(eq.terms(), eq.columns());
+        }
+        
+        if (verbose) {
+            System.out.println(String.format("\nNUMBER OF EQUIVALENCE CLASSES: %d", compressedEqIndex.size()));
         }
     }
-    
-    private final static String COMMAND =
-            "Usage:\n" +
-            "  <eq-file>\n" +
-            "  <domain-file>\n" +
-            "  <output-file>";
-    
-    private final static Logger LOGGER = Logger
-            .getLogger(ReplaceLocalDomains.class.getName());
-    
-    public static void main(String[] args) {
 
-        System.out.println(Constants.NAME + " - Replace equivalence classes for local domains - Version (" + Constants.VERSION + ")\n");
+    
+    public void run(
+            CompressedTermIndex eqIndex,
+            Iterable<Domain> domains,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
         
-        if (args.length != 3) {
-            System.out.println(COMMAND);
-            System.exit(-1);
-        }
-        
-        File eqFile = new File(args[0]);
-        File domainFile = new File(args[1]);
-        File outputFile = new File(args[2]);
+        FileSystem.createParentFolder(outputFile);
         
         try (PrintWriter out = FileSystem.openPrintWriter(outputFile)) {
-            new ReplaceLocalDomains().run(
-                    new CompressedTermIndexFile(eqFile),
-                    new DomainReader(domainFile).read(),
-                    new EQFileWriter(out)
-            );
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, "RUN", ex);
+            this.run(eqIndex, domains, verbose, new EQFileWriter(out));
         }
     }
 }

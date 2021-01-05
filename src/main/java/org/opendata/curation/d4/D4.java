@@ -47,6 +47,7 @@ import org.opendata.curation.d4.export.ExportStrongDomains;
 import org.opendata.curation.d4.signature.SignatureBlocksReader;
 import org.opendata.curation.d4.signature.ContextSignatureBlocksWriter;
 import org.opendata.curation.d4.signature.SignatureBlocksGenerator;
+import org.opendata.curation.d4.update.ReplaceLocalDomains;
 import org.opendata.db.eq.CompressedTermIndexFile;
 import org.opendata.db.eq.CompressedTermIndexGenerator;
 import org.opendata.db.term.TermIndexGenerator;
@@ -133,6 +134,37 @@ public class D4 {
         }
     }
 
+    public void domainsAsEquivalenceClasses(
+            File eqFile,
+            File domainFile,
+            boolean verbose,
+            File outputFile
+    ) throws java.io.IOException {
+        
+        if (verbose) {
+            System.out.println(
+                    String.format(
+                            "%s\n" +
+                            "  --eqs=%s\n" +
+                            "  --domains=%s\n" +
+                            "  --output=%s",
+                            STEP_DOMAINS_AS_EQS,
+                            eqFile.getAbsolutePath(),
+                            domainFile.getAbsolutePath(),
+                            outputFile.getAbsolutePath()
+                    )
+            );
+        }
+        
+        new ReplaceLocalDomains()
+                .run(
+                        new CompressedTermIndexFile(eqFile),
+                        new DomainReader(domainFile).read(),
+                        verbose,
+                        outputFile
+        );
+    }
+    
     public void eqs(
             File inputFile,
             boolean verbose,
@@ -282,7 +314,7 @@ public class D4 {
                             "  --trimmer=%s\n" +
                             "  --originalonly=%s\n" +
                             "  --threads=%d\n" +
-                            "  --inmem=false\n" +
+                            "  --inmem=%s\n" +
                             "  --localdomains=%s",
                             STEP_LOCAL_DOMAINS,
                             eqFile.getAbsolutePath(),
@@ -546,12 +578,11 @@ public class D4 {
             System.out.println(
                     String.format(
                             "%s\n" +
-                            "  --eqs=%s\n" +                            
                             "  --strongdomains=%s",
                             "  --localdomains=%s\n" +
                             "  --output=%s",
                             STEP_STRONG_LOCAL_DOMAINS,
-                            localDomainFile.getAbsolutePath(),
+                            strongDomainFile.getAbsolutePath(),
                             localDomainFile.getAbsolutePath(),
                             outputFile.getAbsolutePath()
                     )
@@ -576,6 +607,7 @@ public class D4 {
      */
     private static final String STEP_COLUMN_DOMAINS = "columns-as-domains";
     private static final String STEP_COMPRESS_TERMINDEX = "eqs";
+    private static final String STEP_DOMAINS_AS_EQS = "domains-as-eqs";
     private static final String STEP_EXPAND_COLUMNS = "expand-columns";
     private static final String STEP_EXPORT_DOMAINS = "export";
     private static final String STEP_GENERATE_COLUMNS = "columns";
@@ -606,7 +638,8 @@ public class D4 {
             "      " + STEP_COLUMN_DOMAINS + "\n\n" +
             "      Iterative\n" +
             "      ---------\n" +
-            "      " + STEP_STRONG_LOCAL_DOMAINS + "\n\n" +
+            "      " + STEP_STRONG_LOCAL_DOMAINS + "\n" +
+            "      " + STEP_DOMAINS_AS_EQS + "\n\n" +
             "      Explore Results\n" +
             "      ---------------\n" +
             "      " + STEP_EXPORT_DOMAINS + "\n\n" +
@@ -1031,7 +1064,44 @@ public class D4 {
                         outputFile
                 );
             } catch (java.io.IOException ex) {
-                LOGGER.log(Level.SEVERE, "WRITE STRONG LOCAL DOMAINS", ex);
+                LOGGER.log(Level.SEVERE, STEP_STRONG_LOCAL_DOMAINS, ex);
+                System.exit(-1);
+            }
+        } else if (command.equals(STEP_DOMAINS_AS_EQS)) {
+            // ----------------------------------------------------------------
+            // DOMAINS AS EQUIVALENCE CLASSES
+            // ----------------------------------------------------------------
+            CLP params = new CLP(
+                    new Parameter[] {
+                        new Parameter(
+                                "eqs",
+                                "<file> [default: 'compressed-term-index.txt.gz']"
+                        ),
+                        new Parameter(
+                                "domains",
+                                "<file> [default: 'local-domains.txt.gz']"
+                        ),
+                        new Parameter("verbose", "<boolean> [default: true]"),
+                        new Parameter(
+                                "output",
+                                "<file> [default: 'compressed-term-index.next-round-txt.gz']"
+                        ),
+                    },
+                    args
+            );
+            File eqFile = params.getAsFile("eqs", "compressed-term-index.txt.gz");
+            File domainFile = params.getAsFile("domains", "local-domains.txt.gz");
+            boolean verbose = params.getAsBool("verbose", true);
+            File outputFile = params.getAsFile("output", "compressed-term-index.next-round-txt.gz");
+            try {
+                new D4().domainsAsEquivalenceClasses(
+                        eqFile,
+                        domainFile,
+                        verbose,
+                        outputFile
+                );
+            } catch (java.io.IOException ex) {
+                LOGGER.log(Level.SEVERE, STEP_DOMAINS_AS_EQS, ex);
                 System.exit(-1);
             }
         } else if (command.equals(STEP_EXPORT_DOMAINS)) {
