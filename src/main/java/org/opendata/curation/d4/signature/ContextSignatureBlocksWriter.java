@@ -25,7 +25,8 @@ import java.util.List;
 import org.opendata.core.io.FileSystem;
 
 /**
- *
+ * Write context signature blocks to a file.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class ContextSignatureBlocksWriter implements ContextSignatureBlocksConsumer {
