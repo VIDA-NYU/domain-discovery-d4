@@ -91,8 +91,9 @@ public class Dataset2ColumnsConverter {
                 }
                 try (CSVParser in = this.tsvParser(file)) {
                     List<ColumnHandler> columns = new ArrayList<>();
+                    int colIndex = 0;
                     for (String colName : in.getHeaderNames()) {
-                        columns.add(_columnFactory.getHandler(dataset, colName));
+                        columns.add(_columnFactory.getHandler(dataset, colIndex++, colName));
                     }
                     for (CSVRecord row : in) {
                         for (int iColumn = 0; iColumn < row.size(); iColumn++) {
@@ -125,7 +126,15 @@ public class Dataset2ColumnsConverter {
             int cacheSize,
             boolean verbose
     ) {
-        _columnFactory = new ColumnFactory(outputDir, cacheSize, out);
+        _columnFactory = new DefaultColumnFactory(outputDir, cacheSize, out);
+        _verbose = verbose;
+    }
+    
+    public Dataset2ColumnsConverter(
+            ColumnFactory columnFactory,
+            boolean verbose
+    ) {
+        _columnFactory = columnFactory;
         _verbose = verbose;
     }
     

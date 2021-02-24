@@ -17,61 +17,13 @@
  */
 package org.opendata.db.tools;
 
-import java.io.File;
-import java.io.PrintWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.Counter;
-import org.opendata.core.util.SimpleCounter;
-import org.opendata.core.value.DefaultValueTransformer;
-
 /**
- * Factory for column files. Writes column information to given output file.
+ * Factory for column files. Defines the interface for generating column handlers
+ * when converting a dataset to column files.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class ColumnFactory {
+public interface ColumnFactory {
    
-    private static final Logger LOGGER = Logger
-            .getLogger(ColumnFactory.class.getName());
-    
-    private final int _cacheSize;
-    private final Counter _counter;
-    private final PrintWriter _out;
-    private final File _outputDir;
-    
-    public ColumnFactory(File outputDir, int cacheSize, PrintWriter out) {
-        
-        _outputDir = outputDir;
-        _cacheSize = cacheSize;
-        _out = out;
-
-        _counter = new SimpleCounter();
-
-        // Create output directory if it does not exist
-        FileSystem.createFolder(outputDir);
-    }
-    
-    public synchronized ColumnHandler getHandler(String dataset, String columnName) {
-
-        int columnId = _counter.inc();
-        String name = columnName.replaceAll("[^\\dA-Za-z]", "_");
-        File outputFile = FileSystem.joinPath(
-                _outputDir,
-                columnId + "." + name + ".txt.gz"
-        );
-        try {
-            ColumnHandler handler = new ColumnHandler(
-                    outputFile,
-                    new DefaultValueTransformer(),
-                    _cacheSize
-            );
-            _out.println(columnId + "\t" + name + "\t" + dataset);
-            return handler;
-        } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, name, ex);
-            return new ColumnHandler();
-        }
-    }
+    public ColumnHandler getHandler(String dataset, int columnIndex, String columnName);
 }

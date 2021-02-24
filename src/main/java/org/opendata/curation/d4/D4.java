@@ -578,7 +578,7 @@ public class D4 {
             System.out.println(
                     String.format(
                             "%s\n" +
-                            "  --strongdomains=%s",
+                            "  --strongdomains=%s" +
                             "  --localdomains=%s\n" +
                             "  --output=%s",
                             STEP_STRONG_LOCAL_DOMAINS,
