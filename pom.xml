@@ -70,7 +70,7 @@
                    <archive>
                       <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.opendata.curation.d4.D4</mainClass>
+                            <!--mainClass>org.opendata.curation.d4.D4</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.D4Interactive</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.signature.RobustSignatureGenerator</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.update.ReplaceLocalDomains</mainClass-->
@@ -79,6 +79,7 @@
                             <!--mainClass>org.opendata.curation.d4.evaluate.BestGTLocalMatchWriter</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.evaluate.PrepareGTFile</mainClass-->
                             <!--mainClass>org.opendata.curation.d4.export.ExportStrongDomains</mainClass-->
+                            <mainClass>org.opendata.db.tools.ColumnFilesGenerator</mainClass>
                             <!--mainClass>org.opendata.db.column.ColumnSizePrinter</mainClass-->
                             <!--mainClass>org.opendata.db.eq.EQColumnCountHistorgramWriter</mainClass-->
                       </manifest>

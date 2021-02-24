@@ -41,6 +41,9 @@ import org.opendata.core.value.ValueTransformer;
  * terms that are left in the cache and the result is written to the output
  * file.
  * 
+ * A negative cache size disables he caching option and always keeps the full
+ * column in memory.
+ * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
 public class ColumnHandler {
@@ -95,7 +98,7 @@ public class ColumnHandler {
                 if (!_terms.containsKey(term)) {
                     _terms.put(term, new SimpleCounter(1));
                     _cache.offer(term);
-                    if (_cache.size() > _cacheSize) {
+                    if ((_cacheSize > 0) && (_cache.size() > _cacheSize)) {
                         // Evict a term from the cache if the maximum cache
                         // size is reached. The term and its current count is
                         // written to the output file.
