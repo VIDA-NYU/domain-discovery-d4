@@ -20,11 +20,16 @@ package org.opendata.db.tools;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
+import java.util.Map.Entry;
 import org.opendata.core.io.FileSystem;
 import org.opendata.core.util.Counter;
 import org.opendata.core.util.SimpleCounter;
+import org.opendata.core.value.ValueCounter;
+import org.opendata.core.value.ValueCounterImpl;
 import org.opendata.core.value.ValueTransformer;
 
 /**
@@ -48,7 +53,6 @@ import org.opendata.core.value.ValueTransformer;
  */
 public class ColumnHandler {
     
-    private final LinkedList<String> _cache;
     private final int _cacheSize;
     private final File _file;
     private boolean _hasOutput;
@@ -68,7 +72,6 @@ public class ColumnHandler {
         _cacheSize = cacheSize;
         
         _out = FileSystem.openPrintWriter(file);
-        _cache = new LinkedList<>();
         // Maintain information whether elements were evicted from the cache
         // and written to file.
         _hasOutput = false;
@@ -86,7 +89,6 @@ public class ColumnHandler {
         _transformer = null;
         _cacheSize = -1;
         
-        _cache = null;
         _hasOutput = false;
     }
     
@@ -97,13 +99,12 @@ public class ColumnHandler {
             if (!term.equals("")) {
                 if (!_terms.containsKey(term)) {
                     _terms.put(term, new SimpleCounter(1));
-                    _cache.offer(term);
-                    if ((_cacheSize > 0) && (_cache.size() > _cacheSize)) {
-                        // Evict a term from the cache if the maximum cache
-                        // size is reached. The term and its current count is
-                        // written to the output file.
-                        String evict = _cache.poll();
-                        this.write(evict, _terms.remove(evict));
+                    if ((_cacheSize > 0) && (_terms.size() == _cacheSize)) {
+                        // Evict all terms from the cache to the output file.
+                        for (Entry<String, Counter> el : _terms.entrySet()) {
+                            this.write(el.getKey(), el.getValue());
+                        }
+                        _terms.clear();
                         _hasOutput = true;
                     }
                 } else {
@@ -116,6 +117,10 @@ public class ColumnHandler {
     public void close() {
 
         if (_out != null) {
+            List<ValueCounter> values = new ArrayList<>();
+            for (Entry<String, Counter> el : _terms.entrySet()) {
+                values.add(new ValueCounterImpl(el.getKey(), el.getValue().value()));
+            }
             // Read evicted terms (if any).
             if (_hasOutput) {
                 _out.close();
@@ -125,25 +130,39 @@ public class ColumnHandler {
                         String[] tokens = line.split("\t");
                         String term = tokens[0];
                         int count = Integer.parseInt(tokens[1]);
-                        if (!_terms.containsKey(term)) {
-                            _terms.put(term, new SimpleCounter(count));
-                        } else {
-                            _terms.get(term).inc(count);
-                        }
+                        values.add(new ValueCounterImpl(term, count));
                     }
                 } catch (java.io.IOException ex) {
                     throw new RuntimeException(ex);
                 }
-                try {
-                    _out = FileSystem.openPrintWriter(_file);
-                } catch (java.io.IOException ex) {
-                    throw new RuntimeException(ex);
+            }
+            Collections.sort(
+                    values,
+                    (ValueCounter v1, ValueCounter v2) -> {
+                        return v1.getText().compareTo(v2.getText());
+                    }
+            );
+            try {
+                _out = FileSystem.openPrintWriter(_file);
+                ValueCounter prevTerm = null;
+                for (ValueCounter val : values) {
+                    if (prevTerm == null) {
+                        prevTerm = val;
+                    } else if (prevTerm.getText().equals(val.getText())) {
+                        prevTerm.inc(val.getCount());
+                    } else {
+                        this.write(prevTerm.getText(), prevTerm);
+                        prevTerm = val;
+                    }
                 }
+                if (prevTerm != null) {
+                    this.write(prevTerm.getText(), prevTerm);
+                }
+            } catch (java.io.IOException ex) {
+                throw new RuntimeException(ex);
+            } finally {
+             _out.close();
             }
-            for (String term : _terms.keySet()) {
-                this.write(term, _terms.get(term));
-            }
-            _out.close();
         }
     }
     

@@ -17,6 +17,8 @@
  */
 package org.opendata.core.value;
 
+import org.opendata.core.util.Counter;
+
 /**
  * Default implementation of simple value counter.
  * 
@@ -50,9 +52,9 @@ public class ValueCounterImpl implements ValueCounter {
     }
 
     @Override
-    public int compareTo(ValueCounter value) {
+    public int compareTo(Counter value) {
 
-        return Integer.compare(_count, value.getCount());
+        return Integer.compare(_count, value.value());
     }
 
     @Override
@@ -66,22 +68,28 @@ public class ValueCounterImpl implements ValueCounter {
 	
         return _text;
     }
-    
+
     @Override
-    public int incCount() {
-	
-        return ++_count;
+    public int inc() {
+
+        return _count++;
     }
-    
+
     @Override
-    public int incCount(int increment) {
-	
-        return (_count += increment);
+    public int inc(int value) {
+
+        return _count += value;
     }
     
     @Override
     public boolean isEmpty() {
         
         return _text.trim().equals("");
+    }
+
+    @Override
+    public int value() {
+
+        return this.getCount();
     }
 }

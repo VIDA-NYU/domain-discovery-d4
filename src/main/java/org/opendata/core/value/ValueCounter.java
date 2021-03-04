@@ -17,13 +17,15 @@
  */
 package org.opendata.core.value;
 
+import org.opendata.core.util.Counter;
+
 /**
  * Simple counter of value occurrences. Contains the text representation of the
  * value and a counter that can be incremented.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface ValueCounter extends Comparable<ValueCounter> {
+public interface ValueCounter extends Counter {
     
     /**
      * Current value count.
@@ -40,19 +42,9 @@ public interface ValueCounter extends Comparable<ValueCounter> {
     public String getText();
     
     /**
-     * Increment the value count by 1.
+     * True, if the counter value is zero.
      * 
-     * @return	Count after increment
+     * @return 
      */
-    public int incCount();
-    
-    /**
-     * Increment value counter by given value.
-     * 
-     * @param increment	Value to increment counter with.
-     * @return	Count after increment
-     */
-    public int incCount(int increment);
-    
     public boolean isEmpty();
 }
