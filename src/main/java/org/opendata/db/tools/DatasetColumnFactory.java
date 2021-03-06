@@ -22,47 +22,37 @@ import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.opendata.core.io.FileSystem;
-import org.opendata.core.util.Counter;
-import org.opendata.core.util.SimpleCounter;
 import org.opendata.core.value.DefaultValueTransformer;
 
 /**
- * Default implementation for the column file factory interface. This
- * implementation is intended for use when converting the full dataset into
- * column files.
+ * Column file factory when processing columns from datasets of different
+ * domains. Column files are named by dataset identifier and column index
+ * instead of the column name.
  * 
  * @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public class DefaultColumnFactory implements ColumnFactory {
+public class DatasetColumnFactory implements ColumnFactory {
    
     private static final Logger LOGGER = Logger
-            .getLogger(DefaultColumnFactory.class.getName());
+            .getLogger(DatasetColumnFactory.class.getName());
     
     private final int _cacheSize;
-    private final Counter _counter;
     private final PrintWriter _out;
     private final File _outputDir;
     
-    public DefaultColumnFactory(File outputDir, int cacheSize, PrintWriter out) {
+    public DatasetColumnFactory(File outputDir, int cacheSize, PrintWriter out) {
         
         _outputDir = outputDir;
         _cacheSize = cacheSize;
         _out = out;
-
-        _counter = new SimpleCounter();
-
-        // Create output directory if it does not exist
-        FileSystem.createFolder(outputDir);
     }
     
     @Override
     public synchronized ColumnHandler getHandler(String dataset, int columnIndex, String columnName) {
 
-        int columnId = _counter.inc();
-        String name = columnName.replaceAll("[^\\dA-Za-z]", "_");
         File outputFile = FileSystem.joinPath(
                 _outputDir,
-                columnId + "." + name + ".txt.gz"
+                dataset + "." + columnIndex + ".txt.gz"
         );
         try {
             ColumnHandler handler = new ColumnHandler(
@@ -70,10 +60,17 @@ public class DefaultColumnFactory implements ColumnFactory {
                     new DefaultValueTransformer(),
                     _cacheSize
             );
-            _out.println(columnId + "\t" + name + "\t" + dataset);
+            _out.println(
+                    String.format(
+                            "%s\t%d\t%s",
+                            dataset,
+                            columnIndex,
+                            columnName.replaceAll("\\s+", " ")
+                    )
+            );
             return handler;
         } catch (java.io.IOException ex) {
-            LOGGER.log(Level.SEVERE, name, ex);
+            LOGGER.log(Level.SEVERE, String.format("%s (%d)", dataset, columnIndex), ex);
             return new ColumnHandler();
         }
     }

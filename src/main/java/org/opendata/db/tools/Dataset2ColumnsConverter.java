@@ -154,11 +154,15 @@ public class Dataset2ColumnsConverter {
 
         ConcurrentLinkedQueue<File> queue = new ConcurrentLinkedQueue<>(files);
         
-        ExecutorService es = Executors.newCachedThreadPool();
-        for (int iThread = 0; iThread < threads; iThread++) {
-            es.execute(new DatasetConverter(queue, _columnFactory, _verbose));
+        if (threads > 1) {
+            ExecutorService es = Executors.newCachedThreadPool();
+            for (int iThread = 0; iThread < threads; iThread++) {
+                es.execute(new DatasetConverter(queue, _columnFactory, _verbose));
+            }
+            es.shutdown();
+            es.awaitTermination(threads, TimeUnit.DAYS);        
+        } else {
+            new DatasetConverter(queue, _columnFactory, _verbose).run();
         }
-        es.shutdown();
-        es.awaitTermination(threads, TimeUnit.DAYS);        
     }
 }
