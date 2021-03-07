@@ -36,7 +36,8 @@ import org.opendata.core.metric.Support;
 import org.opendata.core.util.FormatedBigDecimal;
 import org.opendata.curation.d4.Constants;
 import org.opendata.db.column.ColumnReader;
-import org.opendata.db.column.FlexibleColumnReader;
+import org.opendata.db.column.ColumnReaderFactory;
+import org.opendata.db.column.FlexibleColumnReaderFactory;
 
 /**
  * Create a term index file. The output file is tab-delimited and contains three
@@ -50,17 +51,20 @@ public class TermIndexGenerator {
     private class TermGeneratorTask implements Runnable {
 
         private final ConcurrentLinkedQueue<File> _queue;
+        private final ColumnReaderFactory _readerFactory;
         private final TermIndexFile _termIndex;
         private final Threshold _textThreshold;
         private final boolean _verbose;
         
         public TermGeneratorTask(
                 ConcurrentLinkedQueue<File> queue,
+                ColumnReaderFactory readerFactory,
                 Threshold textThreshold,
                 boolean verbose,
                 TermIndexFile termIndex
         ) {
             _queue = queue;
+            _readerFactory = readerFactory;
             _textThreshold = textThreshold;
             _verbose = verbose;
             _termIndex = termIndex;
@@ -71,9 +75,9 @@ public class TermIndexGenerator {
             
             DefaultDataTypeAnnotator annotator = new DefaultDataTypeAnnotator();
 
-            File file = null;
+            File file;
             while ((file = _queue.poll()) != null) {
-                ColumnReader reader = new FlexibleColumnReader(file);
+                ColumnReader reader = _readerFactory.getReader(file);
                 Date start = new Date();
                 int textCount = 0;
                 int valueCount = 0;
@@ -106,7 +110,7 @@ public class TermIndexGenerator {
                     continue;
                 }
                 final int columnId = reader.columnId();
-                reader = new FlexibleColumnReader(file);
+                reader = reader.cloneReader();
                 while (reader.hasNext()) {
                     _termIndex.add(columnId, reader.next());
                 }
@@ -116,6 +120,7 @@ public class TermIndexGenerator {
     
     public void run(
             List<File> files,
+            ColumnReaderFactory readerFactory,
             Threshold textThreshold,
             int bufferSize,
             boolean validate,
@@ -141,6 +146,7 @@ public class TermIndexGenerator {
             es.execute(
                     new TermGeneratorTask(
                             queue,
+                            readerFactory,
                             textThreshold,
                             verbose,
                             termIndex
@@ -151,6 +157,28 @@ public class TermIndexGenerator {
         es.awaitTermination(threads, TimeUnit.DAYS);
         
         termIndex.write(outputFile, validate);
+    }
+    
+    public void run(
+            List<File> files,
+            Threshold textThreshold,
+            int bufferSize,
+            boolean validate,
+            int threads,
+            boolean verbose,
+            File outputFile
+    ) throws java.lang.InterruptedException, java.io.IOException {
+        
+        this.run(
+                files,
+                new FlexibleColumnReaderFactory(),
+                textThreshold,
+                bufferSize,
+                validate,
+                threads,
+                verbose,
+                outputFile
+        );
     }
     
     private final static String COMMAND =

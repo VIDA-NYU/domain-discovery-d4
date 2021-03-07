@@ -20,11 +20,15 @@ package org.opendata.db.column;
 import java.io.File;
 
 /**
- * Factory pattern for column readers.
+ * Factory for FlexibleColumnReader.
  * 
- * @author Heiko Mueller <heiko.mueller@nyu.edu>
+ * @author @author Heiko Mueller <heiko.mueller@nyu.edu>
  */
-public interface ColumnReaderFactory {
-    
-    public ColumnReader getReader(File file);
+public class FlexibleColumnReaderFactory implements ColumnReaderFactory {
+
+    @Override
+    public ColumnReader getReader(File file) {
+        
+        return new FlexibleColumnReader(file);
+    }
 }

@@ -42,10 +42,8 @@ public abstract class ColumnReader<T extends ValueCounter> implements AutoClosea
      * @return 
      */
     public abstract ColumnReader<T> cloneReader();
-    /**
-     * Close the reader.
-     * 
-     */
+    
+    @Override
     public abstract void close();
     
     /**
