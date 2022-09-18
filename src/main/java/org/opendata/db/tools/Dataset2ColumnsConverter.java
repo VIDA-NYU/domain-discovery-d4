@@ -64,9 +64,16 @@ public class Dataset2ColumnsConverter {
         
         private CSVParser tsvParser(File file) throws java.io.IOException {
 
+            System.out.println("GET PARSER FOR FILE " + file.getAbsolutePath());
+            CSVFormat format = null;
+            if ((file.getName().endsWith(".csv")) || file.getName().endsWith(".csv.gz")) {
+                format = CSVFormat.DEFAULT;
+            } else {
+                format = CSVFormat.TDF;
+            }
             return new CSVParser(
                     new InputStreamReader(FileSystem.openFile(file)),
-                    CSVFormat.TDF
+                    format
                             .withFirstRecordAsHeader()
                             .withIgnoreHeaderCase()
                             .withIgnoreSurroundingSpaces(false)
@@ -79,15 +86,18 @@ public class Dataset2ColumnsConverter {
             File file;
             while ((file = _files.poll()) != null) {
                 String dataset;
-                if (file.getName().endsWith(".tsv")) {
+                if ((file.getName().endsWith(".csv")) || (file.getName().endsWith(".tsv"))) {
                     dataset = file.getName().substring(0, file.getName().length() - 4);
-                } else if (file.getName().endsWith(".tsv.gz")) {
+                } else if ((file.getName().endsWith(".csv.gz")) || (file.getName().endsWith(".tsv.gz"))) {
                     dataset = file.getName().substring(0, file.getName().length() - 7);
                 } else {
-                    return;
+                    if (_verbose) {
+                        System.out.println(String.format("Ignoring file %s", file.getName()));
+                    }
+                    continue;
                 }
                 if (_verbose) {
-                    System.out.println(file.getName());
+                    System.out.println(String.format("Processing file %s", file.getName()));
                 }
                 try (CSVParser in = this.tsvParser(file)) {
                     List<ColumnHandler> columns = new ArrayList<>();
